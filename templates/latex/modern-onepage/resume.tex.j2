@@ -1,0 +1,14 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[UTF8,fontset=fandol]{ctex}
+\usepackage[margin=17mm]{geometry}
+\usepackage{xcolor}
+\definecolor{atlas}{HTML}{002FA7}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+{% for fact in facts %}
+{% if loop.first %}{\LARGE\color{atlas} {{ fact.text }}}\par\medskip\hrule\medskip
+{% else %}{{ fact.text }}\par\vspace{5pt}
+{% endif %}
+{% endfor %}
+\end{document}

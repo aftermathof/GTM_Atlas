@@ -1,0 +1,930 @@
+<!doctype html>
+<html lang="zh-CN" data-accent="ikb">
+<head>
+  <meta charset="utf-8">
+  <title>第三章 常见经营痛点与解决思路 · GTM体系学习</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* =========================================================
+       Swiss International — Social Card Seed Template
+       ---------------------------------------------------------
+       Three boards built in one HTML:
+         .poster.xhs      1080×1440  (3:4   小红书)
+         .poster.square   1080×1080  (1:1   微信方封面)
+         .poster.wide     2100× 900  (21:9  微信主封面)
+         .pair-preview                       21:9 + 1:1 配对预览
+
+       Accent switching via <html data-accent="…">:
+         ikb (Klein Blue) | lemon-yellow | lemon-green | safety-orange
+
+       Fill posters where marked <!-- POSTERS_HERE -->.
+       Each poster carries one Layout Recipe (S01-S12) from
+       references/layout-recipes.md.
+       ========================================================= */
+
+    /* ---------- 1. Accent palettes (4 mutually exclusive) ---------- */
+    :root,
+    [data-accent="ikb"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #002FA7;
+      --accent-on: #ffffff;
+    }
+    [data-accent="lemon-yellow"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #FFD500;
+      --accent-on: #0a0a0a;
+    }
+    [data-accent="lemon-green"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #C5E803;
+      --accent-on: #0a0a0a;
+    }
+    [data-accent="safety-orange"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #FF6B35;
+      --accent-on: #ffffff;
+    }
+
+    /* ---------- 2. Typography stack ---------- */
+    :root {
+      --sans:    "Inter", "Helvetica Neue", Helvetica, "Noto Sans SC",
+                 -apple-system, "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      --sans-zh: "Noto Sans SC", -apple-system, "PingFang SC",
+                 "Microsoft YaHei UI", "Inter", sans-serif;
+      --mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+    }
+
+    /* ---------- 3. Spacing tokens (8/12/16/24/32/40/48/64/80/96/160) ---------- */
+    :root {
+      --sp-3:   8px;
+      --sp-4:  12px;
+      --sp-5:  16px;
+      --sp-6:  24px;
+      --sp-7:  32px;
+      --sp-8:  40px;
+      --sp-9:  48px;
+      --sp-10: 64px;
+      --sp-11: 80px;
+      --sp-12: 96px;
+      --sp-13:160px;
+    }
+
+    /* ---------- 4. Reset & sheet ---------- */
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: #1a1a1a;
+      font-family: var(--sans);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: 64px 32px;
+    }
+    .sheet {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
+    }
+
+    /* ---------- 5. Poster boards (fixed export sizes) ---------- */
+    .poster {
+      position: relative;
+      background: var(--paper);
+      color: var(--ink);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .poster.xhs    { width: 1080px; height: 1440px; }
+    .poster.square { width: 1080px; height: 1080px; }
+    .poster.wide   { width: 2100px; height:  900px; }
+    .poster figure { margin: 0; }
+
+    .poster.xhs    .content { padding: var(--sp-12) var(--sp-11); }
+    .poster.square .content { padding: var(--sp-11) var(--sp-11); }
+    .poster.wide   .content { padding: var(--sp-11) var(--sp-13); }
+    .content { position: relative; width: 100%; height: 100%; z-index: 2; }
+
+    /* Optional decorative layers — opt in per poster */
+    .dot-mat,
+    .ring-mat,
+    .cross-mat {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .dot-mat {
+      opacity: .08;
+      background-image: radial-gradient(var(--ink) 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+    }
+    .ring-mat {
+      opacity: .08;
+      background-image: radial-gradient(circle at 50% 50%, transparent 4px, var(--ink) 4.5px, var(--ink) 5px, transparent 5.5px);
+      background-size: 32px 32px;
+    }
+    .cross-mat {
+      opacity: .06;
+      background-image:
+        linear-gradient(var(--ink), var(--ink)),
+        linear-gradient(90deg, var(--ink), var(--ink));
+      background-size: 1px 14px, 14px 1px;
+      background-position: center, center;
+      background-repeat: repeat;
+    }
+
+    /* ---------- 6. Typography roles (Swiss extreme contrast) ----------
+       Hard rule: "the larger, the lighter"
+       ≥ 200px → weight 200 (ExtraLight)
+       Smaller text gets heavier weight (≥ 500). */
+    .h-hero {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 240px;
+      line-height: 1.02;
+      letter-spacing: -.02em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-statement {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 180px;
+      line-height: 1.05;
+      letter-spacing: -.015em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-xl {
+      font-family: var(--sans);
+      font-weight: 300;
+      font-size: 120px;
+      line-height: 1.08;
+      letter-spacing: -.01em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-md {
+      font-family: var(--sans);
+      font-weight: 400;
+      font-size: 56px;
+      line-height: 1.18;
+      margin: 0;
+      color: var(--ink);
+    }
+    .lead {
+      font-family: var(--sans-zh);
+      font-weight: 400;
+      font-size: 30px;
+      line-height: 1.55;
+      color: var(--ink);
+      margin: 0;
+    }
+    .body {
+      font-family: var(--sans-zh);
+      font-weight: 400;
+      font-size: 26px;
+      line-height: 1.6;
+      color: var(--ink);
+      margin: 0;
+    }
+    .t-cat {
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0;
+    }
+    .t-meta {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 20px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+    .num-mega {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 200px;
+      line-height: .92;
+      letter-spacing: -.03em;
+      color: var(--ink);
+      margin: 0;
+    }
+    .num-xl {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 144px;
+      line-height: .96;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .mono { font-family: var(--mono); }
+
+    /* XHS (3:4) boards: 1080×1440 has the tightest vertical budget,
+       so display sizes step down vs the .wide default. These caps
+       were validated by the smoke-ai-tools deck — 2-line h-xl @96px
+       leaves room for matrix + hero-stat-bottom inside 1440px. */
+    .poster.xhs .h-hero          { font-size: 168px; }
+    .poster.xhs .h-statement     { font-size: 124px; }
+    .poster.xhs .h-xl            { font-size: 96px; }
+    .poster.xhs .num-mega        { font-size: 168px; }
+    .poster.xhs .num-xl          { font-size: 120px; }
+
+    /* Square boards tighten scales */
+    .poster.square .h-hero       { font-size: 180px; }
+    .poster.square .h-statement  { font-size: 140px; }
+    .poster.square .h-xl         { font-size: 88px; }
+    .poster.square .num-mega     { font-size: 168px; }
+    .poster.square .num-xl       { font-size: 112px; }
+
+    /* Wide boards rely on horizontal real estate */
+    .poster.wide .h-hero         { font-size: 200px; }
+    .poster.wide .h-statement    { font-size: 156px; }
+    .poster.wide .h-xl           { font-size: 104px; }
+
+    /* ---------- 7. Layout primitives ---------- */
+    .stack    { display: flex; flex-direction: column; }
+    .row      { display: flex; flex-direction: row; }
+    .gap-3    { gap: var(--sp-3); }
+    .gap-4    { gap: var(--sp-4); }
+    .gap-5    { gap: var(--sp-5); }
+    .gap-6    { gap: var(--sp-6); }
+    .gap-7    { gap: var(--sp-7); }
+    .gap-8    { gap: var(--sp-8); }
+    .gap-9    { gap: var(--sp-9); }
+    .gap-10   { gap: var(--sp-10); }
+    .grow     { flex: 1; }
+    .grid-12  { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--sp-7); }
+    .grid-2-9 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+    .grid-3   { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-7); }
+    .grid-4   { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-6); }
+    .span-2   { grid-column: span 2; }
+    .span-3   { grid-column: span 3; }
+    .span-4   { grid-column: span 4; }
+    .span-6   { grid-column: span 6; }
+    .span-8   { grid-column: span 8; }
+    .span-9   { grid-column: span 9; }
+    .span-12  { grid-column: span 12; }
+    .center   { text-align: center; }
+    .right    { text-align: right; }
+    .uppercase{ text-transform: uppercase; }
+    .hr-hairline {
+      height: 1px;
+      background: var(--grey-2);
+      border: 0;
+      margin: 0;
+    }
+    .hr-accent {
+      height: 3px;
+      background: var(--accent);
+      border: 0;
+      width: 96px;
+      margin: 0;
+    }
+
+    /* ---------- 8. Card fills (mutually exclusive — pick ONE) ----------
+       Hard rule: never combine card-ink/card-accent/card-fill/card-outlined
+       on the same node. Multi-card grids must use the same class. */
+    .card-ink {
+      background: var(--ink);
+      color: var(--paper);
+      padding: var(--sp-8);
+    }
+    .card-ink .t-cat,
+    .card-ink .t-meta,
+    .card-ink .lead,
+    .card-ink .body,
+    .card-ink .h-md { color: var(--paper); }
+    .card-accent {
+      background: var(--accent);
+      color: var(--accent-on);
+      padding: var(--sp-8);
+    }
+    .card-accent .t-cat,
+    .card-accent .t-meta,
+    .card-accent .lead,
+    .card-accent .body,
+    .card-accent .h-md { color: var(--accent-on); }
+    .card-fill {
+      background: var(--grey-1);
+      color: var(--ink);
+      padding: var(--sp-8);
+    }
+    .card-outlined {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--grey-2);
+      padding: var(--sp-8);
+    }
+
+    /* ---------- 9. Frame containers (image holders) ---------- */
+    .frame-img {
+      position: relative;
+      overflow: hidden;
+      background: var(--grey-1);
+      display: block;
+      margin: 0;
+    }
+    .frame-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      display: block;
+    }
+    .frame-img.fit-contain img { object-fit: contain; background: var(--paper); }
+    .frame-img.r-3x4   { aspect-ratio: 3 / 4; }
+    .frame-img.r-1x1   { aspect-ratio: 1 / 1; }
+    .frame-img.r-4x3   { aspect-ratio: 4 / 3; }
+    .frame-img.r-16x9  { aspect-ratio: 16 / 9; }
+    .frame-img.r-16x10 { aspect-ratio: 16 / 10; }
+    .frame-img.r-21x9  { aspect-ratio: 21 / 9; }
+    .swiss-img-caption {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin-top: var(--sp-5);
+    }
+
+    /* ---------- 9b. Screenshot treatment (.frame-shot) ---------- */
+    /* Swiss is stricter than Editorial: corners default square, shadows default
+       none. Override only when the shot must literally float off the page.   */
+    .frame-shot {
+      position: relative;
+      overflow: hidden;
+      display: block;
+      margin: 0;
+      background: var(--grey-1);
+      border-radius: 0;
+    }
+    .frame-shot.corners-sq { border-radius: 0; }
+    .frame-shot.corners-sm { border-radius: 4px; }
+    .frame-shot.corners-md { border-radius: 10px; }
+
+    /* Swiss shadows are flat — only the subtle outline scrim is welcome */
+    .frame-shot.shadow-soft { box-shadow: 0 12px 28px -16px rgba(0,0,0,.18); }
+    .frame-shot.shadow-ed   { box-shadow: 0 20px 40px -20px rgba(0,0,0,.22), 0 0 0 1px var(--grey-2); }
+
+    /* background tones — pure / dot / grid only. No accent colour fills. */
+    .frame-shot.bg-paper    { background: var(--paper); }
+    .frame-shot.bg-grey-1   { background: var(--grey-1); }
+    .frame-shot.bg-ink      { background: var(--ink); }
+    .frame-shot.bg-grid     {
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(to right, var(--grey-2) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grey-2) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .frame-shot.bg-dot {
+      background-color: var(--paper);
+      background-image: radial-gradient(var(--grey-2) 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+
+    /* asset backgrounds — ported from PPT skill, real texture for screenshot wells.
+       Use ONLY when current accent matches the asset's accent (don't mix oranges and IKB). */
+    .frame-shot.bg-asset-ikb-dot          { background: #0c1a3a url("../assets/screenshot-backgrounds/style-b/ikb-dot-gradient.webp")       center/cover no-repeat; }
+    .frame-shot.bg-asset-lemon-green-dot  { background: #d6e08a url("../assets/screenshot-backgrounds/style-b/lemon-green-dot-shadow.webp") center/cover no-repeat; }
+    .frame-shot.bg-asset-lemon-grid       { background: #e6e9b8 url("../assets/screenshot-backgrounds/style-b/lemon-grid.webp")             center/cover no-repeat; }
+    .frame-shot.bg-asset-safety-orange    { background: #ff5b1f url("../assets/screenshot-backgrounds/style-b/safety-orange-halftone.webp") center/cover no-repeat; }
+
+    .frame-shot.inset-none > img,
+    .frame-shot.inset-none > .shot-body { padding: 0; }
+    .frame-shot.inset-sub  { padding: 20px; }
+    .frame-shot.inset-bal  { padding: 48px; }
+
+    .frame-shot.r-3x4   { aspect-ratio: 3 / 4; }
+    .frame-shot.r-1x1   { aspect-ratio: 1 / 1; }
+    .frame-shot.r-4x3   { aspect-ratio: 4 / 3; }
+    .frame-shot.r-16x9  { aspect-ratio: 16 / 9; }
+    .frame-shot.r-16x10 { aspect-ratio: 16 / 10; }
+    .frame-shot.r-21x9  { aspect-ratio: 21 / 9; }
+    .frame-shot.r-3x2   { aspect-ratio: 3 / 2; }
+
+    .frame-shot > img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      border-radius: inherit;
+    }
+    .frame-shot.fit-cover > img { object-fit: cover; }
+
+    /* device chrome — CSS-only, no SVG */
+    .device-browser {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--grey-2);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .device-browser::before {
+      content: '';
+      display: block;
+      height: 32px;
+      background: var(--grey-1);
+      border-bottom: 1px solid var(--grey-2);
+      background-image:
+        radial-gradient(circle at 16px 16px, var(--grey-3) 4px, transparent 4.5px),
+        radial-gradient(circle at 34px 16px, var(--grey-3) 4px, transparent 4.5px),
+        radial-gradient(circle at 52px 16px, var(--grey-3) 4px, transparent 4.5px);
+    }
+    .device-browser > .frame-shot,
+    .device-browser > img {
+      border-radius: 0;
+      display: block;
+      width: 100%;
+    }
+    .device-phone {
+      position: relative;
+      background: var(--ink);
+      border-radius: 28px;
+      padding: 12px;
+      box-shadow: 0 16px 36px -18px rgba(0,0,0,.32);
+    }
+    .device-phone > .frame-shot,
+    .device-phone > img {
+      border-radius: 18px;
+      display: block;
+      width: 100%;
+    }
+
+    /* ---------- 9c. Map block (.map-block) ---------- */
+    /* Static map for Swiss decks. Pins are pure HTML, no SVG text.
+       Use accent sparingly: at most one accent pin per board. */
+    .map-block {
+      position: relative;
+      background: var(--grey-1);
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      width: 100%;
+    }
+    .map-block.r-16x10 { aspect-ratio: 16 / 10; }
+    .map-block.r-16x9  { aspect-ratio: 16 / 9; }
+    .map-block.r-1x1   { aspect-ratio: 1 / 1; }
+    .map-block.r-3x4   { aspect-ratio: 3 / 4; }
+    .map-block > img,
+    .map-block > svg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+    .map-block > img { object-fit: cover; }
+    /* desaturated tile filter to keep Swiss strict tone */
+    .map-block.tone-paper > img { filter: saturate(0) contrast(1.05) brightness(1.02); }
+    .map-block.tone-ink > img   { filter: saturate(0) brightness(.58); }
+    /* schematic SVG defaults */
+    .map-block > svg .map-coast { fill: none; stroke: var(--grey-2); stroke-width: .4; }
+    .map-block > svg .map-road  { fill: none; stroke: var(--grey-3); stroke-width: .28; stroke-dasharray: 1.2 .8; opacity: .7; }
+    .map-block > svg .map-water { fill: var(--grey-1); }
+    .map-block > svg .map-grid  { stroke: var(--grey-2); stroke-width: .15; opacity: .5; }
+
+    .map-pin {
+      position: absolute;
+      width: 0; height: 0;
+      transform: translate(-50%, -50%);
+    }
+    .map-pin .dot {
+      position: absolute;
+      left: -6px; top: -6px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--ink);
+      border: 2px solid var(--paper);
+      box-shadow: 0 1px 3px rgba(0,0,0,.22);
+    }
+    .map-pin.accent .dot { background: var(--accent); }
+    .map-pin .line {
+      position: absolute;
+      left: 7px; top: 0;
+      width: 28px; height: 1px;
+      background: var(--ink);
+      opacity: .55;
+    }
+    .map-pin.left .line { left: auto; right: 7px; }
+    .map-pin .card {
+      position: absolute;
+      left: 38px; top: -20px;
+      min-width: 80px;
+      padding: 8px 10px;
+      background: rgba(250,250,248,.94);
+      box-shadow: 0 0 0 1px var(--grey-2);
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+    .map-pin.left .card { left: auto; right: 38px; }
+    .map-pin .card .name {
+      font-family: var(--sans-zh), var(--sans);
+      font-weight: 500;
+      font-size: 15px;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    .map-pin .card .meta {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+    }
+    .map-pin.accent .card .name { color: var(--accent); }
+
+    .map-legend {
+      position: absolute;
+      left: 14px; bottom: 14px;
+      z-index: 3;
+      background: rgba(250,250,248,.94);
+      padding: 8px 12px;
+      box-shadow: 0 0 0 1px var(--grey-2);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+    }
+    .map-legend.tr { left: auto; right: 14px; top: 14px; bottom: auto; }
+
+    /* ---------- 10. Swiss-specific components ---------- */
+
+    /* S08 Image Hero (port of S22) */
+    .image-hero {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: var(--sp-7);
+      height: 100%;
+    }
+    .image-hero .hero-img-wrap {
+      position: relative;
+      overflow: hidden;
+      background: var(--grey-1);
+    }
+    .image-hero .hero-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      display: block;
+    }
+    .image-hero .hero-overlay-block {
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: var(--paper);
+      padding: var(--sp-7) var(--sp-8);
+      max-width: 60%;
+    }
+    .image-hero .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--sp-8);
+      align-items: end;
+      border-top: 1px solid var(--grey-2);
+      padding-top: var(--sp-7);
+    }
+    .image-hero .hero-stats .stat-block .num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 96px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      color: var(--ink);
+      margin: 0 0 var(--sp-4);
+    }
+    .image-hero .hero-stats .stat-block .lbl {
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+
+    /* S09 KPI Tower (port of S06) */
+    .kpi-tower-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-7);
+      align-items: end;
+      height: 100%;
+    }
+    .kpi-tower-row .tower-col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-5);
+      align-items: flex-start;
+    }
+    .kpi-tower-row .tower-col .num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 112px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .kpi-tower-row .tower-col .lbl {
+      font-family: var(--mono);
+      font-size: 20px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+    .kpi-tower-row .tower-col .bar-tower {
+      width: 100%;
+      height: var(--h, 240px);
+      background: var(--accent);
+      transform-origin: bottom;
+    }
+    .kpi-tower-row .tower-col.muted .bar-tower {
+      background: var(--grey-2);
+    }
+    .poster.xhs .kpi-tower-row { grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+    .poster.square .kpi-tower-row { grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+
+    /* S10 H-Bar Chart (port of S07) */
+    .h-bar-chart {
+      display: grid;
+      gap: var(--sp-6);
+    }
+    .h-bar-chart .bar-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 120px;
+      gap: var(--sp-6);
+      align-items: center;
+    }
+    .h-bar-chart .bar-row .row-lbl {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 26px;
+      color: var(--ink);
+    }
+    .h-bar-chart .bar-row .row-track {
+      position: relative;
+      height: 28px;
+      background: var(--grey-1);
+    }
+    .h-bar-chart .bar-row .row-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: var(--w, 50%);
+      background: var(--accent);
+    }
+    .h-bar-chart .bar-row .row-val {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 26px;
+      letter-spacing: .04em;
+      text-align: right;
+      color: var(--ink);
+    }
+    /* On portrait the labels move above the track */
+    .poster.xhs .h-bar-chart .bar-row {
+      grid-template-columns: 1fr;
+      gap: var(--sp-4);
+    }
+    .poster.xhs .h-bar-chart .bar-row .row-val {
+      text-align: left;
+    }
+
+    /* S11 Stacked Ledger (port of S20) */
+    .stacked-ledger {
+      display: flex;
+      flex-direction: column;
+    }
+    .stacked-ledger .ledger-row {
+      display: grid;
+      grid-template-columns: 280px 1fr auto;
+      gap: var(--sp-7);
+      align-items: baseline;
+      padding: var(--sp-7) 0;
+      border-bottom: 1px solid var(--grey-2);
+    }
+    .stacked-ledger .ledger-row:first-child { padding-top: 0; }
+    .stacked-ledger .ledger-row:last-child  { border-bottom: 0; }
+    .stacked-ledger .ledger-num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 112px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .stacked-ledger .ledger-lbl {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 30px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .stacked-ledger .ledger-lbl .sub {
+      display: block;
+      font-weight: 400;
+      font-size: 22px;
+      color: var(--grey-3);
+      margin-top: var(--sp-3);
+    }
+    .stacked-ledger .ledger-icn {
+      width: 56px;
+      height: 56px;
+      color: var(--accent);
+    }
+    .poster.square .stacked-ledger .ledger-num { font-size: 88px; }
+    .poster.square .stacked-ledger .ledger-row { grid-template-columns: 220px 1fr auto; }
+
+    /* S12 Matrix Fill (port of S15) */
+    .matrix-fill {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-auto-rows: 1fr;
+      gap: var(--sp-5);
+    }
+    .matrix-fill .matrix-cell {
+      background: var(--grey-1);
+      padding: var(--sp-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-4);
+      min-height: 160px;
+    }
+    .matrix-fill .matrix-cell .cell-nb {
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .12em;
+      color: var(--grey-3);
+    }
+    .matrix-fill .matrix-cell .cell-title {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 26px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .matrix-fill .matrix-cell.is-accent {
+      background: var(--accent);
+      color: var(--accent-on);
+    }
+    .matrix-fill .matrix-cell.is-accent .cell-nb,
+    .matrix-fill .matrix-cell.is-accent .cell-title { color: var(--accent-on); }
+    .hero-stat-bottom {
+      margin-top: var(--sp-9);
+      padding-top: var(--sp-7);
+      border-top: 1px solid var(--grey-2);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: var(--sp-7);
+    }
+    /* xhs uses 2 columns; up to 8 cells = 4 rows. Switch to min-content
+       so rows don't stretch and crowd out hero-stat-bottom (validated
+       in smoke-ai-tools/xhs-04). When pairing matrix-fill with
+       hero-stat-bottom inside .poster.xhs, prefer 6 cells (3 rows). */
+    .poster.xhs .matrix-fill {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: min-content;
+      gap: var(--sp-4);
+    }
+    .poster.xhs .matrix-fill .matrix-cell { min-height: 0; padding: var(--sp-5); }
+    .poster.xhs .matrix-fill .matrix-cell .cell-title { font-size: 24px; }
+    .poster.xhs .hero-stat-bottom {
+      margin-top: var(--sp-6);
+      padding-top: var(--sp-5);
+      align-items: center;
+    }
+    .poster.xhs .hero-stat-bottom .num-mega { font-size: 128px; line-height: 1; }
+    .poster.square .matrix-fill{ grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; }
+    .poster.square .matrix-fill .matrix-cell { min-height: 0; }
+
+    /* ---------- 11. Issue label + corner metadata ---------- */
+    .chrome-min {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      padding-bottom: var(--sp-6);
+      border-bottom: 1px solid var(--grey-2);
+      margin-bottom: var(--sp-9);
+    }
+
+    /* ---------- 12. Pair preview frame ---------- */
+    .pair-preview {
+      width: 2400px;
+      min-height: 1180px;
+      background: var(--grey-1);
+      padding: var(--sp-9);
+      display: grid;
+      grid-template-columns: 2100px 1080px;
+      grid-template-rows: 900px 1080px;
+      gap: var(--sp-9);
+      align-content: center;
+      justify-content: center;
+    }
+    .pair-preview .preview-wide   { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+    .pair-preview .preview-square { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+    .pair-preview .preview-label {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin-bottom: var(--sp-5);
+    }
+
+    /* ---------- 13. Hard rules (visual guard rails) ----------
+       Swiss style refuses these — uncomment to find offenders.
+    .poster *[style*="border-radius"],
+    .poster *[style*="box-shadow"],
+    .poster *[style*="linear-gradient"] { outline: 4px solid red !important; }
+    */
+  </style>
+<style>
+
+/* GTM learning adaptation of the Swiss seed. Fluid reading pages, not fixed image boards. */
+html{scroll-behavior:smooth;scroll-padding-top:108px}
+body.learning{background:var(--paper);padding:0;font-family:var(--sans-zh);font-size:17px;line-height:1.85;color:var(--ink)}
+.learning a{color:inherit;text-decoration:none}.learning a:focus-visible,.learning summary:focus-visible{outline:3px solid var(--accent);outline-offset:5px}
+.learning .skip{position:absolute;left:24px;top:-100px;z-index:20;background:var(--accent);color:white;padding:8px 16px}.learning .skip:focus{top:8px}
+.wrap{width:min(1320px,calc(100% - 96px));margin:auto}
+.site-header{background:var(--paper);border-bottom:1px solid var(--grey-2);position:sticky;top:0;z-index:10}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:32px;min-height:80px}
+.brand{font-weight:600;font-size:20px;white-space:nowrap;letter-spacing:-.3px}.brand span{color:var(--accent)}
+.chapter-nav{display:flex;align-items:center;gap:26px}.chapter-nav a{font-size:14px;color:#555;padding:25px 0;white-space:nowrap;border-bottom:3px solid transparent}
+.chapter-nav a[aria-current=page]{border-color:var(--accent);color:var(--accent)}
+.eyebrow{font:500 12px/1.5 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--grey-3)}
+.eyebrow.blue{color:var(--accent)}.learning .h-hero{font-size:clamp(66px,7.5vw,110px);line-height:1.18;font-weight:200;letter-spacing:-.025em;overflow-wrap:anywhere}
+.learning .h-xl{font-size:clamp(40px,4.8vw,68px);line-height:1.25;font-weight:300;letter-spacing:-.015em;margin:20px 0 28px}
+.learning .h-md{font-size:clamp(26px,2.6vw,38px);font-weight:400;line-height:1.4;letter-spacing:0;margin:0 0 24px}
+.home-hero{display:grid;grid-template-columns:1.2fr 1fr;gap:80px;padding:72px 0 64px;border-bottom:1px solid var(--ink)}
+.home-hero .h-hero{margin:22px 0 32px}.home-hero .h-hero em{color:var(--accent);font-style:normal}
+.hero-copy{max-width:610px;font-size:19px;color:#4c4c4c;line-height:1.95;margin:0 0 32px}
+.start-link{display:inline-flex;gap:30px;align-items:center;padding:12px 0;border-bottom:1px solid var(--accent);color:var(--accent)!important;font-weight:500}
+.start-link span{font-size:22px}.hero-model{align-self:stretch;display:flex;flex-direction:column;justify-content:center;padding-top:24px}
+.model-label{margin-bottom:18px}.model-flow{display:flex;flex-direction:column;gap:0}
+.model-flow .model-node{display:grid;grid-template-columns:64px 1fr;gap:24px;padding:22px 0;border-top:1px solid var(--grey-2)}
+.node-n{font:300 38px/1.15 var(--sans);color:var(--accent)}.model-node strong{font-size:23px;font-weight:500;display:block}.model-node small{font-size:14px;color:#646464}
+.model-conclusion{background:var(--accent);color:white;padding:22px 28px;margin-top:20px;font-size:22px}
+.section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:24px;margin:48px 0 24px}.section-heading h2{font-size:28px;font-weight:400;margin:0}.section-heading p{margin:0;color:#666;font-size:14px}
+.route-list{border-top:1px solid var(--ink)}.route{display:grid;grid-template-columns:80px 1fr 1.2fr 40px;gap:28px;align-items:center;padding:28px 0;border-bottom:1px solid var(--grey-2)}
+.route:hover .route-title,.route:hover .route-arrow{color:var(--accent)}.route-number{font:300 42px var(--sans);color:var(--accent)}.route-title{font-size:26px;font-weight:400}.route-title small{display:block;color:#666;font-size:13px;margin-top:4px}.route-desc{color:#555;font-size:16px;line-height:1.85}.route-arrow{font-size:28px;text-align:right}
+.home-note{display:grid;grid-template-columns:1fr 1fr;gap:64px;margin:48px 0 70px}.home-note h3{font-weight:500;font-size:18px;margin:0 0 12px}.home-note p{margin:0;color:#555;font-size:15px}
+.chapter-hero{display:grid;grid-template-columns:1fr 300px;gap:56px;padding:58px 0 50px;border-bottom:1px solid var(--ink)}
+.chapter-hero p{max-width:760px;color:#555;font-size:19px;margin:0}.chapter-identity{display:flex;flex-direction:column;justify-content:space-between;border-left:1px solid var(--grey-2);padding-left:36px}.chapter-big{font:200 140px/1 var(--sans);color:var(--accent);letter-spacing:-.06em}.chapter-skills{list-style:none;margin:18px 0 0;padding:0;font-size:14px;color:#555}.chapter-skills li{padding:8px 0;border-bottom:1px solid var(--grey-2)}
+.chapter-body{display:grid;grid-template-columns:232px minmax(0,1fr);gap:72px;padding-top:44px}
+.toc{position:sticky;top:112px;align-self:start;font-size:14px}.toc-title{font-size:12px;color:#666;letter-spacing:.12em;margin:0 0 16px}.toc ol{list-style:none;padding:0;margin:0}.toc li{margin:0;border-top:1px solid var(--grey-2)}.toc a{display:flex;gap:12px;align-items:start;padding:13px 0;line-height:1.7}.toc a:hover{color:var(--accent)}.toc-n{font:500 11px/2.2 var(--mono);color:#777}.toc .review-link{margin-top:16px;padding:12px 0;color:var(--accent);border-top:1px solid var(--ink)}
+.reading{min-width:0;max-width:920px}.chapter-intro{margin:0 0 52px;padding-bottom:24px;border-bottom:1px solid var(--grey-2)}
+.chapter-thesis{font-size:24px;font-weight:400;line-height:1.7;margin:16px 0 24px;max-width:760px}
+.diagram{margin:30px 0 34px}.diagram figcaption{font-size:12px;color:#666;margin-top:12px;line-height:1.7}.diagram-title{font-size:14px;font-weight:500;color:var(--accent);margin:0 0 16px}
+.flow-row{display:flex;align-items:stretch;gap:12px}.flow-cell{flex:1;min-width:0;background:var(--grey-1);padding:19px 18px;position:relative}.flow-cell strong{display:block;font-size:18px;font-weight:500;line-height:1.5}.flow-cell small{display:block;font-size:13px;color:#555;margin-top:7px;line-height:1.65}.flow-cell .step{font:500 11px var(--mono);color:var(--accent);display:block;margin-bottom:10px}.flow-arrow{align-self:center;color:var(--accent);font-size:18px}
+.dual-rail{display:grid;grid-template-columns:1fr 1fr;gap:18px}.rail{border:1px solid var(--grey-2);padding:24px}.rail-tag{font:400 40px var(--sans);color:var(--accent)}.rail h4{font-weight:500;margin:12px 0;font-size:19px}.rail p{margin:0;font-size:14px;color:#555}.shared-goal{background:var(--accent);color:white;padding:16px 24px;margin-top:16px;text-align:center;font-size:18px}
+.ledger{margin:28px 0 34px;border-top:1px solid var(--grey-2)}.ledger-item{display:grid;grid-template-columns:42px 170px 1fr;gap:18px;align-items:start;padding:18px 0;border-bottom:1px solid var(--grey-2)}.ledger-item .ledger-id{font:500 12px/2 var(--mono);color:var(--accent)}.ledger-item strong{font-size:17px;font-weight:500;line-height:1.6}.ledger-item p{font-size:14px;line-height:1.8;color:#555;margin:0}
+.topic{padding:0 0 50px;margin:0 0 44px;border-bottom:1px solid var(--grey-2);scroll-margin-top:108px}.topic .topic-kicker{font:500 12px var(--mono);letter-spacing:.07em;color:var(--accent);margin-bottom:16px}.topic .topic-summary{font-size:20px;line-height:1.75;color:#555;border-left:2px solid var(--accent);padding-left:20px;margin:0 0 30px}
+.prose p{font-size:17px;line-height:2.05;margin:0 0 20px;overflow-wrap:anywhere}.prose p:last-child{margin-bottom:0}.section-end{font-size:12px;color:#777;margin-top:24px;text-align:right}.section-end a:hover{color:var(--accent)}
+.review{padding:0 0 48px;scroll-margin-top:108px}.review p{font-size:16px;color:#555}.review details{border-top:1px solid var(--grey-2);padding:18px 0}.review details:last-child{border-bottom:1px solid var(--grey-2)}.review summary{cursor:pointer;font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:20px}.review summary:after{content:'+';color:var(--accent);font-size:24px;line-height:1.4}.review details[open] summary:after{content:'−'}.review details p{margin:16px 30px 0 0;line-height:1.9}
+.page-turn{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ink);margin:0 0 64px}.page-turn a{padding:26px 0;font-size:19px;line-height:1.6}.page-turn a:last-child{text-align:right}.page-turn small{display:block;font-size:12px;color:#666;margin-bottom:6px}.page-turn a:hover{color:var(--accent)}
+.site-footer{border-top:1px solid var(--grey-2);padding:24px 0 30px;font-size:12px;color:#666}.footer-inner{display:flex;justify-content:space-between;gap:24px}.footer-inner a{color:var(--accent)}
+.source-intro{margin:22px 0 0;padding:22px 0;border-top:1px solid var(--grey-2);font-size:15px}.source-intro p{margin:0 0 12px;color:#555}
+@media(min-width:1500px){.wrap{width:1320px}}
+@media(max-width:1050px){.wrap{width:calc(100% - 64px)}.home-hero{gap:42px}.chapter-body{gap:40px;grid-template-columns:195px 1fr}.chapter-hero{grid-template-columns:1fr 220px}.chapter-big{font-size:115px}.chapter-identity{padding-left:24px}.chapter-nav{gap:18px}.ledger-item{grid-template-columns:32px 125px 1fr;gap:12px}.flow-row{flex-wrap:wrap}.flow-cell{min-width:140px}.flow-arrow{display:none}}
+@media(max-width:760px){html{scroll-padding-top:140px}.wrap{width:calc(100% - 40px)}.header-inner{display:block;padding-top:15px;min-height:auto}.brand{font-size:18px}.chapter-nav{display:flex;gap:0;justify-content:space-between;margin-top:7px}.chapter-nav a{font-size:12px;padding:10px 0 12px}.home-hero{grid-template-columns:1fr;padding:36px 0;gap:24px}.learning .h-hero{font-size:64px}.hero-copy{font-size:17px}.hero-model{padding-top:0}.model-flow .model-node{padding:16px 0;grid-template-columns:42px 1fr;gap:18px}.node-n{font-size:28px}.model-node strong{font-size:20px}.model-conclusion{font-size:19px}.section-heading{display:block;margin-top:32px}.section-heading h2{font-size:25px}.section-heading p{margin-top:8px}.route{grid-template-columns:45px 1fr 20px;gap:15px;padding:22px 0}.route-number{font-size:32px}.route-title{font-size:22px}.route-desc{grid-column:2/4;font-size:15px}.route-arrow{grid-column:3;grid-row:1}.home-note{grid-template-columns:1fr;gap:28px;margin:32px 0 44px}.chapter-hero{grid-template-columns:1fr;padding:32px 0;gap:24px}.learning .h-xl{font-size:40px;margin-top:18px}.chapter-hero p{font-size:17px}.chapter-identity{border:0;padding:0;display:block}.chapter-big{display:none}.chapter-skills{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0}.chapter-skills li{font-size:12px;border:0;padding:0}.chapter-body{display:block;padding-top:28px}.toc{position:static;margin-bottom:36px;border-bottom:1px solid var(--ink);padding-bottom:16px}.toc ol{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}.toc a{font-size:12px;gap:8px;padding:10px 0}.toc-title{margin-bottom:8px}.toc .review-link{font-size:13px;margin-top:8px}.chapter-thesis{font-size:21px}.dual-rail{gap:10px}.rail{padding:18px 14px}.rail-tag{font-size:32px}.rail h4{font-size:16px}.rail p{font-size:13px}.shared-goal{font-size:16px}.flow-row{display:grid;grid-template-columns:1fr 1fr}.flow-cell{min-width:0;padding:16px 14px}.flow-cell strong{font-size:16px}.flow-cell small{font-size:12px}.topic{padding-bottom:34px;margin-bottom:30px}.learning .h-md{font-size:27px;margin-bottom:20px}.topic .topic-summary{font-size:18px;padding-left:14px}.prose p{font-size:16px;line-height:2;margin-bottom:20px}.ledger-item{grid-template-columns:26px 1fr;gap:8px 14px}.ledger-item p{grid-column:2}.ledger-item strong{font-size:16px}.page-turn a{font-size:16px}.footer-inner{display:block}.footer-inner span{display:block;margin-bottom:8px}.review summary{font-size:16px}.section-end{font-size:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{.site-header,.toc,.page-turn,.section-end,.site-footer,.skip{display:none!important}.wrap{width:100%}.chapter-hero{padding:0 0 24px;grid-template-columns:1fr}.chapter-identity{display:none}.chapter-body{display:block}.reading{max-width:none}.learning .h-xl{font-size:32pt}.learning .h-md{font-size:20pt}.topic{break-before:auto}.prose p{font-size:11pt;line-height:1.8;orphans:3;widows:3}.diagram,.review details{break-inside:avoid}h2,h3{break-after:avoid}.home-hero{padding:0;gap:24px}.learning .h-hero{font-size:40pt}.site-footer{display:none}.review details p{display:block}a{color:inherit!important}}
+
+</style>
+</head>
+<body class="learning"><a class="skip" href="#main">跳到正文</a><header class="site-header"><div class="wrap header-inner"><a class="brand" href="index.html"><span>GTM</span> 体系学习</a><nav class="chapter-nav" aria-label="章节导航"><a href="chapter-01.html">01 基本认知</a><a href="chapter-02.html">02 关键工作</a><a href="chapter-03.html" aria-current="page">03 经营痛点</a><a href="chapter-04.html">04 落地实施</a></nav></div></header><main class="wrap" id="main"><section class="chapter-hero"><div><div class="eyebrow blue">CHAPTER 03 / 经营痛点</div><h1 class="h-xl">从现象追到原因，<br>再找到解法</h1><p>围绕销售把握、上市延迟、高端产品、研产供销和营销预算，建立诊断思路。</p></div><div class="chapter-identity"><div class="chapter-big">03</div><ul class="chapter-skills"><li>识别经营问题的因果链</li><li>区分渠道要货与消费者需求</li><li>用项目闭环和经营数据分析偏差</li></ul></div></section><div class="chapter-body"><aside class="toc" aria-label="本章目录"><p class="toc-title">本章目录 / 5 个主题</p><ol><li><a href="#topic-01"><span class="toc-n">3.1</span><span>产品能否销售成功难以把握</span></a></li><li><a href="#topic-02"><span class="toc-n">3.2</span><span>产品上市经常延迟</span></a></li><li><a href="#topic-03"><span class="toc-n">3.3</span><span>高端产品不起量或难以盈利</span></a></li><li><a href="#topic-04"><span class="toc-n">3.4</span><span>研产供销脱节</span></a></li><li><a href="#topic-05"><span class="toc-n">3.5</span><span>产品营销预算难以决策</span></a></li></ol><a class="review-link" href="#review">章末自测 →</a></aside><article class="reading"><section class="chapter-intro"><div class="eyebrow">这一章的核心</div><p class="chapter-thesis">把问题放回需求、价值、协同和投入产出的关系里。</p></section><section class="topic" id="topic-01"><div class="topic-kicker">03.01 / 需求判断</div><h2 class="h-md">产品能否销售成功难以把握</h2><p class="topic-summary">从真实购买出发，减少供需与库存偏差</p><figure class="diagram"><p class="diagram-title">需要警惕的库存循环</p><div class="flow-row"><div class="flow-cell"><span class="step">01</span><strong>短缺</strong><small>渠道放大要货预测</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">02</span><strong>追加</strong><small>供货超过真实需求</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">03</span><strong>积压</strong><small>库存引发降价</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">04</span><strong>失信</strong><small>等待政策与清库</small></div></div><figcaption>这是一类风险链条，不代表每款产品都会经历全部环节。</figcaption></figure><div class="prose"><p data-source-paragraph="true">市场把握不足，容易导致定价、备货和渠道政策相互脱节。即使产品具备竞争力，也可能因供需判断失误、库存积压或价格失控而偏离原有投资预期。</p><p data-source-paragraph="true">一种常见情形是前期备货保守，上市后迅速断货。渠道为了优先拿货而放大预测，总部汇总后增加订单，最终真实需求不足以消化供货，预测便转化为库存。库存压力引发降价，多个渠道相互跟进，进一步削弱伙伴和消费者信心，最后只能清库退市。</p><p data-source-paragraph="true">另一种情形是定价与备货同时激进。企业希望以较低价格换取规模，却在上市后发现动销不足。随后通过降低供货价和继续压货刺激渠道，反而造成更高库存和更混乱的零售价。下一代产品又可能因上一轮损失而保守备货，重新出现断货。</p><p data-source-paragraph="true">这些循环说明，渠道要货量不能直接等同于消费者需求。厂家与渠道如果只有交易关系，缺少共同经营目标和真实动销依据，就容易放大信息偏差。企业需要了解产品最终卖给了谁、在哪里买、以什么价格购买，以及购买和不购买的原因。</p><p data-source-paragraph="true">依靠增加产品数量分散风险，也有明显局限。多产品会消耗开发、营销和渠道资源，单产品产能不足时，整体效率可能更低。课程以华为从机海战术走向精品战略的过程，说明竞争方式需要从依赖低价与数量，转向品牌、精品和技术差异。</p><p data-source-paragraph="true">产品销售结果难以把握，往往与To C能力不足有关。企业过于依赖渠道，却没有建立直接理解和连接消费者的能力，就难以做好需求判断、产品定义和商业计划。</p><p data-source-paragraph="true">消费者连接可以分为沟通通路和销售通路。沟通通路包括企业能够直接经营的私域，以及依靠第三方平台触达消费者的公域。销售通路包括线下经销与零售、自有或自营电商，以及授权第三方经营的电商渠道。</p><p data-source-paragraph="true">不同通路承担不同作用。私域有利于持续沟通和用户反馈，公域有利于扩大触达，自营电商能够积累购买与服务数据，线下与授权渠道则提供覆盖和销售能力。企业需要结合自身情况，明确各通路的短板和优先建设方向。</p><p data-source-paragraph="true">操盘目标应落到消费者实际购买的销售曲线上。首销阶段需要明确目标与保障措施；热销阶段需要多波次营销，并配合价格和货源管理；退市阶段需要选择合适时点，明确政策，尽快完成库存消化。</p><p data-source-paragraph="true">首销成功并不意味着后续自然热销，营销也不能替代价格与货源管理。持续监控实际销售、供需、渠道库存和价格表现，才能判断是否需要追加资源、调整节奏或启动退市。</p><p data-source-paragraph="true">退市不能长期犹豫。政策反复会使渠道等待更低价格，也可能影响新产品导入。企业需要从产品组合和生命周期利润出发，确定清晰的退出方案，并通过复盘提高后续产品的预测与经营能力。</p></div><div class="section-end"><a href="#main">回到本章目录 ↑</a></div></section><section class="topic" id="topic-02"><div class="topic-kicker">03.02 / 项目管理</div><h2 class="h-md">产品上市经常延迟</h2><p class="topic-summary">识别依赖、关键路径和变更风险</p><figure class="diagram"><p class="diagram-title">产品上市项目闭环</p><div class="flow-row"><div class="flow-cell"><span class="step">01</span><strong>启动</strong><small>立项、目标与团队</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">02</span><strong>计划</strong><small>任务、资源与关键路径</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">03</span><strong>执行</strong><small>监控、风险与变更</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">04</span><strong>收尾</strong><small>验收、复盘与归档</small></div></div><figcaption>根据本节内容整理</figcaption></figure><div class="prose"><p data-source-paragraph="true">上市延迟既可能来自产品开发，也可能来自市场准备。技术问题未及时解决、需求后期变化、技术方案调整，都可能改变开发进度。市场团队需要在规划阶段充分讨论需求，减少开发后期的突然变更。</p><p data-source-paragraph="true">市场端的延迟通常表现为营销策略难以确定、主视觉多次评审未通过、物料无法及时延展，以及渠道合作谈判未按计划完成。原有渠道规划如果缺乏实际沟通验证，也可能在拓展阶段暴露问题。</p><p data-source-paragraph="true">跨部门和跨项目协同会进一步增加复杂性。某个专业环节或关联项目延迟，可能影响整款产品。因此，不能只跟踪最终上市日期，还要识别前置依赖、关键路径和重要交付件。</p><p data-source-paragraph="true">企业可以从项目管理逐步走向流程管理。基础层面是为一次产品上市正式立项，明确目标、团队、职责、里程碑和计划；当同类项目反复开展时，可以把共同活动固化为流程；当问题涉及多个流程时，再从公司流程架构层面优化。</p><p data-source-paragraph="true">流程需要匹配业务逻辑。没有明确流程，容易各行其是；流程与业务不匹配，容易增加无价值活动并造成授权失衡；缺少流程管理，则容易出现流程架构、视图和生命周期管理缺失。</p><p data-source-paragraph="true">从功能看，企业流程可区分主价值流、使能流程和基础支撑流程。从层级看，可以逐步分为流程大类、流程组、流程、子流程、流程活动和具体任务。高层级说明业务方向与结构，低层级落实具体执行。</p><p data-source-paragraph="true">流程视图用于直观展示特定业务场景下的流程关系，帮助团队理解协作方式。流程自身也需要从规划、需求、开发、发布、推行、运营，到优化和废止的生命周期管理。</p><p data-source-paragraph="true">即使暂时没有完整流程体系，也应把单产品上市项目做成闭环。项目启动时，完成立项申请、正式组建团队、项目策划、任务书和开工会；计划阶段，开展工作分解、活动排序、资源工期及成本估算，并明确进度与风险。</p><p data-source-paragraph="true">执行阶段需要持续沟通、监控、风险管理和变更管理。收尾阶段需要完成评估验收、项目总结、绩效与激励落实以及文件归档。缺少收尾，就难以把一次项目的经验转化为后续项目的依据。</p><p data-source-paragraph="true">风险管理应贯穿全过程。可按发生可能性与影响程度，将风险划分为高、中、低等级，并形成风险清单，记录风险描述、分析、应对措施、责任人和计划关闭日期。关键路径上的高风险活动应重点跟踪。</p><p data-source-paragraph="true">项目管理不能只催办进度，还要判断资源和前置条件是否成立。及时发现偏差、组织解决问题，并把必要调整纳入变更管理，才能减少上市计划反复变化造成的损失。</p></div><div class="section-end"><a href="#main">回到本章目录 ↑</a></div></section><section class="topic" id="topic-03"><div class="topic-kicker">03.03 / 高端产品经营</div><h2 class="h-md">高端产品不起量或难以盈利</h2><p class="topic-summary">高价值产品需要完整的价值沟通</p><div class="prose"><p data-source-paragraph="true">高端产品销售困难，可能来自消费者不认可、渠道不适配，也可能来自企业自身能力不足。产品没有击中需求、品牌力较弱、定价失误或价值表达不充分，都会影响消费者购买。</p><p data-source-paragraph="true">渠道方面，需要判断是否覆盖了擅长销售中高端产品的伙伴和售点。原有的中低端销售通路，未必适合高价值产品。伙伴即使提货，如果信心不足、资源投入有限，也难以形成有效动销。</p><p data-source-paragraph="true">乱价、窜货和激励不足，同样会影响渠道动力。高端产品如果销售难度较大，却没有合理利润空间，伙伴可能不愿投入。厂家需要从产品价值、渠道结构、市场秩序和利益分配共同寻找原因。</p><p data-source-paragraph="true">内部能力方面，要警惕把中高端等同于堆硬件、拼规格。产品规划、价值表达、GTM操盘和成本管理都需要匹配。若成本过高，留出渠道空间后企业已无力进行必要投入，也难以支持高端产品成功。</p><p data-source-paragraph="true">高价值产品需要注重价值沟通。传统模式往往由渠道经理单线对接客户，再依赖客户完成消费者销售。更完整的方式是GTM、渠道、产品营销、零售和电商共同参与，以团队对团队的方式沟通产品价值与经营方案。</p><p data-source-paragraph="true">渠道经理负责客户关系与合作推进，GTM经理说明产品优势、合作价值和操盘思路，营销与零售团队解释传播、体验和终端转化安排。这样更容易把产品价值、资源投入和销售计划完整传递给伙伴。</p><p data-source-paragraph="true">价值与信心还需要在总部、区域、国家和一线之间逐层传递。团队先理解产品为什么适合当地市场和合作伙伴，再共同面向渠道与消费者沟通，才能减少信息损失。</p><p data-source-paragraph="true">生命周期经营应围绕预期的消费者销售曲线展开。导入期协调供需，热销期保持合适的商务政策并安排阶段性营销，清尾阶段通过明确政策加快库存消化。整个过程既关注销量，也关注利润与市场秩序。</p><p data-source-paragraph="true">每轮操盘完成后，应及时复盘并开展培训，形成文档、数据和案例，使过程可见、结果可回溯。成功经验需要继承，失败原因需要识别，避免高端产品经营始终依赖少数人的经验。</p><p data-source-paragraph="true">课程中的实践经验强调：适合中高端产品的零售阵地是基础，渠道管理是重要支撑，品牌建设需要持续推进，GTM操盘负责将各项能力组织起来。有相关经验的专业人员，也有助于企业更快建立方法并减少试错。</p></div><div class="section-end"><a href="#main">回到本章目录 ↑</a></div></section><section class="topic" id="topic-04"><div class="topic-kicker">03.04 / 流程协同</div><h2 class="h-md">研产供销脱节</h2><p class="topic-summary">从源头统一目标与行动</p><figure class="diagram"><p class="diagram-title">从客户需求到客户价值</p><div class="flow-row"><div class="flow-cell"><span class="step">01</span><strong>识别</strong><small>理解需求与机会</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">02</span><strong>创造</strong><small>开发合适产品</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">03</span><strong>传递</strong><small>协调市场沟通</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">04</span><strong>交付</strong><small>购买、使用与服务</small></div></div><figcaption>根据本节内容整理</figcaption></figure><div class="prose"><p data-source-paragraph="true">研产供销脱节，往往表现为各部门都有诉求，也都有困难。市场认为规划产品不合需求、开发进度不稳定、成本传导缺少管理、供货不足；研发认为市场输入缺乏价值、产品理解不足，产品不好卖时又只要求降价；供应链则面对需求口径不一致、预测波动和紧急催货或砍单。</p><p data-source-paragraph="true">这些问题不能长期依赖老板逐项协调。跨一级部门的协作，需要以公司战略和整体价值创造为基础，明确流程、输入输出、责任及决策规则。</p><p data-source-paragraph="true">流程是一组被重复执行、逻辑上相互关联的业务活动，将明确输入转化为明确输出，为客户创造和交付价值。客户既可以是外部客户，也可以是内部接收成果的组织或流程。</p><p data-source-paragraph="true">下一个流程是上一个流程的客户，下一个节点是上一个节点的客户。每项活动应为后续环节提供有用输出，最终连接到外部客户价值。没有增值作用的活动，需要重新审视其必要性。</p><p data-source-paragraph="true">企业应从战略出发设计流程架构，明确谁识别价值、谁创造价值、谁传递价值、谁交付价值，再配置战略运营、伙伴、供应商、人力资源、财务和流程信息化等支撑能力。各流程应有明确的责任主体，并说明流程之间及部门之间的关系。</p><p data-source-paragraph="true">组织定位也会影响行为。成本中心容易聚焦成本，费用中心容易聚焦预算，利润中心则需要同时考虑收入和支出。过度降低成本可能损害质量，单纯节约费用也可能错失收益，因此经营目标需要体现完整的投入产出关系。</p><p data-source-paragraph="true">有条件的经营单元可以采用利润中心定位和核算，但划分颗粒度需要平衡。划分过粗，容易责任不清；划分过细，也可能增加协同和核算成本。</p><p data-source-paragraph="true">华为案例采用产品与市场双利润中心的思路。研发侧按产品维度经营，市场侧按区域及客户维度经营，两者交叉协作；采购、供应及交付等环节共同支撑整体经营。</p><p data-source-paragraph="true">两类经营主体的诉求并不天然一致。市场可能希望销售目标更稳妥、优先卖成熟产品；产品线可能希望提高销量、推动新品和达到投资回报。需要在前期充分讨论目标、策略、人员与资源需求，使不同意见转化为共同方案。</p><p data-source-paragraph="true">形成共识后，市场应针对可销售产品制定目标，并与产品线共同讨论实现方法；研发与供应团队则根据统一目标提供支持。把关键分歧放在前面解决，能够减少执行中的反复与抱怨。</p><p data-source-paragraph="true">IPD与GTM互相衔接后，可以向销售管理、需求管理、供应链管理和采购管理提出统一需求，再通过计划协调与阶段性运作机制获得支撑。研产供销协同的核心，是从源头解决目标与行动的一致性。</p></div><div class="section-end"><a href="#main">回到本章目录 ↑</a></div></section><section class="topic" id="topic-05"><div class="topic-kicker">03.05 / 营销投入产出</div><h2 class="h-md">产品营销预算难以决策</h2><p class="topic-summary">把钱花到哪里，与为何有效一起看</p><figure class="diagram"><p class="diagram-title">营销费用的经营闭环</p><div class="flow-row"><div class="flow-cell"><span class="step">01</span><strong>概算</strong><small>整体损益与风险</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">02</span><strong>预算</strong><small>策略与资源落实</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">03</span><strong>阶段核算</strong><small>偏差与滚动预测</small></div><span class="flow-arrow" aria-hidden="true">→</span><div class="flow-cell"><span class="step">04</span><strong>最终决算</strong><small>回报与经验基线</small></div></div><figcaption>根据本节内容整理</figcaption></figure><div class="prose"><p data-source-paragraph="true">营销预算难以确定，通常源于投入与产出关系不清。投入较多却看不到销售效果，会削弱继续投入的信心；完全不投入，又可能影响产品上市和增长。企业需要从产品经营角度评估营销活动。</p><p data-source-paragraph="true">营销应按照项目管理方式形成闭环。明确目标、策略和资源投入，执行后分析效果，并与历史项目比较，逐步形成基线。一次活动效果不佳，可能与渠道、内容、策略、节奏或投入力度有关，不能简单认定该渠道永远无效。</p><p data-source-paragraph="true">营销费用应在产品生命周期内统筹。产品立项时明确营销定位和整体损益预期，开发与上市准备阶段形成策略纲要和计划，上市阶段协调预热、发布、线上传播和线下促销，后续根据销售表现滚动调整。</p><p data-source-paragraph="true">财务管理需要形成概算、预算、阶段核算和最终决算的闭环。概算参考历代产品经验并评估风险；预算落实各类营销、渠道合作等投入；阶段核算分析实际与预期偏差，并预测后续资源需求；退市决算总结投资回报并刷新经营基线。</p><p data-source-paragraph="true">营销费用的规模应围绕产品经营目标、历史经验和具体策略确定。不能只套用一个费用率，也不能脱离销售与利润预期讨论预算。不同营销形式的作用不同，应与阶段目标相匹配。</p><p data-source-paragraph="true">评价营销渠道，可以结合流量与转化表现。既有流量又有转化的渠道，可作为重点投入对象；转化较好但规模有限的渠道，需要判断扩展空间；高曝光渠道可承担认知建设；尚未充分验证的渠道，可以结合目标进行有边界的探索。</p><p data-source-paragraph="true">渠道价值需要通过多次活动逐步验证。不同平台对应不同用户和内容习惯，企业应明确在某个渠道能够触达谁、适合讲什么、能够形成什么结果，再决定如何投入。</p><p data-source-paragraph="true">预算制定需要书面化流程，明确各专业领域的预算依据、输入和输出。制定与评审机制应统一，既有自上而下的经营约束，也有自下而上的业务测算与合理性审核。</p><p data-source-paragraph="true">预算管控需要覆盖区域、部门、业务类别和产品，并从年度细化到季度、月度。业务规划应同时包含费用需求，使财务能够提前安排资源，减少执行时临时申请造成的延误。</p><p data-source-paragraph="true">费用管理需要清晰的用途与科目分类。产品营销、品牌营销、零售营销、电商营销和渠道营销等费用，应明确边界，避免出口交叉、重复列支或责任不清。</p><p data-source-paragraph="true">费用使用进度需要实时监控。业务部门与费用管理部门都应了解已使用金额、剩余预算和投入效果，并结合业务进展判断风险。投入产出评估口径应提前达成共识，避免预算制定、申请、执行和核销各用一套标准。</p><p data-source-paragraph="true">申请流程应明确申请单规范、项目与预算关联、支撑材料、审批权限和额度。核销应关联原申请，按对应科目核算，并遵守审批与金额管理规则，使费用可统计、可分析、可回溯。</p><p data-source-paragraph="true">信息系统可以贯通预算、申请和核销，并支持产品、区域、项目、部门及时间等多维管理。规则能够在系统中得到清楚说明和执行，数据能够形成统一报表，才能减少手工管理负担，并提高投入产出分析效率。</p></div><div class="section-end"><a href="#main">回到本章目录 ↑</a></div></section><section class="review" id="review"><div class="eyebrow blue">RECALL / 章末自测</div><h2 class="h-md">用两个问题，检查理解</h2><p>先尝试自己回答，再展开参考思路。</p><details><summary>为什么渠道要货量不能直接当成需求？</summary><p>要货可能受到抢货、政策与库存预期影响。真实需求需要结合消费者购买、渠道动销及库存变化判断。</p></details><details><summary>预算不清晰时，先补什么？</summary><p>先明确产品目标与策略，再补历史基线、费用分类、投入产出评估口径及预算到核销的闭环。</p></details></section><nav class="page-turn" aria-label="前后翻页"><a href="chapter-02.html"><small>上一章</small>← 关键工作</a><a href="chapter-04.html"><small>下一章</small>落地实施 →</a></nav></article></div></main><footer class="site-footer"><div class="wrap footer-inner"><span>GTM 体系学习 · 根据《GTM体系搭建》整理</span><span>保留原文讲解 · 结构图辅助学习 · <a href="index.html">返回总目录 ↑</a></span></div></footer></body>
+</html>

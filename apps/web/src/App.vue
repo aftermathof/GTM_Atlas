@@ -1,0 +1,39 @@
+<script setup lang="ts">
+import { ref, onMounted, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
+import { Search, ArrowUpRight, X, Menu, Sparkles } from 'lucide-vue-next'
+import { state, initialize } from './state'
+import ChatPanel from './components/ChatPanel.vue'
+const route = useRoute(), menu = ref(false), drawer = ref<HTMLElement>()
+onMounted(initialize)
+watch(() => route.path, () => { menu.value = false; state.documentId = ''; state.careerId = ''; state.scope = 'global' })
+watch(() => state.assistant, async value => { if (value) { await nextTick(); drawer.value?.focus() } })
+function trap(e: KeyboardEvent) {
+  if (e.key === 'Escape') state.assistant = false
+  if (e.key !== 'Tab') return
+  const nodes = drawer.value?.querySelectorAll<HTMLElement>('button,select,textarea,a,input')
+  if (!nodes?.length) return
+  const first = nodes[0], last = nodes[nodes.length - 1]
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+  if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+}
+</script>
+<template>
+  <a class="skip-link" href="#main">跳转到主要内容</a>
+  <header class="site-header"><div class="container header-inner">
+    <RouterLink to="/" class="brand">GTM <span>Atlas</span><sup>↗</sup></RouterLink>
+    <nav class="desktop-nav" aria-label="主导航"><RouterLink to="/learn" :class="{active: route.path.startsWith('/learn')}">知识学习</RouterLink><RouterLink to="/interviews" :class="{active: route.path.startsWith('/interviews')}">面经与 Mock</RouterLink><RouterLink to="/career" :class="{active: route.path.startsWith('/career')}">简历工作台</RouterLink></nav>
+    <div class="header-actions"><RouterLink to="/search" class="icon-button" aria-label="全站搜索"><Search :size="19" /></RouterLink><button class="assistant-toggle" @click="state.assistant = true"><Sparkles :size="16" /><span>AI Assistant</span></button><RouterLink :to="state.user ? '/history' : '/login'" class="account-link">{{ state.user ? '我的空间' : '登录' }}<ArrowUpRight :size="14" /></RouterLink><RouterLink to="/settings" class="header-settings">设置</RouterLink><button class="mobile-menu icon-button" @click="menu = !menu" aria-label="菜单" :aria-expanded="menu"><Menu :size="21" /></button></div>
+  </div><nav v-if="menu" class="mobile-nav"><RouterLink to="/learn">知识学习</RouterLink><RouterLink to="/interviews">面经与 Mock</RouterLink><RouterLink to="/career">简历工作台</RouterLink><RouterLink to="/history">我的历史</RouterLink></nav></header>
+  <main id="main"><div v-if="state.notice" class="container error" role="alert">{{ state.notice }} · 请检查 API 服务是否启动。</div><RouterView /></main>
+  <footer class="site-footer container"><RouterLink to="/" class="footer-brand">GTM Atlas <span>理解市场，走向市场。</span></RouterLink></footer>
+  <button v-if="!state.assistant" class="floating-assistant" @click="state.assistant = true" aria-label="打开全局 AI Assistant"><Sparkles :size="19" /><span>问问 Atlas</span><ArrowUpRight :size="15" /></button>
+  <div v-if="state.assistant" class="drawer-backdrop" @click.self="state.assistant = false"><aside ref="drawer" class="assistant-drawer" role="dialog" aria-modal="true" aria-label="全局 AI Assistant" tabindex="-1" @keydown="trap"><div class="drawer-header"><span class="eyebrow">ATLAS ASSISTANT</span><button class="icon-button" @click="state.assistant = false" aria-label="关闭助手"><X :size="22" /></button></div><ChatPanel scope="global" docked /></aside></div>
+</template>
+<style scoped>
+.header-settings{font-size:13px;white-space:nowrap}
+.header-settings:hover,.header-settings.router-link-active{color:var(--blue)}
+.assistant-drawer{display:flex;flex-direction:column;overflow:hidden}
+.drawer-header{flex-shrink:0}
+@media(max-width:760px){.header-settings{font-size:12px}}
+</style>

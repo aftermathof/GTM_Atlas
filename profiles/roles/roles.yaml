@@ -1,0 +1,14 @@
+version: role-rubric-1
+roles:
+  - {id: overseas_channel_sales, name: 海外渠道销售, dimensions: [岗位认知, 市场分析, 渠道策略, 商业指标, 行为经历, 跨文化沟通]}
+  - {id: kol_marketing, name: KOL 营销, dimensions: [岗位认知, 用户洞察, 创作者策略, 商业指标, 行为经历, 跨文化沟通]}
+  - {id: growth, name: 增长运营, dimensions: [岗位认知, 用户洞察, 增长实验, 商业指标, 行为经历, 跨文化沟通]}
+  - {id: pmm, name: 产品市场营销, dimensions: [岗位认知, 市场分析, 产品定位, 商业指标, 行为经历, 跨文化沟通]}
+  - {id: gtm, name: GTM 策略, dimensions: [岗位认知, 市场分析, 进入策略, 商业指标, 行为经历, 跨文化沟通]}
+rubric:
+  - {id: relevance, name: 相关性, weight: 1}
+  - {id: structure, name: 结构性, weight: 1}
+  - {id: accuracy, name: 专业准确性, weight: 1}
+  - {id: evidence, name: 可验证经历, weight: 1}
+  - {id: logic, name: 商业逻辑, weight: 1}
+  - {id: communication, name: 沟通表达, weight: 1}

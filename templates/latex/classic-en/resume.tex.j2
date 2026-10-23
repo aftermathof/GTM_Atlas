@@ -1,0 +1,12 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[UTF8,fontset=fandol]{ctex}
+\usepackage[margin=20mm]{geometry}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+{% for fact in facts %}
+{% if loop.first %}{\centering\Large\sffamily {{ fact.text }}\par}\medskip\hrule\medskip
+{% else %}{{ fact.text }}\par\smallskip
+{% endif %}
+{% endfor %}
+\end{document}

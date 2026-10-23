@@ -1,0 +1,56 @@
+% !TeX program = xelatex
+% 通用中文简历模板 | 内容用占位符替换；支持无照片编译
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1.25cm,top=1.35cm,bottom=1.2cm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\IfFileExists{fontawesome5.sty}{\usepackage{fontawesome5}}{\newcommand{\faAddressCard}{I}\newcommand{\faGraduationCap}{E}\newcommand{\faProjectDiagram}{P}\newcommand{\faBriefcase}{W}\newcommand{\faTools}{S}\newcommand{\faCompass}{C}}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+% 可修改的视觉配置
+% 优先使用系统字体；Linux 无字体缓存时回退到常见文件路径。
+\IfFontExistsTF{Times New Roman}{
+  \setmainfont{Times New Roman}
+}{
+  \IfFileExists{/usr/share/texmf/fonts/opentype/public/lm/lmroman10-regular.otf}{
+    \setmainfont[Path=/usr/share/texmf/fonts/opentype/public/lm/,
+      UprightFont=lmroman10-regular.otf,BoldFont=lmroman10-bold.otf]{lmroman10-regular.otf}
+  }{\setmainfont{Latin Modern Roman}}
+}
+\IfFontExistsTF{Noto Serif CJK SC}{
+  \setCJKmainfont{Noto Serif CJK SC}
+}{
+  \IfFileExists{/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc}{
+    \setCJKmainfont[Path=/usr/share/fonts/opentype/noto/,
+      UprightFont=NotoSerifCJK-Regular.ttc,BoldFont=NotoSerifCJK-Bold.ttc]{NotoSerifCJK-Regular.ttc}
+  }{\setCJKmainfont{SimSun}}
+}
+\xeCJKsetup{CJKglue=\hskip 0pt}
+\definecolor{primary}{RGB}{85,36,139}
+\hypersetup{hidelinks}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\linespread{1.12}
+\setlist[itemize]{leftmargin=1.55em,topsep=0.22em,itemsep=0.22em,parsep=0pt,partopsep=0pt}
+
+% 可复用组件（后续简历生成程序只需填充正文）
+\newlength{\resumeiconwidth}
+\setlength{\resumeiconwidth}{1.5em}
+\titleformat{\section}{\large\bfseries\raggedright}{}{0pt}{}[\color{primary}\titlerule]
+\titlespacing*{\section}{0pt}{0.9em}{0.45em}
+\newcommand{\resumesection}[2]{%
+  \section{\makebox[\resumeiconwidth][c]{\color{primary}#1}\hspace{0.35em}#2}%
+}
+\newcommand{\resumeentry}[3]{%
+  \textbf{#1}\enspace\textbar\enspace#2\hfill{#3}\par
+}
+\newcommand{\resumeeducation}[4]{%
+  \textbf{#1}\enspace#2\hfill{#3}\par
+  \begin{itemize}\item #4\end{itemize}
+}
+

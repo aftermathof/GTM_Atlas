@@ -1,0 +1,15 @@
+.venv/
+.data/
+.env*
+!.env.formal
+node_modules/
+apps/web/node_modules/
+apps/web/dist/
+apps/web/.npm-cache/
+apps/web/handbook/.vitepress/dist/
+apps/web/handbook/.vitepress/cache/
+**/__pycache__/
+.pytest_cache/
+*.egg-info/
+
+tests/

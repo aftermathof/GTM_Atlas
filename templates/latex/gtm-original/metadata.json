@@ -1,0 +1,9 @@
+{
+  "id": "gtm-original",
+  "name": "用户 GTM 中文简历模板",
+  "version": 1,
+  "source_file": "source.tex",
+  "source_sha256": "f621d00d5a943f05384b5394d1754ce777250e55a539ef2e478ee547a8889faf",
+  "engine": "xelatex",
+  "adaptation": "保留原字体回退、紫色、页边距、分隔线和分栏；正文改为来源绑定的字段填充。无fontawesome5包时使用字母图标回退。未提供照片时留空。"
+}

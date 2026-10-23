@@ -1,0 +1,13 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[UTF8,fontset=fandol]{ctex}
+\usepackage[margin=20mm]{geometry}
+\usepackage{enumitem}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\begin{document}
+{% for fact in facts %}
+{% if loop.first %}\begin{center}\LARGE {{ fact.text }}\end{center}\hrule\vspace{10pt}
+{% else %}{{ fact.text }}\par\vspace{7pt}
+{% endif %}
+{% endfor %}
+\end{document}

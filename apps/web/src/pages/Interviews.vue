@@ -1,0 +1,47 @@
+<script setup lang="ts">
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ArrowUpRight, ArrowLeft } from 'lucide-vue-next'
+import { api, post, state } from '../state'
+import ContextPicker from '../components/ContextPicker.vue'
+import ChatPanel from '../components/ChatPanel.vue'
+import Composer from '../components/Composer.vue'
+import Markdown from '../components/Markdown.vue'
+import ResourceGallery from '../components/ResourceGallery.vue'
+const route = useRoute(), router = useRouter(), doc = ref<any>(null), session = ref<any>(null), report = ref<any>(null), error = ref(''), busy = ref(false), draft = ref(''), count = ref(5), seed = ref(42), difficulty = ref('基础'), jd = ref(''), company = ref(''), language = ref('zh-CN'), resumeId = ref(''), consent = ref(false), resumes = ref<any[]>([])
+const path = computed(() => String(route.params.pathMatch ? (route.params.pathMatch as string[]).join('/') : ''))
+const isSetup = computed(() => path.value === 'mock/setup')
+const isMock = computed(() => path.value.startsWith('mock/') && !isSetup.value)
+let answerKey = crypto.randomUUID()
+async function load() {
+  error.value = ''; doc.value = null; session.value = null
+  try {
+    if (isMock.value) { const id = path.value.split('/')[1]; session.value = await api('/mock/sessions/' + id); if (path.value.endsWith('/report')) report.value = await api('/mock/sessions/' + id + '/report') }
+    else if (isSetup.value) { if (state.user) resumes.value = (await api('/history')).filter((r: any) => r.kind === 'career') }
+    else if (path.value) { doc.value = await api('/knowledge/documents/' + path.value); state.documentId = doc.value.id; state.scope = 'article' }
+  } catch (e: any) { error.value = e.message }
+}
+async function begin() {
+  busy.value = true; error.value = ''
+  try { const r = await post('/mock/sessions', { ...state.context, count: count.value, seed: seed.value, difficulty: difficulty.value, jd: jd.value, company: company.value, language: language.value, resume_session_id: resumeId.value || null, resume_consent: consent.value }); await router.push('/interviews/mock/' + r.id) } catch(e: any) { error.value = e.message } finally { busy.value = false }
+}
+async function answer(mode: string) {
+  busy.value = true; error.value = ''
+  try {
+    session.value = await post(`/mock/sessions/${session.value.id}/answers`, { answer: draft.value, question_index: session.value.current_question_index, idempotency_key: answerKey, input_mode: mode })
+    draft.value = ''; answerKey = crypto.randomUUID()
+    if (session.value.status === 'completed') await router.push(`/interviews/mock/${session.value.id}/report`)
+  } catch(e: any) { error.value = e.message } finally { busy.value = false }
+}
+watch(() => [route.path, state.context.role, state.context.industry], load); onMounted(load)
+</script>
+<template>
+  <div class="container">
+    <section v-if="!isMock && !doc" class="page-hero"><div><p class="eyebrow">02 / PRACTICE YOUR PERSPECTIVE</p><h1 class="h-xl">把理解，变成<br><span class="blue">说得清的判断。</span></h1><p class="lead">从业务问题出发，在练习、追问与复盘中，<br>形成属于你的回答。</p></div><div class="hero-aside"><span class="large-number">02</span><p>问题是入口。<br>思考过程比标准答案更重要。</p><RouterLink to="/interviews/mock/setup" class="text-link">开始 Mock 面试 <ArrowUpRight :size="17" /></RouterLink></div></section>
+    <template v-if="isSetup"><div class="section-heading"><h2>设置一次有目标的练习</h2><span class="eyebrow">MOCK INTERVIEW / SETUP</span></div><div v-if="!state.user" class="empty-state">登录后即可保存练习与复盘。<RouterLink to="/login?next=/interviews/mock/setup" class="text-link">登录 / 注册 ↗</RouterLink></div><form v-else class="setup-layout" @submit.prevent="begin"><div><ContextPicker /><div class="form-grid"><label>题目数量<select v-model="count"><option :value="3">3 题 · 快速练习</option><option :value="5">5 题 · 标准练习</option><option :value="10">10 题 · 完整练习</option></select></label><label>难度<select v-model="difficulty"><option>基础</option><option>进阶</option><option>挑战</option></select></label><label>语言<select v-model="language"><option value="zh-CN">中文</option><option value="en">English</option></select></label><label>随机种子<input v-model.number="seed" type="number"></label></div><label>目标企业（选填）<input v-model="company" placeholder="例如：目标品牌 / 企业"></label><label>目标岗位 JD（选填）<textarea v-model="jd" rows="5" placeholder="粘贴岗位职责与要求，优先用于练习背景"></textarea></label><label>引用我的已确认简历（选填）<select v-model="resumeId"><option value="">不引用简历</option><option v-for="r in resumes" :key="r.id" :value="r.id">{{ r.id.slice(0,8) }} · {{ r.status }}</option></select></label><label v-if="resumeId" class="checkbox-label"><input v-model="consent" type="checkbox">我授权本次面试使用这份简历的已确认事实。</label><button class="primary" :disabled="busy || (!!resumeId && !consent)">{{ busy ? '准备题目中…' : '开始练习' }}<ArrowUpRight :size="16" /></button></div><aside class="info-aside"><p class="eyebrow">WHAT TO EXPECT</p><h3>一次练习，<br>一份可回看的进步。</h3><p>题目覆盖岗位认知、业务场景与行为经历等能力。每题支持文字或语音转写，每道题最多追问一次。</p><p>状态会自动保存，你可以随时从「我的历史」继续。</p><p class="meta">无真实模型时使用明确标记的固定题池和规则反馈。</p></aside></form></template>
+    <template v-else-if="isMock && session"><RouterLink to="/interviews" class="back-link"><ArrowLeft :size="15" /> 面试练习</RouterLink><template v-if="path.endsWith('/report') && report"><section class="report-heading"><div><p class="eyebrow">YOUR PRACTICE / REFLECTION</p><h1 class="h-xl">每一次回答，<br>都是下一步的起点。</h1><p>{{ report.notice }}</p></div><div class="score-block"><strong>{{ report.average_score ?? '—' }}</strong><span>训练参考 / 100</span></div></section><div v-for="(a,i) in report.answers" :key="i" class="review-row"><p class="eyebrow">QUESTION {{ Number(i)+1 }} · {{ a.evaluation.provider === 'mock' ? '旧版记录规则反馈' : a.evaluation.model }}</p><h3>{{ a.question }}</h3><blockquote>{{ a.answer }}</blockquote><p>{{ a.evaluation.feedback }}</p><div class="rubric-grid"><span v-for="(value,name) in a.evaluation.dimensions" :key="name">{{ name }}<strong>{{ value === null ? 'N/A' : value + ' / 4' }}</strong></span></div></div><RouterLink to="/interviews/mock/setup" class="primary">开始新一轮练习 ↗</RouterLink></template><template v-else><div class="mock-top"><p class="eyebrow">MOCK INTERVIEW / {{ session.context.language === 'en' ? 'ENGLISH' : '中文' }}</p><span class="meta">{{ session.current_question_index+1 }} / {{ session.questions.length }} · 已自动保存</span></div><div class="progress-track"><div :style="{width: session.current_question_index / session.questions.length * 100 + '%'}"></div></div><div class="mock-layout"><section><p class="eyebrow">{{ session.questions[session.current_question_index]?.dimension }} {{ session.pending_followup ? ' / 深入追问' : '' }}</p><h1 class="mock-question">{{ session.pending_followup || session.questions[session.current_question_index]?.text }}</h1><p class="meta">题目依据：{{ session.questions[session.current_question_index]?.source_type }} · {{ session.rubric_version }}</p><Composer v-model="draft" :busy="busy" label="确认并提交回答" placeholder="组织你的回答。语音转写后，请校对再提交。" @submit="answer" /><p class="meta">回答以确认后的文字为准。按 Ctrl + Enter 提交。</p><div v-if="session.answers.length" class="last-feedback"><p class="eyebrow">PREVIOUS FEEDBACK</p><p>{{ session.answers.at(-1).evaluation.feedback }}</p></div></section><aside class="info-aside"><p class="eyebrow">INTERVIEW NOTES</p><p>先给出判断，再解释依据。<br>用真实经历，说明你的行动。<br>不确定的部分，可以明确说明。</p><p class="meta">{{ session.provider === 'mock' ? '旧版记录：固定题池 + 启发式评价，不能替代人工反馈。' : '模型评分仅供学习参考。' }}</p></aside></div></template></template>
+    <template v-else-if="doc"><RouterLink to="/interviews" class="back-link"><ArrowLeft :size="15" /> 返回题目库</RouterLink><h1 class="h-xl article-title">{{ doc.title }}</h1><p class="meta">{{ doc.meta.source_type === "original_research_note" ? "原创研究笔记 · 个人面试自述" : "合成练习示例" }} · {{ doc.meta.source_author }}</p><a v-if="doc.meta.source_url" :href="doc.meta.source_url" target="_blank" rel="noopener noreferrer" class="text-link source-link">查看原帖出处 ↗</a><Markdown :source="doc.body" /><div class="article-qa"><h2>围绕这个案例，继续思考。</h2><ChatPanel scope="article" :document-id="doc.id" /></div></template>
+    <ResourceGallery v-else fixed-kind="interview" />
+    <p v-if="error" class="error" role="alert">{{ error }}</p>
+  </div>
+</template>

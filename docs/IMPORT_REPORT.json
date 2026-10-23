@@ -1,0 +1,307 @@
+{
+  "learning": 30,
+  "interview": 30,
+  "jd": 0,
+  "documents": [
+    {
+      "id": "research-i01",
+      "kind": "interview",
+      "source_sha256": "811a794263082987b4550add9a04e5e25078e26e527582cd527d646b623ff57b"
+    },
+    {
+      "id": "research-i02",
+      "kind": "interview",
+      "source_sha256": "bca1d229e7cb92df24380e2adbd89c7bf26ae828d71f6cef72d6abb1fbdfb0fc"
+    },
+    {
+      "id": "research-i03",
+      "kind": "interview",
+      "source_sha256": "c4d017ab1b380bd6b1bf2b0282c704e33f441dc5d75860ef0c8ac0eb8810ba56"
+    },
+    {
+      "id": "research-i04",
+      "kind": "interview",
+      "source_sha256": "b1c5db14a2210058851d2435eba07a616e9cb7bc33e28ebd1330b9b5559f51e8"
+    },
+    {
+      "id": "research-i05",
+      "kind": "interview",
+      "source_sha256": "89727e2c254253c5c8fc3113451cab2cf95debff0c45d11a0646944ec8c472b8"
+    },
+    {
+      "id": "research-i06",
+      "kind": "interview",
+      "source_sha256": "5fe41ccd149103fdc3a1fbea044996f072b9e656331c2fdbda128c769467fe1e"
+    },
+    {
+      "id": "research-i07",
+      "kind": "interview",
+      "source_sha256": "7c1d4b6e8563ff558f0b9a8be300de32132863db89a24d9a7f51ce1305874070"
+    },
+    {
+      "id": "research-i08",
+      "kind": "interview",
+      "source_sha256": "e35bf7b530eaac981c4333e0ea5fdf69e3b681ebf307bf14525c4bb10899c743"
+    },
+    {
+      "id": "research-i09",
+      "kind": "interview",
+      "source_sha256": "f430e2f9dc5c63e18ebbc4e7ba22691516fd6b3746933bb77378582d72225cf1"
+    },
+    {
+      "id": "research-i10",
+      "kind": "interview",
+      "source_sha256": "1cd562bb672003196ba97f3f31ab0cefe4ef2adc8602cf9300c3cb75d94045aa"
+    },
+    {
+      "id": "research-i11",
+      "kind": "interview",
+      "source_sha256": "9354c8ab1c00b1954637b954cac15d781aead5859e981d61c03e1244d6267467"
+    },
+    {
+      "id": "research-i12",
+      "kind": "interview",
+      "source_sha256": "b06ee24cc79baa270e1f8f0810bb04a69d7550332164d3324d3920d35a101c48"
+    },
+    {
+      "id": "research-i13",
+      "kind": "interview",
+      "source_sha256": "32a036fcfaafd41a3414fe2f9ca503dec64db569fb343fbf8fdb6b4d1e130159"
+    },
+    {
+      "id": "research-i14",
+      "kind": "interview",
+      "source_sha256": "5daaa656e89328bbda0d299bb1d6c6a6eba90fb89f6493826330da434e323fc6"
+    },
+    {
+      "id": "research-i15",
+      "kind": "interview",
+      "source_sha256": "e31cba0a90f8e435ef4ca2b21fd4cec381a8bd69e4ea04ccbfacbf9d73a88580"
+    },
+    {
+      "id": "research-i16",
+      "kind": "interview",
+      "source_sha256": "d600f4f10136ebb33963cba7836c4c970a694b611ec66c44442bda34597d2c19"
+    },
+    {
+      "id": "research-i17",
+      "kind": "interview",
+      "source_sha256": "74ce6217cd8ab7fc6cff1169f6cc27e164bfb03f08cf98ffb75a601438a2e578"
+    },
+    {
+      "id": "research-i18",
+      "kind": "interview",
+      "source_sha256": "f4feb10edac01fbe3c6b0d306a1886d6a120912e23f5613808fa928272581d5c"
+    },
+    {
+      "id": "research-i19",
+      "kind": "interview",
+      "source_sha256": "35f2a42fe39f4d3fc2f511d0939d9509f6baeb61d667756ae9e1308bb2ce537a"
+    },
+    {
+      "id": "research-i20",
+      "kind": "interview",
+      "source_sha256": "d3bc420cfb8a03bad4c77b61d13440cf32d2fa1a34aeeb09c6ee8b5c33d89f57"
+    },
+    {
+      "id": "research-i21",
+      "kind": "interview",
+      "source_sha256": "c44bdb351adcbe97b500ec0802d510ff4884d079f1913dd06909d9bbbab97833"
+    },
+    {
+      "id": "research-i22",
+      "kind": "interview",
+      "source_sha256": "12a315d94bc93f96e659a351d35413265f50574ce14c5e0900e8b0351fceebc6"
+    },
+    {
+      "id": "research-i23",
+      "kind": "interview",
+      "source_sha256": "f0256eb819f5134c252fa1d1cab6a4bc24645df33b4d53c2656b6ea237efbace"
+    },
+    {
+      "id": "research-i24",
+      "kind": "interview",
+      "source_sha256": "987bf4881d4cc5eda96192d1da92b43c5b4457f97554711d4d6fe61658b00c04"
+    },
+    {
+      "id": "research-i25",
+      "kind": "interview",
+      "source_sha256": "dd9e18bd771cf13b64e8c6237e28debadf50f338e47f9a35bf6dac69d807e799"
+    },
+    {
+      "id": "research-i26",
+      "kind": "interview",
+      "source_sha256": "bbe5630991303c7c6d072fd4c6f925046431630b78cacc4d2cce4d41c08d8418"
+    },
+    {
+      "id": "research-i27",
+      "kind": "interview",
+      "source_sha256": "87fb4899f5b2ad5fd5382d788417f64a0ff84315f0a6eb12b787c53711dd1d53"
+    },
+    {
+      "id": "research-i28",
+      "kind": "interview",
+      "source_sha256": "524e9dbfd036e439e76fd5e9027e5c1484dd07851757b50912a9dfef9e765f99"
+    },
+    {
+      "id": "research-i29",
+      "kind": "interview",
+      "source_sha256": "6b46127a4fbad7b5471ab63525f22e6e10d2adb3dc4c946f87807d5d74e73390"
+    },
+    {
+      "id": "research-i30",
+      "kind": "interview",
+      "source_sha256": "b600b0fe4ba9cb90262fef24ce57b61a16cbbc5372da0e4769a088b41a73d1c7"
+    },
+    {
+      "id": "research-l01",
+      "kind": "learning",
+      "source_sha256": "8ec205b1e076c7d9ea35b907d94479b6055f4619aa1346d0bd2ebfae198cc68a"
+    },
+    {
+      "id": "research-l02",
+      "kind": "learning",
+      "source_sha256": "9cfc7d9c43b8be7dcb599a6579bbcee77b4861b87df7118a33d081af0cd260c3"
+    },
+    {
+      "id": "research-l03",
+      "kind": "learning",
+      "source_sha256": "7c575109930a52fd0e1db0865da92c72a148c7f3009177bc6b46b4cfbe644ca6"
+    },
+    {
+      "id": "research-l04",
+      "kind": "learning",
+      "source_sha256": "5b81c5a0aec8dc0ab66039be69a8d9829c52e0ddbea7fe47cca5d0e68db8b49e"
+    },
+    {
+      "id": "research-l05",
+      "kind": "learning",
+      "source_sha256": "81c845cd20e0735d5451f0cf2a44d06a962565c739b916a8b37f191f73209187"
+    },
+    {
+      "id": "research-l06",
+      "kind": "learning",
+      "source_sha256": "aff47921c8387b6c99e24803dcb0af2e262f32f0cc2ef418bfbf6de950e9508c"
+    },
+    {
+      "id": "research-l07",
+      "kind": "learning",
+      "source_sha256": "14f8a00684ba2a3e10c633af960336b1fb804d8378d16f263efcca9f986a755a"
+    },
+    {
+      "id": "research-l08",
+      "kind": "learning",
+      "source_sha256": "bebe810033f666696c1a777a317a8fca3a5f88de8db9865c5158d4c11648d55a"
+    },
+    {
+      "id": "research-l09",
+      "kind": "learning",
+      "source_sha256": "f9689d7e5396b75d754d3e4fd79c536b41b0a69dcfcaa5020258f648fe60ace0"
+    },
+    {
+      "id": "research-l10",
+      "kind": "learning",
+      "source_sha256": "d805ad8a4de2d07de03d242e39ac977474ce37727552b98756cf2b95f1f885ad"
+    },
+    {
+      "id": "research-l11",
+      "kind": "learning",
+      "source_sha256": "ad6fbcce0fc744002fd0295623637b490be87d3f8b4b8aa00928a8bf767c2a37"
+    },
+    {
+      "id": "research-l12",
+      "kind": "learning",
+      "source_sha256": "3af4a8cd6ea26d1f9d1f569da2e5f9df3c7d7afc2fc28d1707f22eadfd5d20c3"
+    },
+    {
+      "id": "research-l13",
+      "kind": "learning",
+      "source_sha256": "09190b6a9ce3350beb04ff05ca749aa6f876feb509e6f6e8b76c166a614abcc9"
+    },
+    {
+      "id": "research-l14",
+      "kind": "learning",
+      "source_sha256": "0427c3814cd58be8de63bef67a36500ba935ddc0d0e8665983164c7251a9a53b"
+    },
+    {
+      "id": "research-l15",
+      "kind": "learning",
+      "source_sha256": "5974a4b1c776e3bcdef28f516f52dd1129bd1adb6f096ed48bcbed49b65c760f"
+    },
+    {
+      "id": "research-l16",
+      "kind": "learning",
+      "source_sha256": "bf51bfb5a50a55df373498612555728f2cbd659fc22d21ebc40c5a7c4066c2f7"
+    },
+    {
+      "id": "research-l17",
+      "kind": "learning",
+      "source_sha256": "bf276e1493f13d15891a5629d3d23ee92ec9615298a90fa8d79edac12d495e33"
+    },
+    {
+      "id": "research-l18",
+      "kind": "learning",
+      "source_sha256": "e7ee033924a5c2e38c1c2b0bf96dfd9e079c43fe0446237e9158b851dd4b641c"
+    },
+    {
+      "id": "research-l19",
+      "kind": "learning",
+      "source_sha256": "29adbb52944e6a9863f3570dc0cf80dbd065f94a7e4464187930d2f559761cbf"
+    },
+    {
+      "id": "research-l20",
+      "kind": "learning",
+      "source_sha256": "ceca434f42f40aaff898ed79fd74854605309ce621dd9385879e625c7c1cbfdc"
+    },
+    {
+      "id": "research-l21",
+      "kind": "learning",
+      "source_sha256": "6704a032e198b12dac1f2aa25c0ad29633a169a3511164f3061a49332f06c21c"
+    },
+    {
+      "id": "research-l22",
+      "kind": "learning",
+      "source_sha256": "0072e199d039f0b3d45fb004874a57928724ce706ad73387e184578e118ccc33"
+    },
+    {
+      "id": "research-l23",
+      "kind": "learning",
+      "source_sha256": "0d6e4b6fb67e7fc7990be0a7f2de4308a0e4c77abac4c36e3b9afadc9c0c516b"
+    },
+    {
+      "id": "research-l24",
+      "kind": "learning",
+      "source_sha256": "5d0eb86e207317b7e2cf2615456645b22b38f62ef4ad341b6336916da0b0089e"
+    },
+    {
+      "id": "research-l25",
+      "kind": "learning",
+      "source_sha256": "67bebd92e12ad18cdb340a551c6b89f69c6f8a8aee35d0230d4a508fc1c8134f"
+    },
+    {
+      "id": "research-l26",
+      "kind": "learning",
+      "source_sha256": "e0b6bbae7a088e63f8658556935811362ea1e8a80e1441cf41600dc45f87e379"
+    },
+    {
+      "id": "research-l27",
+      "kind": "learning",
+      "source_sha256": "45e92b779d2c8148d23f2ef4df5923c2f4ff8f23f23e97cd6982f99b94f44a88"
+    },
+    {
+      "id": "research-l28",
+      "kind": "learning",
+      "source_sha256": "9d6e013dd94f36fc5987bd43ce4cd6dbda9847824e4785e23586dcbae02cd6b6"
+    },
+    {
+      "id": "research-l29",
+      "kind": "learning",
+      "source_sha256": "148410da4f479f5c113d8a2a750fc56d6865f8338f72e99ffb58523329dcdfac"
+    },
+    {
+      "id": "research-l30",
+      "kind": "learning",
+      "source_sha256": "21b3d0809a7075b142a7114bbf3a29a5d253e61fd44202ff04d63625532b2d4e"
+    }
+  ]
+}

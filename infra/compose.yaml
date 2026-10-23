@@ -1,0 +1,40 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: atlas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-atlas_local}
+      POSTGRES_DB: atlas
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U atlas"]
+      interval: 5s
+      retries: 15
+  api:
+    build: {context: .., dockerfile: infra/Dockerfile.api}
+    ports: ["127.0.0.1:8000:8000"]
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://atlas:${POSTGRES_PASSWORD:-atlas_local}@db:5432/atlas
+      DATA_DIR: /data
+    depends_on:
+      db: {condition: service_healthy}
+    volumes: ["private-data:/data"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+  renderer:
+    build: {context: .., dockerfile: infra/Dockerfile.renderer}
+    network_mode: none
+    read_only: true
+    user: "10001:10001"
+    volumes: ["private-data:/data"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=128m,uid=10001"]
+    mem_limit: 768m
+    cpus: 1
+    pids_limit: 64
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+volumes:
+  postgres:
+  private-data:

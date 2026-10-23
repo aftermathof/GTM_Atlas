@@ -1,0 +1,14 @@
+FROM python:3.11-slim
+RUN apt-get update && apt-get install -y --no-install-recommends texlive-xetex texlive-lang-chinese fonts-noto-cjk && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY pyproject.toml ./
+COPY packages ./packages
+COPY services ./services
+COPY requirements.lock ./
+RUN pip install --no-cache-dir -r requirements.lock && pip install --no-cache-dir --no-deps .
+COPY templates ./templates
+COPY infra/renderer_worker.py ./infra/renderer_worker.py
+RUN useradd -m -u 10001 atlas && mkdir -p /data/artifacts /data/render-queue && chown -R atlas:atlas /data && touch /renderer-sandbox
+USER atlas
+ENV DATA_DIR=/data RENDER_ENABLED=true
+CMD ["python", "-m", "infra.renderer_worker"]

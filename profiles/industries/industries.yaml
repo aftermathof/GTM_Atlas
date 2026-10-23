@@ -1,0 +1,7 @@
+version: industry-1
+industries:
+  - {id: consumer_electronics, name: 消费电子}
+  - {id: ai_hardware, name: AI 硬件}
+  - {id: robotics, name: 机器人}
+  - {id: software, name: 软件与 SaaS}
+  - {id: fmcg, name: 快消品}

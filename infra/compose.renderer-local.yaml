@@ -1,0 +1,16 @@
+# Use with the existing Windows/SQLite API; only the renderer queue and artifacts are mounted.
+services:
+  renderer:
+    build: {context: .., dockerfile: infra/Dockerfile.renderer}
+    network_mode: none
+    read_only: true
+    user: "10001:10001"
+    volumes:
+      - ../.data/artifacts:/data/artifacts
+      - ../.data/render-queue:/data/render-queue
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=128m,uid=10001"]
+    mem_limit: 768m
+    cpus: 1
+    pids_limit: 64
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]

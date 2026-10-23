@@ -1,0 +1,29 @@
+{{ preamble }}
+\begin{document}
+\begin{minipage}[t]{0.78\textwidth}
+\resumesection{\faAddressCard}{个人信息}
+\begin{minipage}[t]{0.53\linewidth}
+{% for fact in sections.personal %}{% if loop.index0 % 2 == 0 %}{{ fact.text }}\par\vspace{0.3em}
+{% endif %}{% endfor %}
+\end{minipage}%
+\begin{minipage}[t]{0.46\linewidth}
+{% for fact in sections.personal %}{% if loop.index0 % 2 == 1 %}{{ fact.text }}\par\vspace{0.3em}
+{% endif %}{% endfor %}
+{% if target_role %}\textbf{求职意向}：{{ target_role }}\par{% endif %}
+\end{minipage}
+{% if sections.education %}
+\resumesection{\faGraduationCap}{教育背景}
+{% for fact in sections.education %}{{ fact.text }}\par\vspace{0.25em}
+{% endfor %}{% endif %}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.19\textwidth}\vspace{1.6em}\end{minipage}
+{% for key, icon, title in [('projects','faProjectDiagram','项目经历'),('experience','faBriefcase','实习与工作经历'),('skills','faTools','技能特长'),('summary','faCompass','自我评价'),('other','faCompass','其他经历')] %}
+{% if sections[key] %}
+\resumesection{\{{ icon }}}{ {{ title }} }
+\begin{itemize}
+{% for fact in sections[key] %}\item {{ fact.text }}
+{% endfor %}
+\end{itemize}
+{% endif %}
+{% endfor %}
+\end{document}

@@ -1,0 +1,108 @@
+% !TeX program = xelatex
+% 通用中文简历模板 | 内容用占位符替换；支持无照片编译
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1.25cm,top=1.35cm,bottom=1.2cm]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{fontawesome5}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{hyperref}
+
+% 可修改的视觉配置
+% 优先使用系统字体；Linux 无字体缓存时回退到常见文件路径。
+\IfFontExistsTF{Times New Roman}{
+  \setmainfont{Times New Roman}
+}{
+  \IfFileExists{/usr/share/texmf/fonts/opentype/public/lm/lmroman10-regular.otf}{
+    \setmainfont[Path=/usr/share/texmf/fonts/opentype/public/lm/,
+      UprightFont=lmroman10-regular.otf,BoldFont=lmroman10-bold.otf]{lmroman10-regular.otf}
+  }{\setmainfont{Latin Modern Roman}}
+}
+\IfFontExistsTF{Noto Serif CJK SC}{
+  \setCJKmainfont{Noto Serif CJK SC}
+}{
+  \IfFileExists{/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc}{
+    \setCJKmainfont[Path=/usr/share/fonts/opentype/noto/,
+      UprightFont=NotoSerifCJK-Regular.ttc,BoldFont=NotoSerifCJK-Bold.ttc]{NotoSerifCJK-Regular.ttc}
+  }{\setCJKmainfont{SimSun}}
+}
+\xeCJKsetup{CJKglue=\hskip 0pt}
+\definecolor{primary}{RGB}{85,36,139}
+\hypersetup{hidelinks}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\linespread{1.12}
+\setlist[itemize]{leftmargin=1.55em,topsep=0.22em,itemsep=0.22em,parsep=0pt,partopsep=0pt}
+
+% 可复用组件（后续简历生成程序只需填充正文）
+\newlength{\resumeiconwidth}
+\setlength{\resumeiconwidth}{1.5em}
+\titleformat{\section}{\large\bfseries\raggedright}{}{0pt}{}[\color{primary}\titlerule]
+\titlespacing*{\section}{0pt}{0.9em}{0.45em}
+\newcommand{\resumesection}[2]{%
+  \section{\makebox[\resumeiconwidth][c]{\color{primary}#1}\hspace{0.35em}#2}%
+}
+\newcommand{\resumeentry}[3]{%
+  \textbf{#1}\enspace\textbar\enspace#2\hfill{#3}\par
+}
+\newcommand{\resumeeducation}[4]{%
+  \textbf{#1}\enspace#2\hfill{#3}\par
+  \begin{itemize}\item #4\end{itemize}
+}
+
+\begin{document}
+
+% ---------- 个人信息 / 教育背景 ----------
+\begin{minipage}[t]{0.78\textwidth}
+  \resumesection{\faAddressCard}{个人信息}
+  \begin{minipage}[t]{0.53\linewidth}
+    \textbf{姓名}：{姓名}\par\vspace{0.3em}
+    \textbf{邮箱}：\href{mailto:email@example.com}{email@example.com}
+  \end{minipage}%
+  \begin{minipage}[t]{0.46\linewidth}
+    \textbf{求职意向}：{目标岗位}\par\vspace{0.3em}
+    \textbf{电话}：{联系电话}
+  \end{minipage}
+
+  \resumesection{\faGraduationCap}{教育背景}
+  \resumeeducation{学校名称}{学位}{起止年月}{\textbf{专业}：专业名称；\textbf{GPA}：成绩（可选）}
+  % 重复 \resumeeducation 添加其他学历
+\end{minipage}\hfill
+\begin{minipage}[t]{0.19\textwidth}
+  \vspace{1.6em}
+  % 可选照片：同目录 photo.jpg；不存在时自动略过
+  \IfFileExists{photo.jpg}{\includegraphics[width=\linewidth,keepaspectratio]{photo.jpg}}{}
+\end{minipage}
+
+% ---------- 项目经历（可选、可重复） ----------
+\resumesection{\faProjectDiagram}{项目经历}
+\resumeentry{项目名称}{项目角色}{起止年月}
+\begin{itemize}
+  \item \textbf{项目简介：}简述业务背景、职责、实施措施和结果。
+  \item \textbf{项目成果：}填写可验证的业务影响或量化指标。
+\end{itemize}
+
+% ---------- 实习或工作经历（可重复） ----------
+\resumesection{\faBriefcase}{实习经历}
+\resumeentry{公司名称}{职位名称}{起止年月}
+\begin{itemize}
+  \item \textbf{工作内容：}说明职责、采取的行动和使用的方法。
+  \item \textbf{成果产出：}说明业务价值；无数据时不要虚构量化结果。
+\end{itemize}
+
+% ---------- 技能与语言（可选） ----------
+\resumesection{\faTools}{技能特长}
+\begin{itemize}
+  \item \textbf{技能类别：}工具、技术或业务能力。
+  \item \textbf{语言能力：}考试或实际工作语言水平。
+\end{itemize}
+
+% ---------- 自我评价（可选） ----------
+\resumesection{\faCompass}{自我评价}
+{根据实际经历填写 1--2 句岗位相关陈述。}
+
+\end{document}

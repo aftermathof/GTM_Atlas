@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="zh-CN" data-accent="ikb">
+<head>
+  <meta charset="utf-8">
+  <title>GTM体系学习资料 · GTM体系学习</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* =========================================================
+       Swiss International — Social Card Seed Template
+       ---------------------------------------------------------
+       Three boards built in one HTML:
+         .poster.xhs      1080×1440  (3:4   小红书)
+         .poster.square   1080×1080  (1:1   微信方封面)
+         .poster.wide     2100× 900  (21:9  微信主封面)
+         .pair-preview                       21:9 + 1:1 配对预览
+
+       Accent switching via <html data-accent="…">:
+         ikb (Klein Blue) | lemon-yellow | lemon-green | safety-orange
+
+       Fill posters where marked <!-- POSTERS_HERE -->.
+       Each poster carries one Layout Recipe (S01-S12) from
+       references/layout-recipes.md.
+       ========================================================= */
+
+    /* ---------- 1. Accent palettes (4 mutually exclusive) ---------- */
+    :root,
+    [data-accent="ikb"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #002FA7;
+      --accent-on: #ffffff;
+    }
+    [data-accent="lemon-yellow"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #FFD500;
+      --accent-on: #0a0a0a;
+    }
+    [data-accent="lemon-green"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #C5E803;
+      --accent-on: #0a0a0a;
+    }
+    [data-accent="safety-orange"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #FF6B35;
+      --accent-on: #ffffff;
+    }
+
+    /* ---------- 2. Typography stack ---------- */
+    :root {
+      --sans:    "Inter", "Helvetica Neue", Helvetica, "Noto Sans SC",
+                 -apple-system, "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      --sans-zh: "Noto Sans SC", -apple-system, "PingFang SC",
+                 "Microsoft YaHei UI", "Inter", sans-serif;
+      --mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+    }
+
+    /* ---------- 3. Spacing tokens (8/12/16/24/32/40/48/64/80/96/160) ---------- */
+    :root {
+      --sp-3:   8px;
+      --sp-4:  12px;
+      --sp-5:  16px;
+      --sp-6:  24px;
+      --sp-7:  32px;
+      --sp-8:  40px;
+      --sp-9:  48px;
+      --sp-10: 64px;
+      --sp-11: 80px;
+      --sp-12: 96px;
+      --sp-13:160px;
+    }
+
+    /* ---------- 4. Reset & sheet ---------- */
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: #1a1a1a;
+      font-family: var(--sans);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: 64px 32px;
+    }
+    .sheet {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
+    }
+
+    /* ---------- 5. Poster boards (fixed export sizes) ---------- */
+    .poster {
+      position: relative;
+      background: var(--paper);
+      color: var(--ink);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .poster.xhs    { width: 1080px; height: 1440px; }
+    .poster.square { width: 1080px; height: 1080px; }
+    .poster.wide   { width: 2100px; height:  900px; }
+    .poster figure { margin: 0; }
+
+    .poster.xhs    .content { padding: var(--sp-12) var(--sp-11); }
+    .poster.square .content { padding: var(--sp-11) var(--sp-11); }
+    .poster.wide   .content { padding: var(--sp-11) var(--sp-13); }
+    .content { position: relative; width: 100%; height: 100%; z-index: 2; }
+
+    /* Optional decorative layers — opt in per poster */
+    .dot-mat,
+    .ring-mat,
+    .cross-mat {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .dot-mat {
+      opacity: .08;
+      background-image: radial-gradient(var(--ink) 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+    }
+    .ring-mat {
+      opacity: .08;
+      background-image: radial-gradient(circle at 50% 50%, transparent 4px, var(--ink) 4.5px, var(--ink) 5px, transparent 5.5px);
+      background-size: 32px 32px;
+    }
+    .cross-mat {
+      opacity: .06;
+      background-image:
+        linear-gradient(var(--ink), var(--ink)),
+        linear-gradient(90deg, var(--ink), var(--ink));
+      background-size: 1px 14px, 14px 1px;
+      background-position: center, center;
+      background-repeat: repeat;
+    }
+
+    /* ---------- 6. Typography roles (Swiss extreme contrast) ----------
+       Hard rule: "the larger, the lighter"
+       ≥ 200px → weight 200 (ExtraLight)
+       Smaller text gets heavier weight (≥ 500). */
+    .h-hero {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 240px;
+      line-height: 1.02;
+      letter-spacing: -.02em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-statement {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 180px;
+      line-height: 1.05;
+      letter-spacing: -.015em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-xl {
+      font-family: var(--sans);
+      font-weight: 300;
+      font-size: 120px;
+      line-height: 1.08;
+      letter-spacing: -.01em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-md {
+      font-family: var(--sans);
+      font-weight: 400;
+      font-size: 56px;
+      line-height: 1.18;
+      margin: 0;
+      color: var(--ink);
+    }
+    .lead {
+      font-family: var(--sans-zh);
+      font-weight: 400;
+      font-size: 30px;
+      line-height: 1.55;
+      color: var(--ink);
+      margin: 0;
+    }
+    .body {
+      font-family: var(--sans-zh);
+      font-weight: 400;
+      font-size: 26px;
+      line-height: 1.6;
+      color: var(--ink);
+      margin: 0;
+    }
+    .t-cat {
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0;
+    }
+    .t-meta {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 20px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+    .num-mega {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 200px;
+      line-height: .92;
+      letter-spacing: -.03em;
+      color: var(--ink);
+      margin: 0;
+    }
+    .num-xl {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 144px;
+      line-height: .96;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .mono { font-family: var(--mono); }
+
+    /* XHS (3:4) boards: 1080×1440 has the tightest vertical budget,
+       so display sizes step down vs the .wide default. These caps
+       were validated by the smoke-ai-tools deck — 2-line h-xl @96px
+       leaves room for matrix + hero-stat-bottom inside 1440px. */
+    .poster.xhs .h-hero          { font-size: 168px; }
+    .poster.xhs .h-statement     { font-size: 124px; }
+    .poster.xhs .h-xl            { font-size: 96px; }
+    .poster.xhs .num-mega        { font-size: 168px; }
+    .poster.xhs .num-xl          { font-size: 120px; }
+
+    /* Square boards tighten scales */
+    .poster.square .h-hero       { font-size: 180px; }
+    .poster.square .h-statement  { font-size: 140px; }
+    .poster.square .h-xl         { font-size: 88px; }
+    .poster.square .num-mega     { font-size: 168px; }
+    .poster.square .num-xl       { font-size: 112px; }
+
+    /* Wide boards rely on horizontal real estate */
+    .poster.wide .h-hero         { font-size: 200px; }
+    .poster.wide .h-statement    { font-size: 156px; }
+    .poster.wide .h-xl           { font-size: 104px; }
+
+    /* ---------- 7. Layout primitives ---------- */
+    .stack    { display: flex; flex-direction: column; }
+    .row      { display: flex; flex-direction: row; }
+    .gap-3    { gap: var(--sp-3); }
+    .gap-4    { gap: var(--sp-4); }
+    .gap-5    { gap: var(--sp-5); }
+    .gap-6    { gap: var(--sp-6); }
+    .gap-7    { gap: var(--sp-7); }
+    .gap-8    { gap: var(--sp-8); }
+    .gap-9    { gap: var(--sp-9); }
+    .gap-10   { gap: var(--sp-10); }
+    .grow     { flex: 1; }
+    .grid-12  { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--sp-7); }
+    .grid-2-9 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+    .grid-3   { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-7); }
+    .grid-4   { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-6); }
+    .span-2   { grid-column: span 2; }
+    .span-3   { grid-column: span 3; }
+    .span-4   { grid-column: span 4; }
+    .span-6   { grid-column: span 6; }
+    .span-8   { grid-column: span 8; }
+    .span-9   { grid-column: span 9; }
+    .span-12  { grid-column: span 12; }
+    .center   { text-align: center; }
+    .right    { text-align: right; }
+    .uppercase{ text-transform: uppercase; }
+    .hr-hairline {
+      height: 1px;
+      background: var(--grey-2);
+      border: 0;
+      margin: 0;
+    }
+    .hr-accent {
+      height: 3px;
+      background: var(--accent);
+      border: 0;
+      width: 96px;
+      margin: 0;
+    }
+
+    /* ---------- 8. Card fills (mutually exclusive — pick ONE) ----------
+       Hard rule: never combine card-ink/card-accent/card-fill/card-outlined
+       on the same node. Multi-card grids must use the same class. */
+    .card-ink {
+      background: var(--ink);
+      color: var(--paper);
+      padding: var(--sp-8);
+    }
+    .card-ink .t-cat,
+    .card-ink .t-meta,
+    .card-ink .lead,
+    .card-ink .body,
+    .card-ink .h-md { color: var(--paper); }
+    .card-accent {
+      background: var(--accent);
+      color: var(--accent-on);
+      padding: var(--sp-8);
+    }
+    .card-accent .t-cat,
+    .card-accent .t-meta,
+    .card-accent .lead,
+    .card-accent .body,
+    .card-accent .h-md { color: var(--accent-on); }
+    .card-fill {
+      background: var(--grey-1);
+      color: var(--ink);
+      padding: var(--sp-8);
+    }
+    .card-outlined {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--grey-2);
+      padding: var(--sp-8);
+    }
+
+    /* ---------- 9. Frame containers (image holders) ---------- */
+    .frame-img {
+      position: relative;
+      overflow: hidden;
+      background: var(--grey-1);
+      display: block;
+      margin: 0;
+    }
+    .frame-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      display: block;
+    }
+    .frame-img.fit-contain img { object-fit: contain; background: var(--paper); }
+    .frame-img.r-3x4   { aspect-ratio: 3 / 4; }
+    .frame-img.r-1x1   { aspect-ratio: 1 / 1; }
+    .frame-img.r-4x3   { aspect-ratio: 4 / 3; }
+    .frame-img.r-16x9  { aspect-ratio: 16 / 9; }
+    .frame-img.r-16x10 { aspect-ratio: 16 / 10; }
+    .frame-img.r-21x9  { aspect-ratio: 21 / 9; }
+    .swiss-img-caption {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin-top: var(--sp-5);
+    }
+
+    /* ---------- 9b. Screenshot treatment (.frame-shot) ---------- */
+    /* Swiss is stricter than Editorial: corners default square, shadows default
+       none. Override only when the shot must literally float off the page.   */
+    .frame-shot {
+      position: relative;
+      overflow: hidden;
+      display: block;
+      margin: 0;
+      background: var(--grey-1);
+      border-radius: 0;
+    }
+    .frame-shot.corners-sq { border-radius: 0; }
+    .frame-shot.corners-sm { border-radius: 4px; }
+    .frame-shot.corners-md { border-radius: 10px; }
+
+    /* Swiss shadows are flat — only the subtle outline scrim is welcome */
+    .frame-shot.shadow-soft { box-shadow: 0 12px 28px -16px rgba(0,0,0,.18); }
+    .frame-shot.shadow-ed   { box-shadow: 0 20px 40px -20px rgba(0,0,0,.22), 0 0 0 1px var(--grey-2); }
+
+    /* background tones — pure / dot / grid only. No accent colour fills. */
+    .frame-shot.bg-paper    { background: var(--paper); }
+    .frame-shot.bg-grey-1   { background: var(--grey-1); }
+    .frame-shot.bg-ink      { background: var(--ink); }
+    .frame-shot.bg-grid     {
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(to right, var(--grey-2) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grey-2) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .frame-shot.bg-dot {
+      background-color: var(--paper);
+      background-image: radial-gradient(var(--grey-2) 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+
+    /* asset backgrounds — ported from PPT skill, real texture for screenshot wells.
+       Use ONLY when current accent matches the asset's accent (don't mix oranges and IKB). */
+    .frame-shot.bg-asset-ikb-dot          { background: #0c1a3a url("../assets/screenshot-backgrounds/style-b/ikb-dot-gradient.webp")       center/cover no-repeat; }
+    .frame-shot.bg-asset-lemon-green-dot  { background: #d6e08a url("../assets/screenshot-backgrounds/style-b/lemon-green-dot-shadow.webp") center/cover no-repeat; }
+    .frame-shot.bg-asset-lemon-grid       { background: #e6e9b8 url("../assets/screenshot-backgrounds/style-b/lemon-grid.webp")             center/cover no-repeat; }
+    .frame-shot.bg-asset-safety-orange    { background: #ff5b1f url("../assets/screenshot-backgrounds/style-b/safety-orange-halftone.webp") center/cover no-repeat; }
+
+    .frame-shot.inset-none > img,
+    .frame-shot.inset-none > .shot-body { padding: 0; }
+    .frame-shot.inset-sub  { padding: 20px; }
+    .frame-shot.inset-bal  { padding: 48px; }
+
+    .frame-shot.r-3x4   { aspect-ratio: 3 / 4; }
+    .frame-shot.r-1x1   { aspect-ratio: 1 / 1; }
+    .frame-shot.r-4x3   { aspect-ratio: 4 / 3; }
+    .frame-shot.r-16x9  { aspect-ratio: 16 / 9; }
+    .frame-shot.r-16x10 { aspect-ratio: 16 / 10; }
+    .frame-shot.r-21x9  { aspect-ratio: 21 / 9; }
+    .frame-shot.r-3x2   { aspect-ratio: 3 / 2; }
+
+    .frame-shot > img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      border-radius: inherit;
+    }
+    .frame-shot.fit-cover > img { object-fit: cover; }
+
+    /* device chrome — CSS-only, no SVG */
+    .device-browser {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--grey-2);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .device-browser::before {
+      content: '';
+      display: block;
+      height: 32px;
+      background: var(--grey-1);
+      border-bottom: 1px solid var(--grey-2);
+      background-image:
+        radial-gradient(circle at 16px 16px, var(--grey-3) 4px, transparent 4.5px),
+        radial-gradient(circle at 34px 16px, var(--grey-3) 4px, transparent 4.5px),
+        radial-gradient(circle at 52px 16px, var(--grey-3) 4px, transparent 4.5px);
+    }
+    .device-browser > .frame-shot,
+    .device-browser > img {
+      border-radius: 0;
+      display: block;
+      width: 100%;
+    }
+    .device-phone {
+      position: relative;
+      background: var(--ink);
+      border-radius: 28px;
+      padding: 12px;
+      box-shadow: 0 16px 36px -18px rgba(0,0,0,.32);
+    }
+    .device-phone > .frame-shot,
+    .device-phone > img {
+      border-radius: 18px;
+      display: block;
+      width: 100%;
+    }
+
+    /* ---------- 9c. Map block (.map-block) ---------- */
+    /* Static map for Swiss decks. Pins are pure HTML, no SVG text.
+       Use accent sparingly: at most one accent pin per board. */
+    .map-block {
+      position: relative;
+      background: var(--grey-1);
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      width: 100%;
+    }
+    .map-block.r-16x10 { aspect-ratio: 16 / 10; }
+    .map-block.r-16x9  { aspect-ratio: 16 / 9; }
+    .map-block.r-1x1   { aspect-ratio: 1 / 1; }
+    .map-block.r-3x4   { aspect-ratio: 3 / 4; }
+    .map-block > img,
+    .map-block > svg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+    .map-block > img { object-fit: cover; }
+    /* desaturated tile filter to keep Swiss strict tone */
+    .map-block.tone-paper > img { filter: saturate(0) contrast(1.05) brightness(1.02); }
+    .map-block.tone-ink > img   { filter: saturate(0) brightness(.58); }
+    /* schematic SVG defaults */
+    .map-block > svg .map-coast { fill: none; stroke: var(--grey-2); stroke-width: .4; }
+    .map-block > svg .map-road  { fill: none; stroke: var(--grey-3); stroke-width: .28; stroke-dasharray: 1.2 .8; opacity: .7; }
+    .map-block > svg .map-water { fill: var(--grey-1); }
+    .map-block > svg .map-grid  { stroke: var(--grey-2); stroke-width: .15; opacity: .5; }
+
+    .map-pin {
+      position: absolute;
+      width: 0; height: 0;
+      transform: translate(-50%, -50%);
+    }
+    .map-pin .dot {
+      position: absolute;
+      left: -6px; top: -6px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--ink);
+      border: 2px solid var(--paper);
+      box-shadow: 0 1px 3px rgba(0,0,0,.22);
+    }
+    .map-pin.accent .dot { background: var(--accent); }
+    .map-pin .line {
+      position: absolute;
+      left: 7px; top: 0;
+      width: 28px; height: 1px;
+      background: var(--ink);
+      opacity: .55;
+    }
+    .map-pin.left .line { left: auto; right: 7px; }
+    .map-pin .card {
+      position: absolute;
+      left: 38px; top: -20px;
+      min-width: 80px;
+      padding: 8px 10px;
+      background: rgba(250,250,248,.94);
+      box-shadow: 0 0 0 1px var(--grey-2);
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+    .map-pin.left .card { left: auto; right: 38px; }
+    .map-pin .card .name {
+      font-family: var(--sans-zh), var(--sans);
+      font-weight: 500;
+      font-size: 15px;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    .map-pin .card .meta {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+    }
+    .map-pin.accent .card .name { color: var(--accent); }
+
+    .map-legend {
+      position: absolute;
+      left: 14px; bottom: 14px;
+      z-index: 3;
+      background: rgba(250,250,248,.94);
+      padding: 8px 12px;
+      box-shadow: 0 0 0 1px var(--grey-2);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+    }
+    .map-legend.tr { left: auto; right: 14px; top: 14px; bottom: auto; }
+
+    /* ---------- 10. Swiss-specific components ---------- */
+
+    /* S08 Image Hero (port of S22) */
+    .image-hero {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: var(--sp-7);
+      height: 100%;
+    }
+    .image-hero .hero-img-wrap {
+      position: relative;
+      overflow: hidden;
+      background: var(--grey-1);
+    }
+    .image-hero .hero-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      display: block;
+    }
+    .image-hero .hero-overlay-block {
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: var(--paper);
+      padding: var(--sp-7) var(--sp-8);
+      max-width: 60%;
+    }
+    .image-hero .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--sp-8);
+      align-items: end;
+      border-top: 1px solid var(--grey-2);
+      padding-top: var(--sp-7);
+    }
+    .image-hero .hero-stats .stat-block .num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 96px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      color: var(--ink);
+      margin: 0 0 var(--sp-4);
+    }
+    .image-hero .hero-stats .stat-block .lbl {
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+
+    /* S09 KPI Tower (port of S06) */
+    .kpi-tower-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-7);
+      align-items: end;
+      height: 100%;
+    }
+    .kpi-tower-row .tower-col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-5);
+      align-items: flex-start;
+    }
+    .kpi-tower-row .tower-col .num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 112px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .kpi-tower-row .tower-col .lbl {
+      font-family: var(--mono);
+      font-size: 20px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+    .kpi-tower-row .tower-col .bar-tower {
+      width: 100%;
+      height: var(--h, 240px);
+      background: var(--accent);
+      transform-origin: bottom;
+    }
+    .kpi-tower-row .tower-col.muted .bar-tower {
+      background: var(--grey-2);
+    }
+    .poster.xhs .kpi-tower-row { grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+    .poster.square .kpi-tower-row { grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+
+    /* S10 H-Bar Chart (port of S07) */
+    .h-bar-chart {
+      display: grid;
+      gap: var(--sp-6);
+    }
+    .h-bar-chart .bar-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 120px;
+      gap: var(--sp-6);
+      align-items: center;
+    }
+    .h-bar-chart .bar-row .row-lbl {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 26px;
+      color: var(--ink);
+    }
+    .h-bar-chart .bar-row .row-track {
+      position: relative;
+      height: 28px;
+      background: var(--grey-1);
+    }
+    .h-bar-chart .bar-row .row-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: var(--w, 50%);
+      background: var(--accent);
+    }
+    .h-bar-chart .bar-row .row-val {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 26px;
+      letter-spacing: .04em;
+      text-align: right;
+      color: var(--ink);
+    }
+    /* On portrait the labels move above the track */
+    .poster.xhs .h-bar-chart .bar-row {
+      grid-template-columns: 1fr;
+      gap: var(--sp-4);
+    }
+    .poster.xhs .h-bar-chart .bar-row .row-val {
+      text-align: left;
+    }
+
+    /* S11 Stacked Ledger (port of S20) */
+    .stacked-ledger {
+      display: flex;
+      flex-direction: column;
+    }
+    .stacked-ledger .ledger-row {
+      display: grid;
+      grid-template-columns: 280px 1fr auto;
+      gap: var(--sp-7);
+      align-items: baseline;
+      padding: var(--sp-7) 0;
+      border-bottom: 1px solid var(--grey-2);
+    }
+    .stacked-ledger .ledger-row:first-child { padding-top: 0; }
+    .stacked-ledger .ledger-row:last-child  { border-bottom: 0; }
+    .stacked-ledger .ledger-num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 112px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .stacked-ledger .ledger-lbl {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 30px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .stacked-ledger .ledger-lbl .sub {
+      display: block;
+      font-weight: 400;
+      font-size: 22px;
+      color: var(--grey-3);
+      margin-top: var(--sp-3);
+    }
+    .stacked-ledger .ledger-icn {
+      width: 56px;
+      height: 56px;
+      color: var(--accent);
+    }
+    .poster.square .stacked-ledger .ledger-num { font-size: 88px; }
+    .poster.square .stacked-ledger .ledger-row { grid-template-columns: 220px 1fr auto; }
+
+    /* S12 Matrix Fill (port of S15) */
+    .matrix-fill {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-auto-rows: 1fr;
+      gap: var(--sp-5);
+    }
+    .matrix-fill .matrix-cell {
+      background: var(--grey-1);
+      padding: var(--sp-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-4);
+      min-height: 160px;
+    }
+    .matrix-fill .matrix-cell .cell-nb {
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .12em;
+      color: var(--grey-3);
+    }
+    .matrix-fill .matrix-cell .cell-title {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 26px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .matrix-fill .matrix-cell.is-accent {
+      background: var(--accent);
+      color: var(--accent-on);
+    }
+    .matrix-fill .matrix-cell.is-accent .cell-nb,
+    .matrix-fill .matrix-cell.is-accent .cell-title { color: var(--accent-on); }
+    .hero-stat-bottom {
+      margin-top: var(--sp-9);
+      padding-top: var(--sp-7);
+      border-top: 1px solid var(--grey-2);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: var(--sp-7);
+    }
+    /* xhs uses 2 columns; up to 8 cells = 4 rows. Switch to min-content
+       so rows don't stretch and crowd out hero-stat-bottom (validated
+       in smoke-ai-tools/xhs-04). When pairing matrix-fill with
+       hero-stat-bottom inside .poster.xhs, prefer 6 cells (3 rows). */
+    .poster.xhs .matrix-fill {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: min-content;
+      gap: var(--sp-4);
+    }
+    .poster.xhs .matrix-fill .matrix-cell { min-height: 0; padding: var(--sp-5); }
+    .poster.xhs .matrix-fill .matrix-cell .cell-title { font-size: 24px; }
+    .poster.xhs .hero-stat-bottom {
+      margin-top: var(--sp-6);
+      padding-top: var(--sp-5);
+      align-items: center;
+    }
+    .poster.xhs .hero-stat-bottom .num-mega { font-size: 128px; line-height: 1; }
+    .poster.square .matrix-fill{ grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; }
+    .poster.square .matrix-fill .matrix-cell { min-height: 0; }
+
+    /* ---------- 11. Issue label + corner metadata ---------- */
+    .chrome-min {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      padding-bottom: var(--sp-6);
+      border-bottom: 1px solid var(--grey-2);
+      margin-bottom: var(--sp-9);
+    }
+
+    /* ---------- 12. Pair preview frame ---------- */
+    .pair-preview {
+      width: 2400px;
+      min-height: 1180px;
+      background: var(--grey-1);
+      padding: var(--sp-9);
+      display: grid;
+      grid-template-columns: 2100px 1080px;
+      grid-template-rows: 900px 1080px;
+      gap: var(--sp-9);
+      align-content: center;
+      justify-content: center;
+    }
+    .pair-preview .preview-wide   { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+    .pair-preview .preview-square { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+    .pair-preview .preview-label {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin-bottom: var(--sp-5);
+    }
+
+    /* ---------- 13. Hard rules (visual guard rails) ----------
+       Swiss style refuses these — uncomment to find offenders.
+    .poster *[style*="border-radius"],
+    .poster *[style*="box-shadow"],
+    .poster *[style*="linear-gradient"] { outline: 4px solid red !important; }
+    */
+  </style>
+<style>
+
+/* GTM learning adaptation of the Swiss seed. Fluid reading pages, not fixed image boards. */
+html{scroll-behavior:smooth;scroll-padding-top:108px}
+body.learning{background:var(--paper);padding:0;font-family:var(--sans-zh);font-size:17px;line-height:1.85;color:var(--ink)}
+.learning a{color:inherit;text-decoration:none}.learning a:focus-visible,.learning summary:focus-visible{outline:3px solid var(--accent);outline-offset:5px}
+.learning .skip{position:absolute;left:24px;top:-100px;z-index:20;background:var(--accent);color:white;padding:8px 16px}.learning .skip:focus{top:8px}
+.wrap{width:min(1320px,calc(100% - 96px));margin:auto}
+.site-header{background:var(--paper);border-bottom:1px solid var(--grey-2);position:sticky;top:0;z-index:10}
+.header-inner{display:flex;align-items:center;justify-content:space-between;gap:32px;min-height:80px}
+.brand{font-weight:600;font-size:20px;white-space:nowrap;letter-spacing:-.3px}.brand span{color:var(--accent)}
+.chapter-nav{display:flex;align-items:center;gap:26px}.chapter-nav a{font-size:14px;color:#555;padding:25px 0;white-space:nowrap;border-bottom:3px solid transparent}
+.chapter-nav a[aria-current=page]{border-color:var(--accent);color:var(--accent)}
+.eyebrow{font:500 12px/1.5 var(--mono);letter-spacing:.13em;text-transform:uppercase;color:var(--grey-3)}
+.eyebrow.blue{color:var(--accent)}.learning .h-hero{font-size:clamp(66px,7.5vw,110px);line-height:1.18;font-weight:200;letter-spacing:-.025em;overflow-wrap:anywhere}
+.learning .h-xl{font-size:clamp(40px,4.8vw,68px);line-height:1.25;font-weight:300;letter-spacing:-.015em;margin:20px 0 28px}
+.learning .h-md{font-size:clamp(26px,2.6vw,38px);font-weight:400;line-height:1.4;letter-spacing:0;margin:0 0 24px}
+.home-hero{display:grid;grid-template-columns:1.2fr 1fr;gap:80px;padding:72px 0 64px;border-bottom:1px solid var(--ink)}
+.home-hero .h-hero{margin:22px 0 32px}.home-hero .h-hero em{color:var(--accent);font-style:normal}
+.hero-copy{max-width:610px;font-size:19px;color:#4c4c4c;line-height:1.95;margin:0 0 32px}
+.start-link{display:inline-flex;gap:30px;align-items:center;padding:12px 0;border-bottom:1px solid var(--accent);color:var(--accent)!important;font-weight:500}
+.start-link span{font-size:22px}.hero-model{align-self:stretch;display:flex;flex-direction:column;justify-content:center;padding-top:24px}
+.model-label{margin-bottom:18px}.model-flow{display:flex;flex-direction:column;gap:0}
+.model-flow .model-node{display:grid;grid-template-columns:64px 1fr;gap:24px;padding:22px 0;border-top:1px solid var(--grey-2)}
+.node-n{font:300 38px/1.15 var(--sans);color:var(--accent)}.model-node strong{font-size:23px;font-weight:500;display:block}.model-node small{font-size:14px;color:#646464}
+.model-conclusion{background:var(--accent);color:white;padding:22px 28px;margin-top:20px;font-size:22px}
+.section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:24px;margin:48px 0 24px}.section-heading h2{font-size:28px;font-weight:400;margin:0}.section-heading p{margin:0;color:#666;font-size:14px}
+.route-list{border-top:1px solid var(--ink)}.route{display:grid;grid-template-columns:80px 1fr 1.2fr 40px;gap:28px;align-items:center;padding:28px 0;border-bottom:1px solid var(--grey-2)}
+.route:hover .route-title,.route:hover .route-arrow{color:var(--accent)}.route-number{font:300 42px var(--sans);color:var(--accent)}.route-title{font-size:26px;font-weight:400}.route-title small{display:block;color:#666;font-size:13px;margin-top:4px}.route-desc{color:#555;font-size:16px;line-height:1.85}.route-arrow{font-size:28px;text-align:right}
+.home-note{display:grid;grid-template-columns:1fr 1fr;gap:64px;margin:48px 0 70px}.home-note h3{font-weight:500;font-size:18px;margin:0 0 12px}.home-note p{margin:0;color:#555;font-size:15px}
+.chapter-hero{display:grid;grid-template-columns:1fr 300px;gap:56px;padding:58px 0 50px;border-bottom:1px solid var(--ink)}
+.chapter-hero p{max-width:760px;color:#555;font-size:19px;margin:0}.chapter-identity{display:flex;flex-direction:column;justify-content:space-between;border-left:1px solid var(--grey-2);padding-left:36px}.chapter-big{font:200 140px/1 var(--sans);color:var(--accent);letter-spacing:-.06em}.chapter-skills{list-style:none;margin:18px 0 0;padding:0;font-size:14px;color:#555}.chapter-skills li{padding:8px 0;border-bottom:1px solid var(--grey-2)}
+.chapter-body{display:grid;grid-template-columns:232px minmax(0,1fr);gap:72px;padding-top:44px}
+.toc{position:sticky;top:112px;align-self:start;font-size:14px}.toc-title{font-size:12px;color:#666;letter-spacing:.12em;margin:0 0 16px}.toc ol{list-style:none;padding:0;margin:0}.toc li{margin:0;border-top:1px solid var(--grey-2)}.toc a{display:flex;gap:12px;align-items:start;padding:13px 0;line-height:1.7}.toc a:hover{color:var(--accent)}.toc-n{font:500 11px/2.2 var(--mono);color:#777}.toc .review-link{margin-top:16px;padding:12px 0;color:var(--accent);border-top:1px solid var(--ink)}
+.reading{min-width:0;max-width:920px}.chapter-intro{margin:0 0 52px;padding-bottom:24px;border-bottom:1px solid var(--grey-2)}
+.chapter-thesis{font-size:24px;font-weight:400;line-height:1.7;margin:16px 0 24px;max-width:760px}
+.diagram{margin:30px 0 34px}.diagram figcaption{font-size:12px;color:#666;margin-top:12px;line-height:1.7}.diagram-title{font-size:14px;font-weight:500;color:var(--accent);margin:0 0 16px}
+.flow-row{display:flex;align-items:stretch;gap:12px}.flow-cell{flex:1;min-width:0;background:var(--grey-1);padding:19px 18px;position:relative}.flow-cell strong{display:block;font-size:18px;font-weight:500;line-height:1.5}.flow-cell small{display:block;font-size:13px;color:#555;margin-top:7px;line-height:1.65}.flow-cell .step{font:500 11px var(--mono);color:var(--accent);display:block;margin-bottom:10px}.flow-arrow{align-self:center;color:var(--accent);font-size:18px}
+.dual-rail{display:grid;grid-template-columns:1fr 1fr;gap:18px}.rail{border:1px solid var(--grey-2);padding:24px}.rail-tag{font:400 40px var(--sans);color:var(--accent)}.rail h4{font-weight:500;margin:12px 0;font-size:19px}.rail p{margin:0;font-size:14px;color:#555}.shared-goal{background:var(--accent);color:white;padding:16px 24px;margin-top:16px;text-align:center;font-size:18px}
+.ledger{margin:28px 0 34px;border-top:1px solid var(--grey-2)}.ledger-item{display:grid;grid-template-columns:42px 170px 1fr;gap:18px;align-items:start;padding:18px 0;border-bottom:1px solid var(--grey-2)}.ledger-item .ledger-id{font:500 12px/2 var(--mono);color:var(--accent)}.ledger-item strong{font-size:17px;font-weight:500;line-height:1.6}.ledger-item p{font-size:14px;line-height:1.8;color:#555;margin:0}
+.topic{padding:0 0 50px;margin:0 0 44px;border-bottom:1px solid var(--grey-2);scroll-margin-top:108px}.topic .topic-kicker{font:500 12px var(--mono);letter-spacing:.07em;color:var(--accent);margin-bottom:16px}.topic .topic-summary{font-size:20px;line-height:1.75;color:#555;border-left:2px solid var(--accent);padding-left:20px;margin:0 0 30px}
+.prose p{font-size:17px;line-height:2.05;margin:0 0 20px;overflow-wrap:anywhere}.prose p:last-child{margin-bottom:0}.section-end{font-size:12px;color:#777;margin-top:24px;text-align:right}.section-end a:hover{color:var(--accent)}
+.review{padding:0 0 48px;scroll-margin-top:108px}.review p{font-size:16px;color:#555}.review details{border-top:1px solid var(--grey-2);padding:18px 0}.review details:last-child{border-bottom:1px solid var(--grey-2)}.review summary{cursor:pointer;font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:20px}.review summary:after{content:'+';color:var(--accent);font-size:24px;line-height:1.4}.review details[open] summary:after{content:'−'}.review details p{margin:16px 30px 0 0;line-height:1.9}
+.page-turn{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ink);margin:0 0 64px}.page-turn a{padding:26px 0;font-size:19px;line-height:1.6}.page-turn a:last-child{text-align:right}.page-turn small{display:block;font-size:12px;color:#666;margin-bottom:6px}.page-turn a:hover{color:var(--accent)}
+.site-footer{border-top:1px solid var(--grey-2);padding:24px 0 30px;font-size:12px;color:#666}.footer-inner{display:flex;justify-content:space-between;gap:24px}.footer-inner a{color:var(--accent)}
+.source-intro{margin:22px 0 0;padding:22px 0;border-top:1px solid var(--grey-2);font-size:15px}.source-intro p{margin:0 0 12px;color:#555}
+@media(min-width:1500px){.wrap{width:1320px}}
+@media(max-width:1050px){.wrap{width:calc(100% - 64px)}.home-hero{gap:42px}.chapter-body{gap:40px;grid-template-columns:195px 1fr}.chapter-hero{grid-template-columns:1fr 220px}.chapter-big{font-size:115px}.chapter-identity{padding-left:24px}.chapter-nav{gap:18px}.ledger-item{grid-template-columns:32px 125px 1fr;gap:12px}.flow-row{flex-wrap:wrap}.flow-cell{min-width:140px}.flow-arrow{display:none}}
+@media(max-width:760px){html{scroll-padding-top:140px}.wrap{width:calc(100% - 40px)}.header-inner{display:block;padding-top:15px;min-height:auto}.brand{font-size:18px}.chapter-nav{display:flex;gap:0;justify-content:space-between;margin-top:7px}.chapter-nav a{font-size:12px;padding:10px 0 12px}.home-hero{grid-template-columns:1fr;padding:36px 0;gap:24px}.learning .h-hero{font-size:64px}.hero-copy{font-size:17px}.hero-model{padding-top:0}.model-flow .model-node{padding:16px 0;grid-template-columns:42px 1fr;gap:18px}.node-n{font-size:28px}.model-node strong{font-size:20px}.model-conclusion{font-size:19px}.section-heading{display:block;margin-top:32px}.section-heading h2{font-size:25px}.section-heading p{margin-top:8px}.route{grid-template-columns:45px 1fr 20px;gap:15px;padding:22px 0}.route-number{font-size:32px}.route-title{font-size:22px}.route-desc{grid-column:2/4;font-size:15px}.route-arrow{grid-column:3;grid-row:1}.home-note{grid-template-columns:1fr;gap:28px;margin:32px 0 44px}.chapter-hero{grid-template-columns:1fr;padding:32px 0;gap:24px}.learning .h-xl{font-size:40px;margin-top:18px}.chapter-hero p{font-size:17px}.chapter-identity{border:0;padding:0;display:block}.chapter-big{display:none}.chapter-skills{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0}.chapter-skills li{font-size:12px;border:0;padding:0}.chapter-body{display:block;padding-top:28px}.toc{position:static;margin-bottom:36px;border-bottom:1px solid var(--ink);padding-bottom:16px}.toc ol{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}.toc a{font-size:12px;gap:8px;padding:10px 0}.toc-title{margin-bottom:8px}.toc .review-link{font-size:13px;margin-top:8px}.chapter-thesis{font-size:21px}.dual-rail{gap:10px}.rail{padding:18px 14px}.rail-tag{font-size:32px}.rail h4{font-size:16px}.rail p{font-size:13px}.shared-goal{font-size:16px}.flow-row{display:grid;grid-template-columns:1fr 1fr}.flow-cell{min-width:0;padding:16px 14px}.flow-cell strong{font-size:16px}.flow-cell small{font-size:12px}.topic{padding-bottom:34px;margin-bottom:30px}.learning .h-md{font-size:27px;margin-bottom:20px}.topic .topic-summary{font-size:18px;padding-left:14px}.prose p{font-size:16px;line-height:2;margin-bottom:20px}.ledger-item{grid-template-columns:26px 1fr;gap:8px 14px}.ledger-item p{grid-column:2}.ledger-item strong{font-size:16px}.page-turn a{font-size:16px}.footer-inner{display:block}.footer-inner span{display:block;margin-bottom:8px}.review summary{font-size:16px}.section-end{font-size:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media print{.site-header,.toc,.page-turn,.section-end,.site-footer,.skip{display:none!important}.wrap{width:100%}.chapter-hero{padding:0 0 24px;grid-template-columns:1fr}.chapter-identity{display:none}.chapter-body{display:block}.reading{max-width:none}.learning .h-xl{font-size:32pt}.learning .h-md{font-size:20pt}.topic{break-before:auto}.prose p{font-size:11pt;line-height:1.8;orphans:3;widows:3}.diagram,.review details{break-inside:avoid}h2,h3{break-after:avoid}.home-hero{padding:0;gap:24px}.learning .h-hero{font-size:40pt}.site-footer{display:none}.review details p{display:block}a{color:inherit!important}}
+
+</style>
+</head>
+<body class="learning"><a class="skip" href="#main">跳到正文</a><header class="site-header"><div class="wrap header-inner"><a class="brand" href="index.html"><span>GTM</span> 体系学习</a><nav class="chapter-nav" aria-label="章节导航"><a href="chapter-01.html">01 基本认知</a><a href="chapter-02.html">02 关键工作</a><a href="chapter-03.html">03 经营痛点</a><a href="chapter-04.html">04 落地实施</a></nav></div></header><main id="main" class="wrap">
+<section class="home-hero"><div><div class="eyebrow blue">GO TO MARKET / LEARNING GUIDE</div><h1 class="h-hero">从产品价值<br>到<em>市场结果</em></h1><p class="hero-copy">读懂 GTM 的经营逻辑，把产品、营销、渠道与组织，放回同一条业务主线。</p><a class="start-link" href="chapter-01.html">从第一章开始学习 <span aria-hidden="true">→</span></a></div>
+<div class="hero-model"><div class="eyebrow model-label">GTM 的价值路径</div><div class="model-flow"><div class="model-node"><span class="node-n">01</span><div><strong>识别价值</strong><small>理解客户，选择人群与机会</small></div></div><div class="model-node"><span class="node-n">02</span><div><strong>传递价值</strong><small>组织卖点、价格、渠道与营销</small></div></div><div class="model-node"><span class="node-n">03</span><div><strong>交付价值</strong><small>推动购买、使用与生命周期经营</small></div></div></div><div class="model-conclusion">让产品的商业成功，有方法可循。</div></div></section>
+<section aria-labelledby="route-title"><div class="section-heading"><h2 id="route-title">四章，走完一条经营主线</h2><p>4 个章节 · 20 个主题 · 完整正文 + 内容结构图</p></div><div class="route-list"><a class="route" href="chapter-01.html"><span class="route-number">01</span><div class="route-title">基本认知<small>5 节 · 理解 GTM</small></div><div class="route-desc">从产品与市场的双经营出发，理解 GTM 的价值、责任和适用条件。</div><span class="route-arrow" aria-hidden="true">↗</span></a><a class="route" href="chapter-02.html"><span class="route-number">02</span><div class="route-title">关键工作<small>6 节 · 拆解 GTM</small></div><div class="route-desc">顺着产品经营主线，学习战略承接、卖点、价格、渠道和整合营销。</div><span class="route-arrow" aria-hidden="true">↗</span></a><a class="route" href="chapter-03.html"><span class="route-number">03</span><div class="route-title">经营痛点<small>5 节 · 诊断 GTM</small></div><div class="route-desc">围绕销售把握、上市延迟、高端产品、研产供销和营销预算，建立诊断思路。</div><span class="route-arrow" aria-hidden="true">↗</span></a><a class="route" href="chapter-04.html"><span class="route-number">04</span><div class="route-title">落地实施<small>4 节 · 落地 GTM</small></div><div class="route-desc">在产品与组织尚不完备时起步，通过洞察、业务设计和试点逐步建立 GTM 体系。</div><span class="route-arrow" aria-hidden="true">↗</span></a></div></section>
+<section class="home-note"><div><h3>如何学习这份资料</h3><p>先看每章的核心关系，再沿目录阅读完整讲解。读完后，用章末自测检查自己是否理解，继续进入下一章。</p></div><div><h3>把概念放回业务场景</h3><p>阅读时选择一款熟悉的产品，思考它的目标客户、价值、渠道与资源是否一致。文中的企业与产品案例按原文语境保留。</p></div></section>
+<section class="source-intro" aria-label="GTM概述"><div class="eyebrow blue">GTM 概述</div><p>GTM（Go to Market）是将产品与服务的价值转化为市场需求和经营收入的过程。它以产品的商业成功为目标，贯穿市场洞察、产品规划、上市准备、上市销售和生命周期经营，需要产品、营销、渠道、零售、电商、供应、财务及服务等团队共同参与。</p><p>建设GTM体系，是要把依赖个人经验的产品经营活动，沉淀为组织能够持续执行的流程、方法和工具。通过明确责任主体、统一经营目标、协调资源投入和持续复盘，企业才能提高产品上市的有序性，逐步增强对销量、利润和市场格局的把握能力。</p></section></main><footer class="site-footer"><div class="wrap footer-inner"><span>GTM 体系学习 · 根据《GTM体系搭建》整理</span><span>保留原文讲解 · 结构图辅助学习 · <a href="index.html">返回总目录 ↑</a></span></div></footer></body>
+</html>

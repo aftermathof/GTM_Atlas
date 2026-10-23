@@ -1,0 +1,23 @@
+[project]
+name = "gtm-atlas"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi==0.115.6", "uvicorn==0.34.0", "sqlalchemy==2.0.36",
+  "psycopg[binary]==3.2.3", "pgvector==0.3.6", "alembic==1.14.0",
+  "langgraph==0.2.60", "httpx==0.28.1", "python-multipart==0.0.20",
+  "PyYAML==6.0.2", "PyMuPDF==1.25.1", "Jinja2==3.1.5",
+  "python-dotenv==1.0.1", "pytest==8.3.4"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "--basetemp=.data/pytest-temp"
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["services*", "packages*"]
