@@ -7,8 +7,6 @@ __pycache__/
 .pytest_cache/
 .env
 .env.*
-!.env.formal
-!.env.supabase.formal
 .vercel/
 *.log
 *.tsbuildinfo
