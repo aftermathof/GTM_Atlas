@@ -18,12 +18,17 @@ class LearningState(TypedDict, total=False):
     trace: list
     private_context: dict
     history: list
+    casual: bool
 
 
 def answer_question(db, request, private_context=None, history=None):
     provider = LLMProvider()
 
     def retrieve(state):
+        greeting = re.sub(r'[\s，。！？、,.!?~～]+', '', state['question']).lower()
+        casual = bool(re.fullmatch(r'(你好|您好|你好呀|你好啊|嗨|哈喽|在吗|早上好|晚上好|谢谢|谢谢你|好的|再见|你是谁|hello|hi|hey|thanks|thankyou)', greeting))
+        if casual:
+            return {'casual': True, 'evidence': [], 'trace': [{'node': 'dialogue_router', 'mode': 'conversation'}]}
         kind = {"learning": "learning", "interview": "interview", "career": "jd", "article": None}.get(state["scope"])
         if state['scope']=='career' and state.get('private_context'):
             from packages.career.retrieval import career_evidence
@@ -40,10 +45,8 @@ def answer_question(db, request, private_context=None, history=None):
         return {"evidence": evidence, "trace": [{"node": "permission_resolver", "permissions":sorted({e['permission'] for e in evidence})}, {"node": "retriever", "chunks": [e["chunk_id"] for e in evidence]}]}
 
     def compose(state):
-        if not state["evidence"] and not state.get("private_context"):
-            return {"answer": "知识库证据不足，无法仅凭当前资料回答。请尝试调整关键词或切换资料范围。"}
         private={k:v for k,v in (state.get('private_context') or {}).items() if k!='owner_id'}
-        answer = provider.complete("基于当前证据回答问题并提供适用范围与局限。历史对话仅用于理解追问，不作为事实来源；引用必须来自本次 evidence。", {"question": state["question"], "history": state.get('history', []), "scope": state["scope"], "evidence": state["evidence"], "authorized_context": private})
+        answer = provider.complete("自然地与用户交流。寒暄、感谢等日常对话直接回应，无需引用。专业问题优先使用本次证据；没有合适证据时可以提供一般知识或建议，明确不确定性，不声称来自知识库。涉及用户事实只使用授权内容。历史用于理解追问；如引用资料，引用必须来自本次 evidence，不编造来源。可使用 Markdown 排版。", {"question": state["question"], "history": state.get('history', []), "scope": state["scope"], "evidence": state["evidence"], "authorized_context": private, 'casual': state.get('casual', False)})
         return {"answer": answer}
 
     def validate(state):
@@ -55,8 +58,6 @@ def answer_question(db, request, private_context=None, history=None):
         else:
             answer = state["answer"]
             citations = [e for e in state["evidence"] if e["chunk_id"] in used]
-            if state["evidence"] and not citations:
-                answer = "模型未提供可校验引用，回答已拦截。请重试。"
         return {"answer": answer, "citations": citations, "trace": state["trace"] + [{"node": "citation_validator", "valid": used.issubset(known)}]}
 
     graph = StateGraph(LearningState)
@@ -67,4 +68,5 @@ def answer_question(db, request, private_context=None, history=None):
     graph.add_edge("compose", "validate")
     graph.add_edge("validate", END)
     state = graph.compile().invoke({"question": request.message, "scope": request.scope, "role": request.role, "industry": request.industry, "document_id": request.document_id, "private_context": private_context, 'history': history or []})
-    return {"answer": state["answer"], "citations": state["citations"], "trace": state["trace"], "provider": provider.mode, "model": provider.model, "limitations": "学习与训练参考；不代表招聘结果。"}
+    limitations = '' if state.get('casual') else '学习与训练参考；不代表招聘结果。' if state['citations'] else '以下为一般交流或建议，未附知识库来源，请按实际情况核实。'
+    return {"answer": state["answer"], "citations": state["citations"], "trace": state["trace"], "provider": provider.mode, "model": provider.model, "limitations": limitations}

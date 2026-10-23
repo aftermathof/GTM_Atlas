@@ -1,0 +1,164 @@
+{
+  "request": {
+    "cities": [
+      "深圳"
+    ],
+    "keywords": [
+      "海外gtm"
+    ],
+    "hiring_type": "internship",
+    "target_count": 10
+  },
+  "queries": [
+    {
+      "keyword": "海外gtm",
+      "city": "深圳",
+      "internship_filter": false
+    },
+    {
+      "keyword": "GTM实习",
+      "city": "深圳",
+      "internship_filter": false
+    },
+    {
+      "keyword": "海外GTM实习",
+      "city": "深圳",
+      "internship_filter": false
+    },
+    {
+      "keyword": "GTM",
+      "city": "深圳",
+      "internship_filter": true
+    },
+    {
+      "keyword": "海外GTM",
+      "city": "深圳",
+      "internship_filter": true
+    },
+    {
+      "keyword": "GTM intern",
+      "city": "深圳",
+      "internship_filter": true
+    },
+    {
+      "keyword": "海外产品营销",
+      "city": "深圳",
+      "internship_filter": true
+    }
+  ],
+  "actual_count": 10,
+  "company_count": 10,
+  "city_count": 1,
+  "raw_title_count": 9,
+  "direct_overseas_gtm_count": 5,
+  "stats": {
+    "unique_detail_candidates": 25,
+    "with_jd": 23,
+    "near_duplicate_excluded": 2,
+    "type_mismatch": 1,
+    "no_overseas_evidence": 7,
+    "insufficient_gtm_relevance": 3,
+    "unresolved_missing_jd": 2,
+    "sidebar_missing_jd_events": 3
+  },
+  "unresolved_source_ids": [
+    "694fbdc29bb7ed7e0nNy2NS9EFFY",
+    "9b4953a76b25814a0nx539q_EVZU"
+  ],
+  "documents": [
+    {
+      "file": "jobs/001_GTM实习生（美国市场｜执行支持方向）_深圳观格_5c7ce3d5.md",
+      "source_job_id": "5c7ce3d510277c550nx52Nq-ElZR",
+      "url": "https://www.zhipin.com/job_detail/5c7ce3d510277c550nx52Nq-ElZR.html",
+      "match_type": "直接匹配",
+      "raw_jd_sha256": "f2b6849a5d41e17d2efb6044a1b55e48a5991a4079cc6559e23c0f9c97d34e8b",
+      "file_sha256": "be7e312ab68a8ca4038e9afed244e0130b8ecefeb9fe3734e0a4dee033310c60"
+    },
+    {
+      "file": "jobs/002_Al Product GTM Intern_腾讯_07724d7f.md",
+      "source_job_id": "07724d7feaa10b290nd52tq9FlRS",
+      "url": "https://www.zhipin.com/job_detail/07724d7feaa10b290nd52tq9FlRS.html",
+      "match_type": "直接匹配",
+      "raw_jd_sha256": "91b84e770ced0205c328473f668e8104f132108d668be90165091c93c2934dce",
+      "file_sha256": "e7a8d0a8784ad9920b2aace93e45f19e2cbc64f612c4c43cdfe25c00eb9e8c45"
+    },
+    {
+      "file": "jobs/003_海外GTM实习生_云望创新_c0eb71eb.md",
+      "source_job_id": "c0eb71ebba99aae30nN-09W9ElRS",
+      "url": "https://www.zhipin.com/job_detail/c0eb71ebba99aae30nN-09W9ElRS.html",
+      "match_type": "直接匹配",
+      "raw_jd_sha256": "9e56b338722f66cc0e6c8d219cf4eea6241df4083c6d5ab74846ddcee9b692a4",
+      "file_sha256": "59283e6b9e244816a511e7dd9932e3fcec04c14600a5d19e68b5d999e25706ed"
+    },
+    {
+      "file": "jobs/004_GTM实习生（海外市场 · AI Agent 方向）_YouWare_85c0a4ef.md",
+      "source_job_id": "85c0a4efde1e2aa90nN_39S7ElFW",
+      "url": "https://www.zhipin.com/job_detail/85c0a4efde1e2aa90nN_39S7ElFW.html",
+      "match_type": "直接匹配",
+      "raw_jd_sha256": "da0eb320f99cd226204d9908d05f7b71415661b564975e70215278fccb6a5b0d",
+      "file_sha256": "765ba8e444c677103c13340771d3f07fda4818ba0c12bcd7f1730c6808e748b0"
+    },
+    {
+      "file": "jobs/005_GTM 实习生（澳洲市场）_云鲸智能_8937f0c4.md",
+      "source_job_id": "8937f0c4314593fd0nN73dy8EFZY",
+      "url": "https://www.zhipin.com/job_detail/8937f0c4314593fd0nN73dy8EFZY.html",
+      "match_type": "直接匹配",
+      "raw_jd_sha256": "19c6d89fb3e387e924c5b642d77eec10e3c5767877a4308c6ec74424ef755173",
+      "file_sha256": "c92919fcb4e9490d6f2b8fe213703f8c668a044152d13c388605f3bf5720d463"
+    },
+    {
+      "file": "jobs/006_实习生（GTM）(A81194)_妙动科技_98cfca1c.md",
+      "source_job_id": "98cfca1c7a88d8b00nx-29m-E1tT",
+      "url": "https://www.zhipin.com/job_detail/98cfca1c7a88d8b00nx-29m-E1tT.html",
+      "match_type": "全球渠道相关",
+      "raw_jd_sha256": "09bd0b439cb898d0cbceb0d1586f9dcc9c43ee72ea9ce9480e151dcc37fdf828",
+      "file_sha256": "e5a317b3e7fb7dcd6ad0e18f12a5ff45a99a97929d83e948444304538ee0c84f"
+    },
+    {
+      "file": "jobs/007_GTM实习生_创想三维_d27686e6.md",
+      "source_job_id": "d27686e6c7f6b6300nx50t27GFJV",
+      "url": "https://www.zhipin.com/job_detail/d27686e6c7f6b6300nx50t27GFJV.html",
+      "match_type": "海外工作相关",
+      "raw_jd_sha256": "c1d095c1c941e8afb6e0f8233974851e31775046118d41ab55bcd69e8494207d",
+      "file_sha256": "c4b4561b487d8b2590c415cb34c3b060fbe6d69e907b904967880460afa3648b"
+    },
+    {
+      "file": "jobs/008_GTM实习生_四川影目_70602693.md",
+      "source_job_id": "70602693a4c95b9f0nx429-0GVJZ",
+      "url": "https://www.zhipin.com/job_detail/70602693a4c95b9f0nx429-0GVJZ.html",
+      "match_type": "海外支持相关",
+      "raw_jd_sha256": "0c2379dacfdd343e44bfb6cec78e6261fd715b08bb756cc22c62a3e451f13662",
+      "file_sha256": "fc5d16e043012f4d4fe4da93cdacb24863cd9177927237b71d5f767d695c5dab"
+    },
+    {
+      "file": "jobs/009_海外渠道运营实习生（深圳）(A139323)_XREAL_ae34fbbd.md",
+      "source_job_id": "ae34fbbd5de1e6750nN93d27EltW",
+      "url": "https://www.zhipin.com/job_detail/ae34fbbd5de1e6750nN93d27EltW.html",
+      "match_type": "GTM职能扩展",
+      "raw_jd_sha256": "d22503a46a7b0c5981da530a09647c1cb44917ec6734ec7c5489eafb29a41ca2",
+      "file_sha256": "afa744ad9e31a4f827d710dfd00e662aa97876b5819534935a9408338309dfde"
+    },
+    {
+      "file": "jobs/010_海外整合营销实习生_和生创新技术_0ab48cc8.md",
+      "source_job_id": "0ab48cc8a637959e0nF53NS6GFZW",
+      "url": "https://www.zhipin.com/job_detail/0ab48cc8a637959e0nF53NS6GFZW.html",
+      "match_type": "上市营销职能扩展",
+      "raw_jd_sha256": "2815b08e795a04b54eabc13c74198b36c1e9d2008a066ca97567a5720ed17cd4",
+      "file_sha256": "182c92d6c65c8a717409fbb96265f5e1fb8ec50a440c9a648ef48f8c073d967e"
+    }
+  ],
+  "audit": {
+    "unique_source_ids": true,
+    "missing_urls": 0,
+    "missing_jd": 0,
+    "raw_jd_retained": true,
+    "merged_in_filename_order": true,
+    "checked_files": 10,
+    "merged_headings": 10,
+    "summary_rows": 10,
+    "full_jd_sha256_matches": 10,
+    "knowledge_metadata_valid": true,
+    "credential_patterns_found": 0,
+    "broken_local_links": 0
+  }
+}

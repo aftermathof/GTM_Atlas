@@ -63,10 +63,11 @@ export async function api(path: string, options: RequestInit = {}): Promise<any>
 export function post(path: string, body: any) { return api(path, { method: 'POST', body: JSON.stringify(body) }) }
 export async function initialize() {
   try {
-    const [health, roles, industries] = await Promise.all([api('/health'), api('/catalog/roles'), api('/catalog/industries')])
+    const profile = state.token ? api('/auth/me').catch((e: any) => { state.notice = e.message; return null }) : Promise.resolve(null)
+    const [health, roles, industries, user] = await Promise.all([api('/health'), api('/catalog/roles'), api('/catalog/industries'), profile])
     Object.assign(state, { health, roles, industries })
-    if (state.token) {
-      state.user = await api('/auth/me')
+    if (user) {
+      state.user = user
       Object.assign(state.context, state.user.preferences)
     }
   } catch (e: any) { state.notice = e.message }

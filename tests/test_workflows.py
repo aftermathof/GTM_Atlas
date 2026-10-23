@@ -29,7 +29,8 @@ def test_knowledge_permissions_and_citations(client):
     assert r.json()["provider"] == "live"
     assert all(c["permission"] == "public_display" for c in r.json()["citations"])
     r = client.post("/api/v1/ai/chat", json={"message": "量子纠缠卫星推进器", "scope": "learning"})
-    assert "不足" in r.json()["answer"]
+    assert not r.json()['citations']
+    assert '一般' in r.json()['limitations']
 
 
 def test_mock_seed_idempotency_and_ownership(client):

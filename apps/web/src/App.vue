@@ -4,10 +4,10 @@ import { useRoute } from 'vue-router'
 import { Search, ArrowUpRight, X, Menu, Sparkles } from 'lucide-vue-next'
 import { state, initialize } from './state'
 import ChatPanel from './components/ChatPanel.vue'
-const route = useRoute(), menu = ref(false), drawer = ref<HTMLElement>()
+const route = useRoute(), menu = ref(false), assistantMounted = ref(false), drawer = ref<HTMLElement>()
 onMounted(initialize)
 watch(() => route.path, () => { menu.value = false; state.documentId = ''; state.careerId = ''; state.scope = 'global' })
-watch(() => state.assistant, async value => { if (value) { await nextTick(); drawer.value?.focus() } })
+watch(() => state.assistant, async value => { if (value) { assistantMounted.value = true; await nextTick(); drawer.value?.focus() } })
 function trap(e: KeyboardEvent) {
   if (e.key === 'Escape') state.assistant = false
   if (e.key !== 'Tab') return
@@ -28,7 +28,7 @@ function trap(e: KeyboardEvent) {
   <main id="main"><div v-if="state.notice" class="container error" role="alert">{{ state.notice }} · 请检查 API 服务是否启动。</div><RouterView /></main>
   <footer class="site-footer container"><RouterLink to="/" class="footer-brand">GTM Atlas <span>理解市场，走向市场。</span></RouterLink></footer>
   <button v-if="!state.assistant" class="floating-assistant" @click="state.assistant = true" aria-label="打开全局 AI Assistant"><Sparkles :size="19" /><span>问问 Atlas</span><ArrowUpRight :size="15" /></button>
-  <div v-if="state.assistant" class="drawer-backdrop" @click.self="state.assistant = false"><aside ref="drawer" class="assistant-drawer" role="dialog" aria-modal="true" aria-label="全局 AI Assistant" tabindex="-1" @keydown="trap"><div class="drawer-header"><span class="eyebrow">ATLAS ASSISTANT</span><button class="icon-button" @click="state.assistant = false" aria-label="关闭助手"><X :size="22" /></button></div><ChatPanel scope="global" docked /></aside></div>
+  <div v-if="assistantMounted" v-show="state.assistant" class="drawer-backdrop" @click.self="state.assistant = false"><aside ref="drawer" class="assistant-drawer" role="dialog" aria-modal="true" aria-label="全局 AI Assistant" tabindex="-1" @keydown="trap"><div class="drawer-header"><span class="eyebrow">ATLAS ASSISTANT</span><button class="icon-button" @click="state.assistant = false" aria-label="关闭助手"><X :size="22" /></button></div><ChatPanel scope="global" docked /></aside></div>
 </template>
 <style scoped>
 .header-settings{font-size:13px;white-space:nowrap}

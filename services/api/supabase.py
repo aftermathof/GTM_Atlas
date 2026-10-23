@@ -1,5 +1,6 @@
 """Small server-side Supabase HTTP boundary; credentials never enter responses."""
 import os
+from functools import lru_cache
 import httpx
 from fastapi import HTTPException
 
@@ -8,9 +9,19 @@ def auth_mode():
     return os.getenv('AUTH_MODE', 'local')
 
 
+@lru_cache(maxsize=1)
+def http_client():
+    return httpx.Client(timeout=30, follow_redirects=False)
+
+
+def close_client():
+    if http_client.cache_info().currsize:
+        http_client().close()
+        http_client.cache_clear()
+
+
 def request(value):
-    with httpx.Client(timeout=30, follow_redirects=False) as client:
-        return client.send(value)
+    return http_client().send(value)
 
 
 def call(method, path, *, token=None, service=False, payload=None, content=None, headers=None):

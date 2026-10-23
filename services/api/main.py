@@ -32,8 +32,11 @@ def create_app(url=None):
             Base.metadata.create_all(engine)
         with factory() as db:
             ingest(db)
-        yield
-        engine.dispose()
+        try:
+            yield
+        finally:
+            engine.dispose()
+            supabase.close_client()
 
     app = FastAPI(title="GTM Atlas API", version="0.1.0", lifespan=lifespan)
     app.state.db = factory
