@@ -91,9 +91,11 @@ def report(sid: str, request: Request, user=Depends(current_user)):
 
 
 @router.delete('/sessions/{sid}')
-def remove(sid: str, request: Request, user=Depends(current_user)):
+def remove(sid: str, request: Request, only_if_unanswered: bool = False, user=Depends(current_user)):
     with request.app.state.mutation_lock, request.app.state.db() as db:
         row = owned(db, sid, user.id, 'mock', lock=True)
+        if only_if_unanswered and row.data.get('answers'):
+            return {'deleted': False}
         answers = db.scalars(select(Record).where(Record.owner == user.id, Record.parent_id == sid, Record.kind == 'mock_answer')).all()
         threads = [str(uuid.uuid5(uuid.NAMESPACE_URL, user.id + a.idempotency_key)) for a in answers]
         db.execute(delete(Record).where(Record.owner == user.id, Record.parent_id == sid))

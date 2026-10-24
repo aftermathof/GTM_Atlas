@@ -142,6 +142,29 @@ test('exit Mock returns to interviews and preserves submitted progress', async (
   assert.equal(app.component.session.value.answers.length, 1)
 })
 
+test('exiting an unanswered Mock discards it without keeping a history entry', async () => {
+  const calls=[]
+  const app=mockInterview(false,{api:async(path,options)=>{calls.push({path,options});return {deleted:true}}})
+  app.component.session.value={id:'empty-mock',answers:[]}
+  app.component.draft.value='尚未提交的草稿'
+  await app.component.exitMock()
+  assert.equal(calls[0].path,'/mock/sessions/empty-mock?only_if_unanswered=true')
+  assert.equal(calls[0].options.method,'DELETE')
+  assert.equal(app.confirmations.length,0)
+  assert.deepEqual(app.navigations,['/interviews'])
+})
+
+test('loading a historical Mock has its own pending state', async () => {
+  let finish
+  const app=mockInterview(true,{pathMatch:['mock','test','report'],api:()=>new Promise(resolve=>{finish=resolve})})
+  const pending=app.component.load()
+  assert.equal(app.component.loading.value,true)
+  finish({id:'test',answers:[{question:'已答题',answer:'已保存回答',evaluation:{feedback:'建议'}}]})
+  await pending
+  assert.equal(app.component.loading.value,false)
+  assert.equal(app.component.report.value.answers.length,1)
+})
+
 test('cancel exit keeps an unsubmitted draft on the Mock page', async () => {
   const app = mockInterview(false)
   app.component.draft.value = '尚未提交的回答'
