@@ -151,12 +151,12 @@ test('an unfinished Mock review loads saved answers without opening the live que
   assert.equal(app.component.report.value.status, 'active')
 })
 
-function careerEditor() {
+function careerEditor(options = {}) {
   const { descriptor } = parse(readFileSync(new URL('../src/pages/Career.vue', import.meta.url), 'utf8'))
   const context = vm.createContext({ exports: {}, require: name => {
     if (name === 'vue') return { ...vue, onMounted() {}, onBeforeUnmount() {}, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ params: { pathMatch: ['review', 'test'] }, query: {} }), useRouter: () => ({}) }
-    if (name === '../state') return { state: { user: { id: 'test' }, context: {} } }
+    if (name === '../state') return { state: { user: { id: 'test' }, context: {} }, post: options.post, api: options.api }
     return {}
   } })
   vm.runInContext(compile(compileScript(descriptor, { id: 'career-test' }).content), context)
@@ -175,4 +175,110 @@ test('diagnosis fixes model bold markers with trailing spaces before rendering',
   const editor = careerEditor()
   editor.session.value = { diagnosis: { analysis: '## 总体判断\n\n**优先建议 **\n\n**正常加粗**' } }
   assert.equal(editor.diagnosisText.value, '## 总体判断\n\n**优先建议**\n\n**正常加粗**')
+})
+
+test('bulk authorization toggles off and experience toggle preserves other selections', () => {
+  const editor = careerEditor()
+  editor.draftFacts.value = [{ id: 'locked', locked: true }, { id: 'work', section: 'experience' }, { id: 'skill', section: 'skills' }]
+  editor.selectAll()
+  assert.equal(editor.allAuthorized.value, true)
+  editor.selectExperience()
+  assert.deepEqual(Array.from(editor.approved.value), ['skill'])
+  editor.selectExperience()
+  assert.equal(editor.allAuthorized.value, true)
+  editor.selectAll()
+  assert.deepEqual(Array.from(editor.approved.value), [])
+})
+
+test('suggestions remain separate until confirmed and never generate a version', async () => {
+  const calls = []
+  let reply
+  const editor = careerEditor({ post: (path, body) => { calls.push({ path, body }); return new Promise(resolve => { reply = resolve }) } })
+  editor.facts.value = [{ id: 'f1', text: '原文' }]
+  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
+  editor.approved.value = ['f1']
+  editor.rewriteInstruction.value = '突出个人行动'
+  const task = editor.suggest()
+  assert.equal(editor.suggesting.value, true)
+  assert.equal(editor.generating.value, false)
+  reply({ patches: [{ fact_id: 'f1', text: '建议改写', reason: '表达更清晰' }] })
+  await task
+  assert.equal(editor.draftFacts.value[0].text, '原文')
+  assert.equal(editor.pendingSuggestions.value.f1.text, '建议改写')
+  assert.equal(calls.length, 1)
+  assert.ok(calls[0].path.endsWith('/suggest-rewrite'))
+  assert.equal(calls[0].body.instruction, '突出个人行动')
+  editor.acceptSuggestion('f1')
+  assert.equal(editor.draftFacts.value[0].text, '建议改写')
+  assert.equal(editor.facts.value[0].text, '原文')
+  assert.equal(editor.pendingSuggestions.value.f1, undefined)
+  assert.equal(editor.versions.value.length, 0)
+})
+
+test('suggestion cannot overwrite text edited after the suggestion was generated', async () => {
+  const editor = careerEditor({ post: async () => ({ patches: [{ fact_id: 'f1', text: '建议', reason: '说明' }] }) })
+  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
+  editor.approved.value = ['f1']
+  await editor.suggest()
+  editor.draftFacts.value[0].text = '手动新内容'
+  editor.acceptSuggestion('f1')
+  assert.equal(editor.draftFacts.value[0].text, '手动新内容')
+  assert.ok(editor.error.value)
+})
+
+test('requesting suggestions without authorization gives a useful message', async () => {
+  const editor = careerEditor({ post: () => { throw new Error('must not call API') } })
+  await editor.suggest()
+  assert.match(editor.error.value, /授权/)
+})
+
+test('only a confirmed suggestion is sent to version generation with the selected template', async () => {
+  const calls = []
+  const editor = careerEditor({
+    post: async (path, body) => {
+      calls.push({ path, body })
+      if (path.endsWith('/suggest-rewrite')) return { patches: [{ fact_id: 'f1', text: '确认后的新表达', reason: '更清晰' }] }
+      return { id: 'v1', facts: [{ id: 'f1', text: '确认后的新表达' }] }
+    },
+    api: async () => ({ job: { status: 'queued' } })
+  })
+  editor.facts.value = [{ id: 'f1', text: '原文' }]
+  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
+  editor.approved.value = ['f1']
+  editor.template.value = 'classic-cn'
+  await editor.suggest()
+  await editor.rewrite()
+  assert.equal(calls.length, 1)
+  assert.equal(editor.versions.value.length, 0)
+  editor.acceptSuggestion('f1')
+  await editor.rewrite()
+  assert.equal(calls.length, 2)
+  assert.ok(calls[1].path.endsWith('/approve-rewrite'))
+  assert.equal(calls[1].body.patches[0].text, '确认后的新表达')
+  assert.equal(calls[1].body.template, 'classic-cn')
+  assert.equal(editor.versions.value.length, 1)
+})
+
+test('failed suggestion request restores controls and preserves the original text', async () => {
+  const editor = careerEditor({ post: async () => { throw new Error('模型服务暂不可用') } })
+  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
+  editor.approved.value = ['f1']
+  await editor.suggest()
+  assert.equal(editor.suggesting.value, false)
+  assert.equal(editor.generating.value, false)
+  assert.equal(editor.draftFacts.value[0].text, '原文')
+  assert.match(editor.error.value, /模型服务/)
+})
+
+test('a suggestion response from a previous resume view is discarded', async () => {
+  let reply
+  const editor = careerEditor({ post: () => new Promise(resolve => { reply = resolve }) })
+  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
+  editor.approved.value = ['f1']
+  const task = editor.suggest()
+  editor.resetSuggestions()
+  reply({ patches: [{ fact_id: 'f1', text: '过期建议' }] })
+  await task
+  assert.equal(editor.pendingCount.value, 0)
+  assert.equal(editor.draftFacts.value[0].text, '原文')
 })
