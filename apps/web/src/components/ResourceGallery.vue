@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import LoadingState from './LoadingState.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, BookOpen, BriefcaseBusiness, MessageSquare, Search, Lock, BookA, Compass } from 'lucide-vue-next'
@@ -30,7 +31,7 @@ watch(()=>[state.context.role,state.context.industry,state.user?.id],load);onMou
   <template v-else>
   <div class="list-toolbar"><form class="search-field" @submit.prevent="load"><Search :size="17"/><input v-model="query" aria-label="搜索资料" placeholder="搜索主题、企业或关键词"><button>搜索</button></form><ContextPicker/></div>
   <div class="gallery-meta"><span class="meta">{{total}} 份资料 · 点击卡片阅读全文</span></div>
-  <p v-if="busy" class="empty-state">正在整理你的资料展览室…</p><p v-else-if="error" class="error" role="alert">{{error}}</p>
+  <LoadingState v-if="busy" label="正在加载资料…"/><p v-else-if="error" class="error" role="alert">{{error}}</p>
   <div v-else class="gallery-columns single-collection">
     <section v-for="kind in columns" :key="kind.id" class="gallery-collection"><div class="collection-heading"><component :is="kind.icon" :size="20"/><h3>{{kind.name}}</h3><span>{{count(kind.id)}}</span></div><p class="collection-description">{{kind.description}}</p>
       <div class="gallery-cards expanded"><RouterLink v-for="item in cards(kind.id)" :key="item.id" :to="url(item)" class="resource-card"><div class="resource-cover"><span class="eyebrow">{{kind.en}}</span><component :is="kind.icon" :size="30" stroke-width="1"/><span class="cover-id">{{item.meta.source_note_id|| (item.private?'MY JD':'ATLAS')}}</span></div><div class="resource-card-body"><span class="resource-type"><Lock v-if="item.private" :size="11"/>{{badge(item)}}</span><h3>{{item.title}}<ArrowUpRight :size="15"/></h3><p>{{item.excerpt}}</p><div class="resource-tags"><span v-for="tag in (item.meta.tags||[]).slice(0,3)" :key="tag">{{tag}}</span></div><div class="resource-footer"><span>{{item.meta.source_author||'GTM Atlas'}}</span><span>{{item.minutes}} 分钟</span></div></div></RouterLink></div>

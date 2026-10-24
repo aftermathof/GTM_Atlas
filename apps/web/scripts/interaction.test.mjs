@@ -350,3 +350,55 @@ test('artifact loading failure does not turn a saved version into a generation f
   assert.match(editor.versionError.value,/已保存/)
   assert.equal(editor.approved.value.length,0)
 })
+
+function chatPanel(api = async () => []) {
+  const { descriptor } = parse(readFileSync(new URL('../src/components/ChatPanel.vue', import.meta.url), 'utf8'))
+  const context = vm.createContext({ exports: {}, require: name => {
+    if (name === 'vue') return { ...vue, watch() {} }
+    if (name === 'vue-router') return { useRoute: () => ({ query: {} }), useRouter: () => ({}) }
+    if (name === '../state') return { state: { user: { id: 'test' } }, api }
+    return {}
+  } })
+  vm.runInContext(compile(compileScript(descriptor, { id: 'chat-test' }).content), context)
+  return context.exports.default.setup({}, { expose() {} })
+}
+
+test('chat history labels collapse newlines and truncate without splitting Unicode characters', () => {
+  const chat = chatPanel()
+  assert.equal(chat.shortTitle('题目：  GTM\n用户回答'), '题目： GTM 用户回答')
+  assert.equal(chat.shortTitle('😀'.repeat(20)), '😀'.repeat(13) + '…')
+  assert.equal(Array.from(chat.shortTitle('长标题'.repeat(20))).length, 14)
+})
+
+test('restoring chat history shows pending state and preserves question paragraphs', async () => {
+  let finish
+  const chat = chatPanel(path => path.endsWith('/saved') ? new Promise(resolve => { finish = resolve }) : Promise.resolve([]))
+  const pending = chat.restore('saved')
+  assert.equal(chat.restoring.value, true)
+  const message = '题目：如何上市？\n\n用户回答：先调研。\n\n请结合资料给出更标准的回答：'
+  finish({ id: 'saved', scope: 'global', messages: [{ message, turn: 1, response: { answer: '建议' } }] })
+  await pending
+  assert.equal(chat.restoring.value, false)
+  assert.equal(chat.busy.value, false)
+  assert.equal(chat.messages.value[0].question, message)
+})
+
+test('failed history restore clears its loading indicator and reports the error', async () => {
+  const chat = chatPanel(async () => { throw new Error('记录暂不可用') })
+  await chat.restore('missing')
+  assert.equal(chat.restoring.value, false)
+  assert.equal(chat.busy.value, false)
+  assert.equal(chat.error.value, '记录暂不可用')
+})
+
+test('resume history stays loading until its version list is ready', async () => {
+  let finish
+  const editor = careerEditor({ api: path => path.endsWith('/versions') ? new Promise(resolve => { finish = resolve }) : Promise.resolve({ facts: [] }) })
+  const pending = editor.load()
+  assert.equal(editor.sessionLoading.value, true)
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(editor.sessionLoading.value, true)
+  finish([])
+  await pending
+  assert.equal(editor.sessionLoading.value, false)
+})

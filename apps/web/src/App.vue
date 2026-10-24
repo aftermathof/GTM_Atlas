@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { Search, ArrowUpRight, X, Menu, Sparkles } from 'lucide-vue-next'
+import { Search, ArrowUpRight, X, Menu, Sparkles, Maximize2, Minimize2 } from 'lucide-vue-next'
 import { state, initialize } from './state'
 import ChatPanel from './components/ChatPanel.vue'
-const route = useRoute(), menu = ref(false), assistantMounted = ref(false), drawer = ref<HTMLElement>()
+const route = useRoute(), menu = ref(false), assistantMounted = ref(false), assistantExpanded = ref(false), drawer = ref<HTMLElement>()
 const assistantChat = ref<InstanceType<typeof ChatPanel>>()
 onMounted(initialize)
 watch(() => route.path, () => { menu.value = false; state.documentId = ''; state.careerId = ''; state.scope = 'global' })
-watch(() => state.assistant, async value => { if (value) { assistantMounted.value = true; await nextTick(); drawer.value?.focus() } })
+watch(() => state.assistant, async value => { if (value) { assistantMounted.value = true; await nextTick(); drawer.value?.focus() } else assistantExpanded.value = false })
 watch(() => state.assistantRequest, async request => {
   if (!request) return
   state.assistant = true; assistantMounted.value = true
@@ -36,7 +36,7 @@ function trap(e: KeyboardEvent) {
   <main id="main"><div v-if="state.notice" class="container error" role="alert">{{ state.notice }} · 请检查 API 服务是否启动。</div><RouterView /></main>
   <footer class="site-footer container"><RouterLink to="/" class="footer-brand">GTM Atlas <span>理解市场，走向市场。</span></RouterLink></footer>
   <button v-if="!state.assistant" class="floating-assistant" @click="state.assistant = true" aria-label="打开全局 AI Assistant"><Sparkles :size="19" /><span>问问 Atlas</span><ArrowUpRight :size="15" /></button>
-  <div v-if="assistantMounted" v-show="state.assistant" class="drawer-backdrop" @click.self="state.assistant = false"><aside ref="drawer" class="assistant-drawer" role="dialog" aria-modal="true" aria-label="全局 AI Assistant" tabindex="-1" @keydown="trap"><div class="drawer-header"><span class="eyebrow">ATLAS ASSISTANT</span><button class="icon-button" @click="state.assistant = false" aria-label="关闭助手"><X :size="22" /></button></div><ChatPanel ref="assistantChat" scope="global" docked /></aside></div>
+  <div v-if="assistantMounted" v-show="state.assistant" class="drawer-backdrop" @click.self="state.assistant = false"><aside ref="drawer" class="assistant-drawer" :class="{expanded:assistantExpanded}" role="dialog" aria-modal="true" aria-label="全局 AI Assistant" tabindex="-1" @keydown="trap"><div class="drawer-header"><span class="eyebrow">ATLAS ASSISTANT</span><div class="drawer-actions"><button class="icon-button" @click="assistantExpanded = !assistantExpanded" :aria-pressed="assistantExpanded" :aria-label="assistantExpanded ? '收起为侧边助手' : '放大全屏'" :title="assistantExpanded ? '收起为侧边助手' : '放大全屏'"><Minimize2 v-if="assistantExpanded" :size="20"/><Maximize2 v-else :size="20"/></button><button class="icon-button" @click="state.assistant = false" aria-label="关闭助手"><X :size="22" /></button></div></div><ChatPanel ref="assistantChat" scope="global" docked /></aside></div>
 </template>
 <style scoped>
 .brand{display:inline-flex;align-items:center;gap:10px}
@@ -46,6 +46,8 @@ function trap(e: KeyboardEvent) {
 .header-settings{font-size:13px;white-space:nowrap}
 .header-settings:hover,.header-settings.router-link-active{color:var(--blue)}
 .assistant-drawer{display:flex;flex-direction:column;overflow:hidden}
+.assistant-drawer.expanded{width:100%;max-width:none}
+.drawer-actions{display:flex;align-items:center;gap:16px}
 .drawer-header{flex-shrink:0}
 @media(max-width:760px){.brand{gap:8px}.brand-mark{width:26px;height:26px}.header-settings{font-size:12px}}
 </style>
