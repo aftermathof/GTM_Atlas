@@ -153,7 +153,7 @@ test('a successful upload invalidates cached knowledge lists', async () => {
   let calls = 0
   const app = load(storage(), storage(), async () => { calls++; return new Response(JSON.stringify({ items: [] })) })
   await app.knowledgeDocuments('limit=100')
-  await app.api('/job-descriptions', { method: 'POST', body: '{}' })
+  await app.api('/career/job-descriptions', { method: 'POST', body: '{}' })
   await app.knowledgeDocuments('limit=100')
   assert.equal(calls, 3)
 })
@@ -169,11 +169,14 @@ test('a failed catalog request is retried instead of cached', async () => {
   assert.equal(calls, 2)
 })
 
-test('catalog cache expires after one minute', async () => {
+test('catalog cache lasts across navigation until explicitly refreshed', async () => {
   let calls = 0, now = 0
   const app = load(storage(), storage(), async () => { calls++; return new Response('{"items":[]}') }, { now: () => now })
   await app.knowledgeDocuments('limit=100')
-  now = 60_001
+  now = 600_001
+  await app.knowledgeDocuments('limit=100')
+  assert.equal(calls, 1)
+  app.refreshKnowledge()
   await app.knowledgeDocuments('limit=100')
   assert.equal(calls, 2)
 })
@@ -255,4 +258,30 @@ test('validation errors identify the affected field without exposing rejected pr
     assert.ok(!error.message.includes('private resume text'))
     return true
   })
+})
+
+
+test('article bodies share requests and remain cached after AI requests', async()=>{
+  const calls=[]
+  const app=load(storage(),storage(),async url=>{calls.push(url);return new Response(JSON.stringify({id:'read',body:'## 正文',meta:{}}))})
+  await Promise.all([app.knowledgeDocument('read'),app.knowledgeDocument('read')])
+  await app.api('/ai/chat',{method:'POST',body:'{}'})
+  await app.knowledgeDocument('read')
+  assert.equal(calls.filter(url=>url.endsWith('/knowledge/documents/read')).length,1)
+  assert.equal(app.peekKnowledge('/knowledge/documents/read').body,'## 正文')
+  app.refreshKnowledge()
+  assert.equal(app.peekKnowledge('/knowledge/documents/read'),undefined)
+  await app.knowledgeDocument('read')
+  assert.equal(calls.filter(url=>url.endsWith('/knowledge/documents/read')).length,2)
+})
+
+test('private article caches cannot survive logout and switching accounts',async()=>{
+  let calls=0
+  const app=load(storage({'atlas-token':'first'}),storage(),async()=>{calls++;return new Response('{"body":"private"}')})
+  await app.knowledgeDocument('private')
+  app.clearSession()
+  assert.equal(app.peekKnowledge('/knowledge/documents/private'),undefined)
+  app.saveSession({token:'second'})
+  await app.knowledgeDocument('private')
+  assert.equal(calls,2)
 })

@@ -27,7 +27,6 @@ limitations:
 - 原标题为海外渠道运营实习；卡片3个月，正文连续实习4个月及以上。
 - 未公开的发布时间不推断；采集时可访问不保证之后仍在招聘。
 - 匹配类别为GTM职能扩展；页面证据为“GTM产品策略”，不是企业对岗位类别的统一认证。
-content_notice: BOSS直聘职位描述原文；采集时页面可读，不保证后续仍在招聘。原始岗位名称、匹配边界和卡片/正文差异均保留。
 source: boss_zhipin
 source_job_id: ae34fbbd5de1e6750nN93d27EltW
 company: XREAL

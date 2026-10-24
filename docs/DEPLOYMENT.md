@@ -61,7 +61,7 @@ git commit -m "Prepare GTM Atlas for Vercel and Supabase deployment"
 git branch -M main
 ```
 
-仓库已有 `.gitignore`、`.dockerignore`、`.vercelignore`；依赖锁文件、测试、Markdown 知识源、原始需求和 TeX 模板需要提交。保留本机 `.venv`、`node_modules` 和构建结果以便继续预览，这些不会提交。清理记录见 `docs/CLEANUP_REPORT.json`。
+仓库已有 `.gitignore`、`.dockerignore`、`.vercelignore`；依赖锁文件、测试、Markdown 知识源、原始需求和 TeX 模板需要提交。保留本机 `.venv`、`node_modules` 和构建结果以便继续预览，这些不会提交。目录和本地数据边界见 [维护入口](README.md)。
 
 ## 3. 部署 Docker API 和 PDF Worker
 

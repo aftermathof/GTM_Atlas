@@ -33,4 +33,5 @@ def test_global_chat_searches_all_public_knowledge_despite_page_filters():
         assert result.json()['citations']
         scoped = client.post('/api/v1/ai/chat', json={**body, 'scope':'learning'})
         assert scoped.status_code == 200
-        assert not scoped.json()['citations']
+        # Universal overview/glossary references are available across role filters.
+        assert all(c['source_type'] == 'site_reference' and c['doc_id'].startswith('gtm-reference-') for c in scoped.json()['citations'])

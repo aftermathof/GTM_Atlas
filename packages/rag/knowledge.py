@@ -65,6 +65,7 @@ def ingest(db, root=None, reference_root=None):
         embedding_model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small") if provider.enabled else None
         old_chunk = db.scalar(select(Chunk).where(Chunk.doc_id == did).limit(1))
         if old and old.sha256 == digest and old_chunk and old_chunk.embedding_model == embedding_model:
+            old.path = path
             continue
         db.execute(delete(Chunk).where(Chunk.doc_id == did))
         # Convert YAML date scalars to JSON-safe values.

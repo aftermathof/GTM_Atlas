@@ -15,14 +15,14 @@ from services.api.schemas import Chat
 
 
 def reference_project(root):
-    overview = root / 'apps/web/public/gtm-overview'
+    overview = root / 'knowledge/site/gtm-overview'
     overview.mkdir(parents=True)
     (overview / 'index.html').write_text('''<html><head><title>GTM概览</title><style>SECRET STYLE</style></head>
 <body><nav>SECRET NAV</nav><main><h1>产品经营</h1><p>新品上市与经营节奏。</p>
 <h2>上市流程</h2><ol><li>确定目标市场</li><li>复盘经营结果</li></ol>
 <table><tr><th>环节</th><th>产物</th></tr><tr><td>定位</td><td>卖点</td></tr></table>
 <script>SECRET SCRIPT</script></main><footer>SECRET FOOTER</footer></body></html>''', encoding='utf-8')
-    content = root / 'apps/web/src/content'
+    content = root / 'knowledge/glossary'
     content.mkdir(parents=True)
     (content / 'gtm-glossary.json').write_text(json.dumps([
         {'term': 'CAC', 'fullName': 'Customer Acquisition Cost', 'explanation': '客户获取成本需要统一统计口径。', 'example': '获客投入10000元，新增100位客户，CAC为100元。'}
@@ -48,7 +48,7 @@ def test_reference_extraction_preserves_content_and_omits_page_chrome(tmp_path):
 def test_reference_sources_refresh_search_cite_and_stay_out_of_gallery(tmp_path, monkeypatch):
     overview = reference_project(tmp_path)
     source = tmp_path / 'knowledge'
-    source.mkdir()
+    source.mkdir(exist_ok=True)
     monkeypatch.setattr(knowledge, 'EmbeddingProvider', lambda: type('Disabled', (), {'enabled': False})())
     engine, factory = make_database('sqlite://')
     Base.metadata.create_all(engine)
@@ -59,7 +59,12 @@ def test_reference_sources_refresh_search_cite_and_stay_out_of_gallery(tmp_path,
         with factory() as db:
             report = knowledge.ingest(db, source, reference_root=tmp_path)
             assert report['indexed'] == 2
+            # A path-only move keeps document IDs/chunks and updates provenance without embedding again.
+            document = db.get(Document, 'gtm-reference-glossary')
+            document.path = 'apps/web/src/content/legacy-location.json'
+            db.commit()
             assert knowledge.ingest(db, source, reference_root=tmp_path)['indexed'] == 0
+            assert document.path == 'knowledge/glossary/gtm-glossary.json'
             result = knowledge.search(db, 'CAC客户获取成本', role='pmm', industry='consumer_electronics')
             citation = next(item for item in result if item['doc_id'] == 'gtm-reference-glossary')
             assert citation['source_url'] == '/glossary'
@@ -85,7 +90,7 @@ def test_reference_sources_refresh_search_cite_and_stay_out_of_gallery(tmp_path,
 
 def test_malformed_reference_is_reported_instead_of_silently_dropped(tmp_path):
     reference_project(tmp_path)
-    path = tmp_path / 'apps/web/src/content/gtm-glossary.json'
+    path = tmp_path / 'knowledge/glossary/gtm-glossary.json'
     path.write_text('[{"term":"CAC"}]', encoding='utf-8')
     with pytest.raises(ValueError, match='glossary'):
         list(reference_documents(tmp_path))

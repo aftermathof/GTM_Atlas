@@ -463,3 +463,21 @@ test('authorize all excludes unlocked lines inside a locked merged education blo
   assert.deepEqual(Array.from(editor.approved.value),['f2'])
   assert.equal(editor.allAuthorized.value,true)
 })
+
+
+test('article table of contents uses rendered headings and scrolls duplicate titles independently',async()=>{
+  const {descriptor}=parse(readFileSync(new URL('../src/components/ArticleBody.vue',import.meta.url),'utf8'))
+  const context=vm.createContext({exports:{},require:name=>name==='vue'?{...vue,onMounted(){},watch(){}}:{}})
+  vm.runInContext(compile(compileScript(descriptor,{id:'article-body-test'}).content),context)
+  const app=context.exports.default.setup({source:'## 相同标题\n### 相同标题'},{expose(){},emit(){}})
+  const scrolled=[]
+  app.article.value={querySelectorAll:()=>[
+    {textContent:'相同标题',tagName:'H2',scrollIntoView:()=>scrolled.push(0)},
+    {textContent:'相同标题',tagName:'H3',scrollIntoView:()=>scrolled.push(1)}
+  ]}
+  await app.syncHeadings()
+  assert.equal(app.headings.value.length,2)
+  assert.equal(app.headings.value[1].depth,3)
+  app.scrollToHeading(1)
+  assert.deepEqual(scrolled,[1])
+})

@@ -57,7 +57,7 @@ class MainText(HTMLParser):
 
 def reference_documents(project_root):
     root = Path(project_root)
-    overview = root / 'apps/web/public/gtm-overview'
+    overview = root / 'knowledge/site/gtm-overview'
     for file in sorted(overview.glob('*.html')):
         raw = file.read_text(encoding='utf-8')
         parser = MainText()
@@ -69,7 +69,7 @@ def reference_documents(project_root):
         title = 'GTM 概览｜' + (unescape(heading[1]).strip() if heading else file.stem)
         yield _document(root, file, 'gtm-reference-overview-' + file.stem, title, body,
                         '/gtm-overview/' + file.name, 'overview')
-    glossary = root / 'apps/web/src/content/gtm-glossary.json'
+    glossary = root / 'knowledge/glossary/gtm-glossary.json'
     if glossary.exists():
         items = json.loads(glossary.read_text(encoding='utf-8'))
         fields = {'term', 'fullName', 'explanation', 'example'}

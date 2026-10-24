@@ -6,11 +6,26 @@ GTM Atlas 将 GTM（Go-to-Market）知识学习、岗位理解、模拟面试和
 
 仓库包含前端、Python 后端、知识资料、领域提示规则、简历模板、数据库 SQL 和 Docker 配置。运行时调用真实模型服务；缺少接口配置时明确提示，不使用模拟回答代替真实结果。
 
+## 从哪里开始维护
+
+先看 [文件夹与维护入口](docs/README.md)。常改内容都放在下面这些位置：
+
+| 想修改什么 | 唯一源文件位置 |
+| --- | --- |
+| GTM 概览首页和四章正文 | `knowledge/site/gtm-overview/` |
+| GTM 专有名词与例子 | `knowledge/glossary/gtm-glossary.json` |
+| 岗位 JD / 面经 / 在职经验 | `knowledge/jobs/` / `knowledge/interviews/` / `knowledge/learning/` |
+| 网页布局、按钮、助手、简历工作台 | `apps/web/src/` |
+| 模型、检索、Mock、简历业务逻辑 | `packages/` 与 `services/api/` |
+| Docker 部署 / 数据库初始化 / 简历模板 | `infra/` / `supabase/` / `templates/latex/` |
+
+GTM 概览已从前端的 `public` 目录移到知识资料区；网页地址仍为 `/gtm-overview/index.html`。计划与旧验收记录在 `docs/archive/`，不作为当前状态说明。
+
 ## 当前阶段与使用入口
 
-项目已具备知识学习、AI 问答、Mock 和简历工作台的主要代码与部署结构，目前处于**功能完善与真实服务联调阶段**。完成基础要求不等于所有云端功能已经验收。
+项目已具备知识学习、AI 问答、Mock 和简历工作台的主要代码与部署结构。日常维护以内容更新、问题修复和部署验收为主；各环境的在线状态应以当前实际检查结果为准。
 
-截至 2026-10-23，本次开发过程中已检查：本机 Docker API 的健康接口、Supabase 数据库连通性、renderer 内的 XeLaTeX、Cloudflare 临时隧道公网健康接口、指定 Vercel 来源的 CORS，以及未登录账号接口返回 401。这些是当时的检查结果，不能保证电脑重启后的状态，也不代表实际问答、邮件、简历 PDF 或双账号隔离全部通过。
+历史实施计划和部署检查快照已移至 `docs/archive/`。功能验收项目见 [验收清单](docs/ACCEPTANCE.md)，运行方法见下方步骤，不把旧记录作为当前环境的状态说明。
 
 支持两种对外运行方式：
 
@@ -33,9 +48,10 @@ GTM Atlas 将 GTM（Go-to-Market）知识学习、岗位理解、模拟面试和
 | --- | --- |
 | GTM 概览 | HTML 学习页面，支持框内预览和打开完整页面 |
 | 岗位 JD | 公共岗位资料栏目，供后续扩充 |
-| 面经 | 面试经验研究笔记、问题和岗位认知 |
 | 在职经验 | 业务经验和学习笔记 |
 | GTM 专有名词库 | 名词、解释和场景例子，两列表格，支持预览和完整页面 |
+
+面经统一在 `/interviews` 的「面经与 Mock」中展示。JD、面经、在职经验共用文章目录和正文阅读布局；资料卡片不展示预计阅读时长。
 
 目前正式 Markdown 知识库包含 **10 份岗位 JD、30 篇面经研究笔记和 30 篇学习/在职经验笔记**。三类资料均使用 `research-notes/research-jNN.md`、`research-iNN.md`、`research-lNN.md` 单篇结构；JD 直接匹配与相关职能扩展的边界保留在各单篇中。研究笔记不等于原帖逐字全文，也不代表企业官方结论。合成资料仅保留在 `tests/fixtures/`，不进入正式知识库。
 
@@ -44,7 +60,7 @@ GTM Atlas 将 GTM（Go-to-Market）知识学习、岗位理解、模拟面试和
 - 全局助手使用全站可检索知识，文章和简历场景使用相应范围的上下文。
 - 先检索资料，再调用 LLM 生成回答，并检查引用是否属于本次检索结果。
 - 登录后支持多轮问答保存、历史恢复、New chat、清空上下文和删除会话。
-- New chat 保留旧会话；清空上下文保留历史展示，但不将旧轮次继续发送给模型。
+- New chat 保留旧会话；清空上下文在当前窗口隐藏旧消息，保留历史记录，不将旧轮次继续发送给模型。
 - 可选语音输入先转写至草稿，用户校对后再提交。未配置 STT 时仍可键盘输入。
 
 ### 面经与 Mock
@@ -102,41 +118,42 @@ Docker 主机：api（FastAPI）
 
 ```text
 GTM desk/
-├─ apps/web/                  # Vue 前端、静态页面、VitePress 手册
-│  ├─ src/components/         # 聊天、输入框、目录、概览和名词库组件
-│  ├─ src/pages/              # 首页、学习、面试、简历、账号与设置
-│  ├─ src/content/            # 前端术语内容
-│  ├─ public/gtm-overview/    # GTM 概览 HTML 和章节
-│  ├─ handbook/              # VitePress 配置及生成入口
-│  └─ scripts/handbook.mjs    # 从知识源生成手册
-├─ services/api/              # 认证、业务 API、存储、数据模型
-├─ packages/
-│  ├─ agent_core/            # 模型接口、受控领域规则、checkpoint
-│  ├─ rag/                   # 资料入库、分块、增量索引、检索
-│  ├─ learning/              # 问答流程和引用校验
-│  ├─ mock/                  # 面试规划、评价、追问、复盘
-│  ├─ career/                # 简历解析、诊断、检索和授权
-│  └─ document_renderer/     # 模板填充、任务队列、PDF 检查
-├─ knowledge/                # 正式知识 Markdown，内容维护的事实源
-│  ├─ interviews/            # 面经
-│  ├─ learning/              # 学习 / 在职经验
-│  └─ jobs/                  # 公共 JD 扩展位置
-├─ profiles/                 # 岗位、行业和评分规则配置
-├─ skills/                   # 应用内部使用的受控领域提示规则
-├─ templates/latex/          # 简历模板和原始 TeX
-├─ supabase/                 # 初始化 SQL 与验证 SQL
-├─ infra/                    # Dockerfile、Compose、Worker、迁移、反向代理
-├─ scripts/                  # 本地启动辅助脚本
-├─ tests/                    # 离线测试、合成夹具、回归评测
-├─ docs/                     # 部署、架构、内容维护和验收文档
-├─ .env                      # 实际读取的私有配置，不提交 Git
-├─ .gitignore                # 排除密钥、依赖、构建产物和本地数据
-├─ .dockerignore             # 排除无需打入镜像的文件
-├─ pyproject.toml            # Python 项目和依赖声明
-├─ requirements.lock         # Python 依赖锁定清单
-├─ vercel.json               # Vercel 构建与路由
-└─ IMPLEMENTATION_PLAN.md    # 实施规划记录
+├─ README.md                 # 项目介绍、启动与部署入口
+├─ knowledge/                # 网站与 AI 共用的内容源
+│  ├─ site/gtm-overview/      # GTM 概览：index.html + 四章正文
+│  ├─ glossary/              # GTM 专有名词 JSON
+│  ├─ jobs/research-notes/    # 岗位 JD Markdown
+│  ├─ interviews/research-notes/ # 面经 Markdown
+│  └─ learning/research-notes/   # 在职经验 Markdown
+├─ apps/web/                 # Vue 前端；内容不再混放在 public
+│  ├─ src/pages/             # 页面布局与页面交互
+│  ├─ src/components/        # 助手、输入框、概览预览等组件
+│  ├─ src/content/           # 名词数据的前端导出入口
+│  ├─ handbook/              # VitePress 配置与自动生成的手册
+│  ├─ scripts/               # 手册生成与前端回归测试
+│  └─ vite.config.ts         # 读取 knowledge/site 并发布静态页面
+├─ services/api/             # HTTP 接口、鉴权、存储与数据模型
+├─ packages/                 # AI、检索、Mock、简历与 PDF 业务实现
+├─ profiles/                 # 岗位、行业与评价规则
+├─ skills/                   # 应用运行时使用的领域提示规则
+├─ templates/latex/          # 简历排版模板与原始 TeX
+├─ supabase/                 # 数据库初始化与验证 SQL
+├─ infra/                    # Docker、Worker、迁移、反向代理
+├─ scripts/                  # 本地启动、内容校验辅助脚本
+├─ tests/                    # 后端测试、合成夹具、回归评测
+├─ docs/                     # 当前维护文档；先看 docs/README.md
+│  ├─ collector-skills/      # BOSS / 小红书采集技能
+│  └─ archive/               # 历史计划、验收快照与来源校验记录
+├─ .env                      # 本机私有配置，不提交 Git
+├─ .data/                    # 本地运行数据与临时产物，不提交 Git
+│  └─ development-archive/   # 历史调试产物分类归档；本机 README 说明数据用途
+├─ .venv/                    # 本机 Python 环境，不提交 Git
+├─ pyproject.toml            # Python 项目与依赖声明
+├─ requirements.lock         # Python 依赖锁定版本
+└─ vercel.json               # Vercel 构建与路由配置
 ```
+
+文件维护先看 [目录导航](docs/README.md)；前端见 [apps/web/README.md](apps/web/README.md)，部署文件见 [infra/README.md](infra/README.md)，本机开关服务见 [本机服务维护](docs/LOCAL_OPERATIONS.md)。
 
 | 关键文件 | 内容 |
 | --- | --- |
@@ -385,7 +402,7 @@ Get-Process -Name cloudflared -ErrorAction SilentlyContinue
 | 名词、解释和例子 | apps/web/src/content/gtm-glossary.ts |
 | 名词表格与预览外框 | apps/web/src/components/GtmGlossary.vue、GtmGlossaryPreview.vue |
 | 名词完整页 | apps/web/src/pages/Glossary.vue |
-| GTM 概览正文 | apps/web/public/gtm-overview/ 下的 HTML |
+| GTM 概览正文 | knowledge/site/gtm-overview/ 下的 HTML |
 | 面经和在职经验正文 | knowledge/ 下的 Markdown |
 | 全局排版与颜色 | apps/web/src/style.css、tokens.css |
 
@@ -484,7 +501,7 @@ npm --prefix apps/web run build
 
 近期离线回归记录：Skill 扩充后全套 34 项测试通过；密码限制调整后，新增短/长密码与空密码用例，并与认证相关测试合计 10 项通过；前端构建通过。这些是各次修改的历史记录，并非本次文档更新重新运行了全量测试，也不等于真实模型能力已验收。
 
-详见 [验收清单](docs/ACCEPTANCE.md)、[部署检查](docs/DEPLOYMENT_CHECKS.md)。历史检查报告仅代表当时状态，不代表当前环境已经验收。
+详见 [验收清单](docs/ACCEPTANCE.md)、[历史部署检查](docs/archive/DEPLOYMENT_CHECKS_2026-10-23.md)。历史检查报告仅代表当时状态，不代表当前环境已经验收。
 
 ## 后续优先事项
 
@@ -492,4 +509,4 @@ npm --prefix apps/web run build
 
 当前未实现完整流式回答、通用会话导出、收藏/阅读进度、共享队列和企业身份体系。文档或单元测试不能替代真实部署中的隔离、备份和模型全流程验收。
 
-更多资料：[实施规划](IMPLEMENTATION_PLAN.md) · [架构说明](docs/ARCHITECTURE.md) · [部署指南](docs/DEPLOYMENT.md) · [内容维护](docs/CONTENT_GUIDE.md)。
+更多资料：[历史实施规划](docs/archive/plans/IMPLEMENTATION_PLAN.md) · [架构说明](docs/ARCHITECTURE.md) · [部署指南](docs/DEPLOYMENT.md) · [内容维护](docs/CONTENT_GUIDE.md)。

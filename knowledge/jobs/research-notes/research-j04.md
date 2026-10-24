@@ -27,7 +27,6 @@ limitations:
 - 方向为海外市场与 AI Agent。
 - 未公开的发布时间不推断；采集时可访问不保证之后仍在招聘。
 - 匹配类别为直接匹配；页面证据为“海外 GTM 项目”，不是企业对岗位类别的统一认证。
-content_notice: BOSS直聘职位描述原文；采集时页面可读，不保证后续仍在招聘。原始岗位名称、匹配边界和卡片/正文差异均保留。
 source: boss_zhipin
 source_job_id: 85c0a4efde1e2aa90nN_39S7ElFW
 company: YouWare

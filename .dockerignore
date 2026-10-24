@@ -9,16 +9,8 @@ apps/web/.npm-cache
 **/__pycache__
 .pytest_cache
 *.egg-info
-# Include only the web sources required by the API's reference index.
-apps/web/*
-!apps/web/public/
-apps/web/public/*
-!apps/web/public/gtm-overview/
-!apps/web/public/gtm-overview/**
-!apps/web/src/
-apps/web/src/*
-!apps/web/src/content/
-apps/web/src/content/*
-!apps/web/src/content/gtm-glossary.json
+# All AI reference content is under knowledge; the API does not need frontend sources.
+apps/web
+
 tests
 docs/screenshots

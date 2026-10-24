@@ -10,9 +10,9 @@
 |学习资料|30|保留方法、岗位经验、整理者建议与局限|
 |岗位 JD|10|保留 BOSS 原始链接、完整 JD、J01–J10 编号及匹配边界，不从面经推测岗位要求|
 
-三个目录统一为 `knowledge/jobs/research-notes/research-jNN.md`、`knowledge/interviews/research-notes/research-iNN.md` 和 `knowledge/learning/research-notes/research-lNN.md`。每篇包含 frontmatter、内容概述、实质正文和阅读边界；JD 保留完整原文一次，不重复摘录同一段。知识源中不保留汇总、合集或采集 manifest。原60篇研究笔记的导入记录见 `docs/IMPORT_REPORT.json`，它只记录当时的研究笔记导入，不是当前全部知识数量。岗位/行业标签属于检索辅助信息，不代表专家核定。
+三个目录统一为 `knowledge/jobs/research-notes/research-jNN.md`、`knowledge/interviews/research-notes/research-iNN.md` 和 `knowledge/learning/research-notes/research-lNN.md`。每篇包含 frontmatter、内容概述、实质正文和阅读边界；JD 保留完整原文一次，不重复摘录同一段。知识源中不保留汇总、合集或采集 manifest。原60篇研究笔记的导入记录见 `docs/archive/import-reports/research-notes.json`，它只记录当时的研究笔记导入，不是当前全部知识数量。岗位/行业标签属于检索辅助信息，不代表专家核定。
 
-网页 `/learn` 默认打开GTM概览；栏目依次为GTM概览、岗位JD、面经、在职经验、GTM专有名词库。资料栏目支持卡片、搜索与岗位/行业过滤。早期合成资料已移至测试夹具，不进入正式知识库。`/interviews` 使用同一资料底座，继续提供Mock入口。VitePress手册同步构建全部公开学习笔记。
+网页 `/learn` 默认打开GTM概览；栏目依次为GTM概览、岗位JD、在职经验、GTM专有名词库。面经仅在 `/interviews` 展示。资料栏目支持卡片、搜索与岗位/行业过滤。早期合成资料已移至测试夹具，不进入正式知识库。`/interviews` 使用同一资料底座，继续提供Mock入口。VitePress手册同步构建全部公开学习笔记。
 
 ## 后续补充
 
@@ -70,8 +70,8 @@ docker compose -f infra/compose.renderer-local.yaml up --build
 
 知识中心 `/learn` 默认打开「GTM 概览」，依次提供岗位JD、面经、在职经验和「GTM 专有名词库」。可直接访问 `/learn?kind=glossary`、`/learn?kind=overview`。
 
-- 名词库为名词/解释两列，首批 18 项。编辑唯一数据源 `apps/web/src/content/gtm-glossary.json` 追加条目，每项包含 `term`、`fullName`、`explanation`、`example`；`gtm-glossary.ts` 仅导出该数据，页面与 AI 共用原始内容。
-- 概览使用用户提供的 `GTM_HTML学习资料/index.html`，连同四个章节原样复制到 `apps/web/public/gtm-overview/`，复制校验见 `docs/GTM_OVERVIEW_IMPORT.json`。保留原内容、版式、章节与返回目录链接，不依赖用户电脑的绝对路径。
+- 名词库为名词/解释两列，首批 18 项。编辑唯一数据源 `knowledge/glossary/gtm-glossary.json` 追加条目，每项包含 `term`、`fullName`、`explanation`、`example`；`apps/web/src/content/gtm-glossary.ts` 仅导出该数据，页面与 AI 共用原始内容。
+- 概览使用用户提供的 `GTM_HTML学习资料/index.html`，连同四个章节维护于 `knowledge/site/gtm-overview/`，复制校验见 `docs/archive/import-reports/gtm-overview.json`。保留原内容、版式、章节与返回目录链接，不依赖用户电脑的绝对路径。
 - 概览嵌入分类页面，也提供「打开完整页面」入口。HTML 将随 Vite 静态构建发布，Vercel 和本地预览都使用 `/gtm-overview/` 地址。
 
 名词库在栏目内使用可滚动框预览，通过「打开完整页面」进入 `/glossary`。预览和完整页面复用同一份术语数据。
@@ -129,3 +129,12 @@ API 启动时从概览 `index.html` 和四个章节的 `<main>` 提取标题、�
 删除文件或撤销公共许可只会在下一次成功入库后从知识索引撤销，不会自动删除用户已保存的历史问答。文件交付、索引成功、服务可用和代码已推送是不同状态，交付报告分别说明。
 
 扫描简历可使用支持图像输入的多模态聊天模型，无需单独采购 OCR 产品。现有 `VISION_BASE_URL`、`VISION_API_KEY`、`VISION_MODEL` 用来指定图像识别模型；可与文本模型使用同一服务商及 Key，但被选中的模型必须支持 `image_url` 图片输入。未配置时仍可使用可读 PDF/TXT，或手动录入。
+
+
+## 资料阅读与前端缓存
+
+JD、面经和在职经验共用 `apps/web/src/components/ArticleBody.vue`，目录从正文实际渲染的二、三级标题生成。资料卡片不显示预计阅读时长。
+
+列表与已打开的全文保存在当前网页会话的内存缓存中，返回页面会直接复用；普通 AI 请求不清空资料缓存。切换账号、退出登录和资料上传后按需失效，缓存不写入浏览器持久存储。更新知识文件并让 API 重新入库后，可点击列表中的「刷新资料」或刷新网页获取新内容。
+
+在职经验与 JD 不再默认显示本次移除的开头提示；各资料的来源、质量标记和阅读边界仍按原内容保留。

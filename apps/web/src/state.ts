@@ -1,7 +1,9 @@
 import { reactive } from 'vue'
 
 export const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
-const listCache = new Map<string, { expires: number; pending: Promise<any> }>()
+type CachedResult = { expires: number; pending: Promise<any>; value?: any }
+const listCache = new Map<string, CachedResult>()
+const knowledgeCache = new Map<string, CachedResult>()
 
 if (!localStorage.getItem('atlas-token') && sessionStorage.getItem('atlas-token')) {
   for (const key of ['atlas-token', 'atlas-refresh']) {
@@ -21,7 +23,7 @@ export const state = reactive({
 })
 
 export function saveSession(value: any) {
-  listCache.clear()
+  listCache.clear(); knowledgeCache.clear()
   state.token = value.token
   localStorage.setItem('atlas-token', value.token)
   if (value.refresh_token) localStorage.setItem('atlas-refresh', value.refresh_token)
@@ -29,7 +31,7 @@ export function saveSession(value: any) {
 }
 
 export function clearSession() {
-  listCache.clear()
+  listCache.clear(); knowledgeCache.clear()
   state.user = null; state.token = ''
   localStorage.removeItem('atlas-token'); localStorage.removeItem('atlas-refresh')
   sessionStorage.removeItem('atlas-token'); sessionStorage.removeItem('atlas-refresh')
@@ -37,7 +39,7 @@ export function clearSession() {
 
 window.addEventListener('storage', event => {
   if (event.storageArea !== localStorage || (event.key !== 'atlas-token' && event.key !== null)) return
-  listCache.clear()
+  listCache.clear(); knowledgeCache.clear()
   state.token = event.key === null ? '' : event.newValue || ''
   if (!state.token) state.user = null
 })
@@ -87,25 +89,35 @@ export async function api(path: string, options: RequestInit = {}): Promise<any>
     }
     throw new Error(`请求失败 (${r.status})，请检查输入`)
   }
-  if ((options.method || 'GET').toUpperCase() !== 'GET') listCache.clear()
+  if ((options.method || 'GET').toUpperCase() !== 'GET') {
+    listCache.clear()
+    if (path.startsWith('/career/job-descriptions') || path.startsWith('/knowledge/')) knowledgeCache.clear()
+  }
   return r.json()
 }
 
-async function cachedList(path: string, ttl: number) {
+async function cachedList(path: string, ttl: number, cache = listCache) {
   const key = state.token + '\n' + path
-  const saved = listCache.get(key)
+  const saved = cache.get(key)
   if (saved && saved.expires > Date.now()) return saved.pending
-  if (listCache.size >= 32) listCache.delete(listCache.keys().next().value!)
+  if (cache.size >= (cache === knowledgeCache ? 128 : 32)) cache.delete(cache.keys().next().value!)
   const pending = api(path)
-  listCache.set(key, { expires: Date.now() + ttl, pending })
-  try { return await pending }
-  catch (error) {
-    if (listCache.get(key)?.pending === pending) listCache.delete(key)
+  const entry: CachedResult = { expires: Date.now() + ttl, pending }
+  cache.set(key, entry)
+  try {
+    const value = await pending
+    if (cache.get(key) === entry) entry.value = value
+    return value
+  } catch (error) {
+    if (cache.get(key) === entry) cache.delete(key)
     throw error
   }
 }
 
-export function knowledgeDocuments(query: string) { return cachedList('/knowledge/documents?' + query, 60_000) }
+export function knowledgeDocuments(query: string) { return cachedList('/knowledge/documents?' + query, Infinity, knowledgeCache) }
+export function knowledgeDocument(id: string) { return cachedList('/knowledge/documents/' + encodeURIComponent(id), Infinity, knowledgeCache) }
+export function peekKnowledge(path: string) { return knowledgeCache.get(state.token + '\n' + path)?.value }
+export function refreshKnowledge() { knowledgeCache.clear() }
 export async function historyRecords() {
   const rows = await cachedList('/history', 30_000)
   const counters = new Map<string, number>(), names = new Map<string, string>()
