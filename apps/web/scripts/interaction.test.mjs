@@ -304,3 +304,26 @@ test('a suggestion response from a previous resume view is discarded', async () 
   assert.equal(editor.pendingCount.value, 0)
   assert.equal(editor.draftFacts.value[0].text, '原文')
 })
+
+test('version generation errors belong to the confirmation action rather than suggestion feedback', async () => {
+  const editor = careerEditor({post:async()=>{throw new Error('具体字段错误')}})
+  editor.facts.value=[{id:'f1',text:'原文'}]
+  editor.draftFacts.value=[{id:'f1',text:'修改'}]
+  editor.approved.value=['f1']
+  await editor.rewrite()
+  assert.equal(editor.error.value,'')
+  assert.equal(editor.versionError.value,'具体字段错误')
+  assert.equal(editor.generating.value,false)
+})
+
+test('artifact loading failure does not turn a saved version into a generation failure', async () => {
+  const editor = careerEditor({post:async()=>({id:'saved',facts:[{id:'f1',text:'修改'}]}),api:async()=>{throw new Error('下载信息暂不可用')}})
+  editor.facts.value=[{id:'f1',text:'原文'}]
+  editor.draftFacts.value=[{id:'f1',text:'修改'}]
+  editor.approved.value=['f1']
+  await editor.rewrite()
+  assert.equal(editor.versions.value.length,1)
+  assert.match(editor.versionNotice.value,/已保存/)
+  assert.match(editor.versionError.value,/已保存/)
+  assert.equal(editor.approved.value.length,0)
+})

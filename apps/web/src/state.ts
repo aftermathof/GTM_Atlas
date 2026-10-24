@@ -75,7 +75,17 @@ export async function api(path: string, options: RequestInit = {}): Promise<any>
   if (!r.ok) {
     const body = await r.json().catch(() => ({}))
     if (r.status === 401 && !path.startsWith('/auth/login')) clearSession()
-    throw new Error(typeof body.detail === 'string' ? body.detail : `请求失败 (${r.status})，请检查输入`)
+    if (typeof body.detail === 'string') throw new Error(body.detail)
+    if (Array.isArray(body.detail) && body.detail.length) {
+      const labels: Record<string,string> = {patches:'改写段落',text:'内容',approved_fact_ids:'授权段落',template:'排版模板',base_version_id:'基础版本',facts:'简历事实',count:'题目数量'}
+      const details = body.detail.slice(0,3).map((issue: any) => {
+        const field = (issue.loc || []).filter((key: any) => key !== 'body').map((key: any) => typeof key === 'number' ? String(key+1) : labels[key] || key).join(' / ')
+        const reasons: Record<string,string> = {string_too_short:`至少需要 ${issue.ctx?.min_length || 1} 个字符`,string_too_long:`最多允许 ${issue.ctx?.max_length} 个字符`,missing:'缺少必填内容',literal_error:'选项无效，请重新选择',int_parsing:'请输入整数'}
+        return field + '：' + (reasons[issue.type] || issue.msg || '输入格式不正确')
+      })
+      throw new Error(details.join('；'))
+    }
+    throw new Error(`请求失败 (${r.status})，请检查输入`)
   }
   if ((options.method || 'GET').toUpperCase() !== 'GET') listCache.clear()
   return r.json()

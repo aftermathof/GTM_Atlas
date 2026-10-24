@@ -93,12 +93,16 @@ def diagnose(facts, jd="", role="", evidence=None):
 def apply_patches(facts, patches, approved):
     result = copy.deepcopy(facts)
     by_id = {f["id"]: f for f in result}
+    removed = set()
     if len({p.fact_id for p in patches}) != len(patches):
         raise HTTPException(422, "段落 patch 重复")
     for patch in patches:
         fact = by_id.get(patch.fact_id)
         if not fact or patch.fact_id not in approved or fact.get("locked"):
             raise HTTPException(422, "只能改写已明确授权且未锁定的段落")
+        if not patch.text.strip():
+            removed.add(patch.fact_id)
+            continue
         # Mechanical protection; semantic claims still require explicit human review.
         old_numbers = set(re.findall(r"\d+(?:\.\d+)?%?", fact["text"]))
         new_numbers = set(re.findall(r"\d+(?:\.\d+)?%?", patch.text))
@@ -107,4 +111,7 @@ def apply_patches(facts, patches, approved):
         if re.search(r"\\(?:input|include|write|openout|read|usepackage|documentclass)", patch.text):
             raise HTTPException(422, "不接受 LaTeX 指令；请输入纯文本")
         fact["text"] = patch.text
+    result = [f for f in result if f['id'] not in removed]
+    if not result:
+        raise HTTPException(422, "请至少保留一个简历段落，不能生成空白简历")
     return result

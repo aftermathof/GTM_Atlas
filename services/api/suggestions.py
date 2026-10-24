@@ -22,6 +22,8 @@ def suggest(facts, body, jd, evidence=None, context=None, structure=None):
     try:
         proposals = json.loads(raw.removeprefix("```json").removesuffix("```").strip())["patches"]
         patches = [Patch.model_validate(p) for p in proposals]
+        if any(not p.text.strip() for p in patches):
+            raise ValueError('Suggestions must not remove facts')
         known = {e['chunk_id'] for e in evidence}
         if any(not set(p.get('source_chunk_ids',[])).issubset(known) for p in proposals):
             raise ValueError('Unknown rewrite reference')

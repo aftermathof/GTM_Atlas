@@ -244,3 +244,15 @@ test('resume display names use Shanghai dates and chronological same-day suffixe
   assert.deepEqual(Array.from(result, row => row.display_name), ['20261024n2',undefined,'20261024n1','20261024','20261023'])
   assert.deepEqual(Array.from(result, row => row.id), rows.map(row => row.id))
 })
+
+test('validation errors identify the affected field without exposing rejected private text', async () => {
+  const app = load(storage(), storage(), async () => new Response(JSON.stringify({detail:[
+    {loc:['body','patches',1,'text'],type:'string_too_long',msg:'String should have at most 4000 characters',ctx:{max_length:4000},input:'private resume text'}
+  ]}),{status:422}))
+  await assert.rejects(app.api('/career/sessions/test/approve-rewrite',{method:'POST',body:'{}'}), error => {
+    assert.match(error.message, /改写段落.*2.*内容/)
+    assert.match(error.message, /4000/)
+    assert.ok(!error.message.includes('private resume text'))
+    return true
+  })
+})
