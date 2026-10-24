@@ -18,3 +18,7 @@ def test_parse_skips_icon_only_lines_and_keeps_fact_ids_contiguous(tmp_path):
 
 def test_misdecoded_heading_icons_are_removed_but_names_are_preserved():
     assert clean_resume_text('ŵ教育背景\nǼ 实习经历\nǼvar Andersen')=='教育背景\n实习经历\nǼvar Andersen'
+
+
+def test_mixed_heading_glyphs_and_bullets_are_cleaned_without_removing_real_letters():
+    assert clean_resume_text('• ϻ教育背景\nϻ • 实习经历\nϻ\nϻvar Andersen\nμ = 20\nϻ = 3') == '教育背景\n实习经历\n\nϻvar Andersen\nμ = 20\nϻ = 3'

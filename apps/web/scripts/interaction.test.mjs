@@ -454,6 +454,11 @@ test('resume cleaning removes misdecoded heading icons without stripping accente
   assert.equal(cleanResumeText('ŵ教育背景\nǼ 实习经历\nǼ\nǼvar Andersen\n2026.09–2028.06'), '教育背景\n实习经历\n\nǼvar Andersen\n2026.09–2028.06')
 })
 
+test('resume cleaning handles mixed bullets and heading glyphs without erasing meaningful letters',()=>{
+  const {cleanResumeText}=resumeText()
+  assert.equal(cleanResumeText('• ϻ教育背景\nϻ • 实习经历\nϻ\nϻvar Andersen\nμ = 20\nϻ = 3'), '教育背景\n实习经历\n\nϻvar Andersen\nμ = 20\nϻ = 3')
+})
+
 
 test('authorize all excludes unlocked lines inside a locked merged education block',()=>{
   const editor=careerEditor()

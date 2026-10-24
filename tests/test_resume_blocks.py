@@ -53,6 +53,35 @@ def test_block_dialogue_uses_current_draft_history_jd_and_retrieved_evidence(mon
     assert FACTS[1]['text']=='甲公司 2025 实习'
 
 
+@pytest.mark.parametrize('response', [
+    {'text':'调研 20 家客户','analysis':'建议突出调研对象'},
+    {'text':'• ϻ调研 20 家客户。','analysis':'已优化表达'},
+    {'analysis':'建议你精简内容并突出岗位能力'},
+])
+def test_rewrite_does_not_present_unchanged_draft_or_analysis_only_as_a_result(monkeypatch, response):
+    monkeypatch.setattr(LLMProvider, 'complete', lambda *args: json.dumps(response))
+    with pytest.raises(HTTPException) as error:
+        discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'], draft_text='调研 20 家客户', message='改为更精简的简历表达'), '', [], {})
+    assert error.value.status_code == 502
+    assert '改写' in error.value.detail
+
+
+def test_rewrite_cleans_model_inputs_and_returns_replaceable_text(monkeypatch):
+    captured = {}
+    def complete(self, task, payload):
+        captured.update(task=task, payload=payload)
+        return json.dumps({'text':'• ϻ访谈并整理 20 家客户需求。', 'analysis':'精简句式，突出需求整理。'})
+    monkeypatch.setattr(LLMProvider, 'complete', complete)
+    facts = [{**f, 'text':'ϻ '+f['text']} for f in FACTS]
+    result = discuss_block(facts, BlockDialogue(fact_ids=['f1','f2'], draft_text='• ϻ调研 20 家客户', message='用行动开头'), '', [], {})
+    assert captured['payload']['draft_text'] == '调研 20 家客户'
+    assert captured['payload']['facts'][0]['text'] == '甲公司 2025 实习'
+    assert '可直接替换' in captured['task']
+    assert '不要复述' in captured['task']
+    assert result['text'] == '访谈并整理 20 家客户需求。'
+    assert facts[1]['text'].startswith('ϻ ')
+
+
 def test_dialogue_rejects_fabricated_citations_and_numbers(monkeypatch):
     for response in [{'text':'提升 99%','analysis':'','questions':'','source_chunk_ids':[]},{'text':'调研','analysis':'','questions':'','source_chunk_ids':['fake:0']}]:
         monkeypatch.setattr(LLMProvider,'complete',lambda *args: json.dumps(response))

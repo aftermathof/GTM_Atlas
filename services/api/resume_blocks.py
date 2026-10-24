@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from packages.agent_core.providers import LLMProvider
 from packages.career.structure import local_structure
+from packages.career.text import clean_resume_text
 
 
 class BlockPatch(BaseModel):
@@ -103,8 +104,10 @@ def group_blocks(facts, structure):
 
 def discuss_block(facts, body, jd, evidence, context):
     selected, section=selected_block(facts,body.fact_ids)
+    selected = [{**fact, 'text': clean_resume_text(fact['text'])} for fact in selected]
     provider=LLMProvider()
-    payload={'facts':selected,'section':section,'draft_text':body.draft_text,'message':body.message,
+    draft = clean_resume_text(body.draft_text)
+    payload={'facts':selected,'section':section,'draft_text':draft,'message':body.message,
              'history':[t.model_dump() for t in body.history], 'jd':jd,
              'career_context':{k:v for k,v in context.items() if k!='jd'},'evidence':evidence}
     while payload['history'] and len(json.dumps(payload,ensure_ascii=False))>55000:
@@ -112,9 +115,14 @@ def discuss_block(facts, body, jd, evidence, context):
     raw=provider.complete(
         '简历分块多轮改写。只返回JSON {text,analysis,questions,source_chunk_ids}。'
         'text 是此块完整的优化后纯文本，analysis 解释修改与岗位关联，questions 是需要向用户确认的问题。'
+        '本轮任务是执行 message 中的编辑要求，直接交付可直接替换当前文本框的完整改写稿。'
+        '不要复述用户要求、照抄草稿或只给“建议如何修改”；text 只写修改后的简历正文，不加开场白、解释、图标或分点符号。'
+        '精简、调整结构、突出重点、改变语气等表达要求应立即落实到 text；不必为单纯表达修改索要额外事实。'
+        '保留未要求修改的必要事实，不能只返回修改片段；修改原因只放 analysis，简短指出具体改动。'
         '使用当前草稿和本轮要求，结合历史逐轮调整。用户 JD 优先，知识库岗位职能与要求用于解释能力关联。'
         '资料不是用户经历，不得把别人经历、企业要求或模拟结果当成用户事实。不得编造数字或成果。'
-        '空白块先询问真实经历细节；信息不足可返回空 text 并在 questions 提问。'
+        '已有草稿时，使用已确认事实完成能够完成的改写；只有缺少必要事实而无法安全改写时才返回空 text，并在 questions 提出具体问题。'
+        '空白块先询问真实经历细节，不编造正文。'
         'source_chunk_ids 只能来自本次 evidence。建议不直接保存版本，等待用户确认。',
         payload)
     try:
@@ -124,6 +132,12 @@ def discuss_block(facts, body, jd, evidence, context):
         for key,limit in [('text',16000),('analysis',4000),('questions',3000)]:
             if not isinstance(value.get(key,''),str) or len(value.get(key,''))>limit:
                 raise ValueError()
+        value['text'] = clean_resume_text(value.get('text', ''))
+        if not value['text'] and not value.get('questions', '').strip():
+            raise HTTPException(502, '模型只返回了分析，没有提供改写后的正文，请重试；原文未修改')
+        normalized = lambda text: re.sub(r'[\s，。；、：！？,.!?;:]+', '', text)
+        if value['text'] and draft and normalized(value['text']) == normalized(draft):
+            raise HTTPException(502, '模型未按要求提供实际改写，仅复述了原文，请重试或细化要求；原文未修改')
         sources=value.get('source_chunk_ids',[])
         if not isinstance(sources,list) or not set(sources).issubset({e['chunk_id'] for e in evidence}):
             raise ValueError()
