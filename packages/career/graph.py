@@ -119,11 +119,6 @@ def apply_patches(facts, patches, approved):
         if not patch.text.strip():
             removed.add(patch.fact_id)
             continue
-        # Mechanical protection; semantic claims still require explicit human review.
-        old_numbers = set(re.findall(r"\d+(?:\.\d+)?%?", fact["text"]))
-        new_numbers = set(re.findall(r"\d+(?:\.\d+)?%?", patch.text))
-        if not new_numbers.issubset(old_numbers):
-            raise HTTPException(422, "改写新增数字，请先在事实确认页补充并确认来源")
         if re.search(r"\\(?:input|include|write|openout|read|usepackage|documentclass)", patch.text):
             raise HTTPException(422, "不接受 LaTeX 指令；请输入纯文本")
         fact["text"] = patch.text

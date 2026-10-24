@@ -42,7 +42,7 @@ async function ask() {
     <header><button class="text-link" :disabled="busy" @click="emit('close')"><ArrowLeft :size="16"/>返回修改与版本</button><h2>{{ block.title }}</h2><span class="meta">结合岗位 JD 与知识库 · 多轮修改</span></header>
     <div ref="content" class="block-conversation" role="region" aria-label="改写对话记录" tabindex="0">
       <details v-if="dialogue.original"><summary>查看当前原文</summary><p class="block-text">{{ dialogue.original }}</p></details>
-      <p v-if="!dialogue.turns.length" class="notice">{{ dialogue.original ? '描述你想调整的重点。AI 会结合岗位要求与知识库，逐轮完善此块内容。' : '和 AI 聊聊：先介绍这段真实经历中的背景、职责、行动和结果。信息不足时，AI 会继续提问。' }}</p>
+      <p v-if="!dialogue.turns.length" class="notice">{{ dialogue.original ? '说说想突出、补充或调整什么。AI 会结合目标岗位、JD 与知识库直接给出完整候选稿，按你的反馈继续修改。' : '告诉 AI 想写的方向或目标岗位，先生成可编辑的候选稿，再一起补充完善。' }}</p>
       <article v-for="(turn,index) in dialogue.turns" :key="index" class="rewrite-turn">
         <p class="question">{{ turn.message }}</p>
         <template v-if="turn.text"><h3>修改建议</h3><p class="block-text">{{ turn.text }}</p></template>
@@ -54,7 +54,7 @@ async function ask() {
       <p v-if="busy" class="notice" role="status">正在检索岗位资料并生成改写建议…</p>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
     </div>
-    <Composer v-model="dialogue.draft" :busy="busy" label="生成改写建议" placeholder="描述要求、补充真实细节，或继续调整上一轮建议…" @submit="ask"/>
+    <Composer v-model="dialogue.draft" :busy="busy" label="生成改写建议" placeholder="例如：结合 JD 加入 DTC、Kickstarter 相关内容，突出调研与交付物…" @submit="ask"/>
   </section>
 </template>
 <style scoped>

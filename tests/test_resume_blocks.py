@@ -35,7 +35,7 @@ def test_whole_block_rewrite_can_reorder_existing_numbers_and_keeps_other_experi
     assert result[1]['section']=='experience'
     assert result[-1]==FACTS[-1]
 
-@pytest.mark.parametrize('ids,text,approved', [(['f0'],'教育背景',['f0']),(['f1'],'提升 99%',['f1']),(['f1','f2'],'整理调研',['f1']),(['f1','f3'],'合并',['f1','f3'])])
+@pytest.mark.parametrize('ids,text,approved', [(['f0'],'教育背景',['f0']),(['f1','f2'],'整理调研',['f1']),(['f1','f3'],'合并',['f1','f3'])])
 def test_block_rewrite_requires_unlocked_contiguous_authorized_facts(ids,text,approved):
     with pytest.raises(HTTPException): apply_block_patches(FACTS,[BlockPatch(fact_ids=ids,text=text)],approved)
 
@@ -91,7 +91,7 @@ def test_unchanged_model_draft_is_corrected_once_before_returning_a_result(monke
     result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='调研 20 家客户',message='让表达更专业'), '', [], {})
     assert result['text'] == '面向 20 家客户开展调研。'
     assert len(calls) == 2
-    assert '上次输出' in calls[1]
+    assert '上次未提供实际改写' in calls[1]
     assert FACTS[2]['text'] == '调研 20 家客户'
 
 
@@ -107,22 +107,39 @@ def test_unchanged_model_correction_has_a_strict_retry_limit(monkeypatch):
     assert len(calls) == 2
 
 
-def test_new_dtc_and_kickstarter_experience_is_a_clarification_not_a_server_error(monkeypatch):
+def test_requested_dtc_and_kickstarter_content_is_drafted_instead_of_blocked(monkeypatch):
     calls = []
     def complete(self, task, payload):
         calls.append(task)
-        return json.dumps({'text':payload['draft_text'],'analysis':'当前事实没有相关平台经历。','questions':'你实际参与过哪些 DTC 或 Kickstarter 任务？请补充职责与产出。'})
+        return json.dumps({'text':'围绕 DTC 渠道与 Kickstarter 众筹开展竞品调研，整理 30 个项目的定位、定价及卖点，形成市场分析表。','analysis':'补充平台研究方向；新增职责表述请核对后采用。','questions':''})
     monkeypatch.setattr(LLMProvider, 'complete', complete)
     result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='调研 20 家客户',message='确实需要添加一些比如像DTC还有Kickstarter这样的一些经验更贴合GTM岗位'), '', [], {})
-    assert result['text'] == ''
-    assert 'Kickstarter' in result['questions']
+    assert 'Kickstarter' in result['text']
+    assert 'DTC' in result['text']
+    assert '30' in result['text']
+    assert '候选草稿' in calls[0]
+    assert '先询问其实际参与' not in calls[0]
     assert len(calls) == 1
 
 
-def test_dialogue_rejects_fabricated_citations_and_numbers(monkeypatch):
-    for response in [{'text':'提升 99%','analysis':'','questions':'','source_chunk_ids':[]},{'text':'调研','analysis':'','questions':'','source_chunk_ids':['fake:0']}]:
+def test_dialogue_still_rejects_unknown_citations_and_tex_commands(monkeypatch):
+    for response in [{'text':r'\input{secret}','analysis':'','questions':'','source_chunk_ids':[]},{'text':'调研','analysis':'','questions':'','source_chunk_ids':['fake:0']}]:
         monkeypatch.setattr(LLMProvider,'complete',lambda *args: json.dumps(response))
         with pytest.raises(HTTPException): discuss_block(FACTS,BlockDialogue(fact_ids=['f1','f2'],draft_text='调研',message='优化'),'',[],{})
+
+
+def test_user_confirmed_additions_can_be_saved_without_reentering_fact_screen():
+    text = '围绕 DTC 与 Kickstarter 调研 30 个项目，形成竞品对比表。'
+    result = apply_block_patches(FACTS, [BlockPatch(fact_ids=['f1','f2'], text=text)], ['f1','f2'])
+    assert result[1]['text'] == text
+    assert FACTS[2]['text'] == '调研 20 家客户'
+
+
+def test_empty_block_can_be_drafted_from_requested_job_direction(monkeypatch):
+    monkeypatch.setattr(LLMProvider, 'complete', lambda *args: json.dumps({'text':'围绕 DTC 独立站与 Kickstarter 众筹整理竞品定位、渠道打法和卖点，形成上市研究简报。','analysis':'按要求起草，平台研究方向可继续调整。','questions':''}))
+    result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='',message='起草 DTC 与 Kickstarter 相关的 GTM 项目经历'), '', [], {})
+    assert result['text']
+    assert not result['questions']
 
 
 from tests.test_workflows import client, login
@@ -139,7 +156,7 @@ def test_block_routes_cache_groups_enforce_privacy_and_generate_only_on_confirma
         calls.append((task,payload))
         if '简历经历分块' in task:
             return json.dumps({'blocks':[{'title':'教育背景','fact_ids':['f0']},{'title':'实习经历 1','fact_ids':['f1','f2']},{'title':'实习经历 2','fact_ids':['f3']}]})
-        return json.dumps({'text':'甲公司 2025 年实习，调研 20 家客户。','analysis':'结合岗位要求明确调研行动','questions':'','source_chunk_ids':[]})
+        return json.dumps({'text':'甲公司 2025 年实习，围绕 DTC 与 Kickstarter 调研 30 个项目。','analysis':'结合岗位要求补充平台调研内容','questions':'','source_chunk_ids':[]})
     monkeypatch.setattr(LLMProvider,'complete',complete)
     first=client.get(f'/api/v1/career/sessions/{sid}/editing-blocks',headers=owner)
     assert first.status_code==200,first.text
@@ -151,6 +168,7 @@ def test_block_routes_cache_groups_enforce_privacy_and_generate_only_on_confirma
     assert client.post(f'/api/v1/career/sessions/{sid}/block-dialogue',json=body,headers=other).status_code==404
     reply=client.post(f'/api/v1/career/sessions/{sid}/block-dialogue',json=body,headers=owner)
     assert reply.status_code==200,reply.text
+    assert '30' in reply.json()['text'] and 'Kickstarter' in reply.json()['text']
     assert calls[-1][1]['jd']=='海外 GTM 调研与上市'
     assert calls[-1][1]['evidence']
     assert client.get(f'/api/v1/career/sessions/{sid}/versions',headers=owner).json()==[]

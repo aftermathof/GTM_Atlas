@@ -8,7 +8,7 @@ from services.api.schemas import Patch
 
 class SuggestRewrite(BaseModel):
     approved_fact_ids: list[str] = Field(min_length=1, max_length=100)
-    instruction: str = Field(default="在保留全部事实的前提下改善表达结构", max_length=3000)
+    instruction: str = Field(default="结合目标岗位 JD，优化并补充更贴合岗位的简历表达", max_length=3000)
     base_version_id: str | None = None
 
 
@@ -18,7 +18,7 @@ def suggest(facts, body, jd, evidence=None, context=None, structure=None):
         raise HTTPException(422, "请选择存在且未锁定的段落")
     provider = LLMProvider()
     evidence = evidence or []
-    raw = provider.complete("只返回JSON {patches:[{fact_id,text,reason,source_chunk_ids}]}。针对目标GTM岗位与JD改写已授权项目和实际经历，将已有调研、数据分析、内容、协作等经历与岗位能力建立联系。用户JD优先，学习资料提供框架，面经仅作个人案例参考。不能把岗位要求或别人的经历写成用户事实，不新增职责、地区、资历、结果或数字。reason解释调整依据，source_chunk_ids仅从证据包选择。", {"facts": selected, "instruction": body.instruction, "jd": jd, 'career_context':context or {}, 'focus_sections':['projects','experience'], 'section_assignments':(structure or {}).get('assignments',{}), 'evidence':evidence})
+    raw = provider.complete("只返回JSON {patches:[{fact_id,text,reason,source_chunk_ids}]}。针对目标岗位与JD改写已选择段落，直接落实用户 instruction 中的调整与补充要求，交付可编辑的候选草稿。用户JD优先，知识库提供岗位职责、方法和交付物参考。原文不是内容上限，用户提供的新细节与数字可直接纳入；新增方向先提供候选写法，在 reason 简短标明需要核对的部分，不要因原文缺失而拒绝交付。未提供的精确业绩数字可以省略，不自行编定。source_chunk_ids仅从证据包选择。", {"facts": selected, "instruction": body.instruction, "jd": jd, 'career_context':context or {}, 'focus_sections':['projects','experience'], 'section_assignments':(structure or {}).get('assignments',{}), 'evidence':evidence})
     try:
         proposals = json.loads(raw.removeprefix("```json").removesuffix("```").strip())["patches"]
         patches = [Patch.model_validate(p) for p in proposals]
@@ -30,4 +30,4 @@ def suggest(facts, body, jd, evidence=None, context=None, structure=None):
         apply_patches(facts, patches, body.approved_fact_ids)
     except (ValueError, KeyError, TypeError):
         raise HTTPException(502, "模型改写结构不合法；未生成任何简历版本")
-    return {"patches": [{**p.model_dump(),'reason':str(proposal.get('reason','仅调整表达；请核对事实与岗位关联。'))[:1500],'source_chunk_ids':proposal.get('source_chunk_ids',[])} for p,proposal in zip(patches,proposals)], 'citations':evidence, 'jd_priority':bool(jd), "provider": provider.mode, "model": provider.model, "notice": "改写建议尚未保存为版本。下列资料是检索参考，不是你的个人经历；请核对事实、编辑文本，再确认授权生成。"}
+    return {"patches": [{**p.model_dump(),'reason':str(proposal.get('reason','结合目标岗位调整内容；可继续编辑。'))[:1500],'source_chunk_ids':proposal.get('source_chunk_ids',[])} for p,proposal in zip(patches,proposals)], 'citations':evidence, 'jd_priority':bool(jd), "provider": provider.mode, "model": provider.model, "notice": "这是结合目标岗位生成的候选稿，可继续补充或修改；确认后再保存为新版。"}

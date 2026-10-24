@@ -31,8 +31,8 @@ def test_forbidden_and_deleted_documents_never_searchable(tmp_path):
         assert not search(db, "KOL营销")
 
 
-@pytest.mark.parametrize("text", ["销量提升30%", r"\input{secret}"])
-def test_patch_rejects_new_metrics_and_tex(text):
+@pytest.mark.parametrize("text", [r"\input{secret}"])
+def test_patch_rejects_tex_commands(text):
     with pytest.raises(HTTPException):
         apply_patches([{"id": "f0", "text": "负责渠道分析", "locked": False}], [Patch(fact_id="f0", text=text)], ["f0"])
 

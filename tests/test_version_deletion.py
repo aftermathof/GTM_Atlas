@@ -27,6 +27,14 @@ def test_cannot_generate_an_empty_resume():
     assert error.value.status_code == 422
 
 
+def test_user_can_save_new_details_and_numbers_in_an_authorized_paragraph():
+    original = [{'id':'f1','text':'参与市场调研','locked':False}]
+    text = '参与 DTC 渠道调研，整理 30 个 Kickstarter 项目。'
+    result = apply_patches(original, [Patch(fact_id='f1',text=text)], ['f1'])
+    assert result[0]['text'] == text
+    assert original[0]['text'] == '参与市场调研'
+
+
 def test_ai_suggestions_cannot_silently_remove_paragraphs(monkeypatch):
     monkeypatch.setattr(LLMProvider, 'complete', lambda *a: json.dumps({'patches':[{'fact_id':'f1','text':''}]}))
     with pytest.raises(HTTPException) as error:

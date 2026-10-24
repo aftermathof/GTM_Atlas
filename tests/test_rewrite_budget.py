@@ -36,6 +36,16 @@ def test_other_tasks_keep_existing_budget(monkeypatch):
     assert 'thinking' not in captured
 
 
+def test_rewrite_system_supports_candidate_additions_while_extraction_stays_source_based(monkeypatch):
+    captured = model_response(monkeypatch)
+    REAL_COMPLETE(LLMProvider(), '简历分块多轮改写。只返回JSON {text,analysis}', {})
+    rewrite_system = captured['messages'][0]['content']
+    assert '候选草稿' in rewrite_system
+    assert '简历事实只能来自用户确认内容，不添加数字、资历或成果' not in rewrite_system
+    REAL_COMPLETE(LLMProvider(), '提取简历', {})
+    assert '简历事实只能来自用户确认内容，不添加数字、资历或成果' in captured['messages'][0]['content']
+
+
 @pytest.mark.parametrize('content,finish_reason', [('', 'length'), ('{"patches":[', 'length'), ('', 'stop')])
 def test_incomplete_answer_has_actionable_error(monkeypatch, content, finish_reason):
     model_response(monkeypatch, content, finish_reason)

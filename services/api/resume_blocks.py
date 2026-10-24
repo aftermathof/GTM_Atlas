@@ -1,4 +1,4 @@
-"""Source-bound resume blocks and non-mutating, retrieval-backed rewrite dialogue."""
+"""User-editable resume blocks and non-mutating, retrieval-backed rewrite dialogue."""
 import copy
 import json
 import re
@@ -42,11 +42,7 @@ def selected_block(facts, ids):
     return selected, sections[selected[0]['id']]
 
 
-def check_text(text, selected):
-    original = '\n'.join(f['text'] for f in selected)
-    numbers = lambda value: set(re.findall(r"\d+(?:\.\d+)?%?", value))
-    if not numbers(text).issubset(numbers(original)):
-        raise HTTPException(422, '改写新增数字，请先在识别与事实中补充并确认来源')
+def check_text(text):
     if re.search(r"\\(?:input|include|write|openout|read|usepackage|documentclass)", text):
         raise HTTPException(422, '不接受 LaTeX 指令；请输入纯文本')
 
@@ -54,11 +50,11 @@ def check_text(text, selected):
 def apply_block_patches(facts, patches, approved):
     result, used = copy.deepcopy(facts), set()
     for patch in patches:
-        selected, section = selected_block(facts, patch.fact_ids)
+        _, section = selected_block(facts, patch.fact_ids)
         if used.intersection(patch.fact_ids) or not set(patch.fact_ids).issubset(approved):
             raise HTTPException(422, '每块经历必须独立且全部明确授权')
         used.update(patch.fact_ids)
-        check_text(patch.text, selected)
+        check_text(patch.text)
         first = patch.fact_ids[0]
         for fact in result:
             if fact['id'] == first:
@@ -118,15 +114,15 @@ def discuss_block(facts, body, jd, evidence, context):
         '本轮任务是执行 message 中的编辑要求，直接交付可直接替换当前文本框的完整改写稿。'
         '不要复述用户要求、照抄草稿或只给“建议如何修改”；text 只写修改后的简历正文，不加开场白、解释、图标或分点符号。'
         '精简、调整结构、突出重点、改变语气等表达要求应立即落实到 text；不必为单纯表达修改索要额外事实。'
-        '保留未要求修改的必要事实，不能只返回修改片段；修改原因只放 analysis，简短指出具体改动。'
+        '保留未要求修改的必要信息，不能只返回修改片段；修改原因只放 analysis，简短指出具体改动。'
         '使用当前草稿和本轮要求，结合历史逐轮调整。用户 JD 优先，知识库岗位职能与要求用于解释能力关联。'
-        '资料不是用户经历，不得把别人经历、企业要求或模拟结果当成用户事实。不得编造数字或成果。'
-        '已有草稿时，使用已确认事实完成能够完成的改写；只有缺少必要事实而无法安全改写时才返回空 text，并在 questions 提出具体问题。'
-        '用户要求补入原文没有的平台、项目或工作经历时，先询问其实际参与的任务、职责与产出；text 为空，不把未改动的原文当作修改稿。'
-        '空白块先询问真实经历细节，不编造正文。'
+        '这是供用户选择和编辑的候选草稿，原文不是内容上限。把本轮需求与历史补充直接落实为岗位相关的职责、方法、交付物与表达。'
+        '用户要求补充 DTC、Kickstarter 或其他岗位场景时，先给出可编辑的完整候选写法；新增或推演的部分只在 analysis 简短提示核对，不以缺少原文依据为由拒绝、只追问或返回空正文。'
+        '用户新提供的经历、工具、职责和数字可直接使用，无需退回识别与事实页面；未提供的精确业绩数字可省略，不要自行编定。'
+        '空白块按目标岗位和用户需求给起草版本。questions 仅用于稿后可选的细化问题，不作为交付正文的前置条件；只有用户明确只想讨论或提问时才可不输出正文。'
         'source_chunk_ids 只能来自本次 evidence。建议不直接保存版本，等待用户确认。')
     for attempt in range(2):
-        correction = '' if attempt == 0 else '上次输出与草稿相同，任务尚未完成。请在不新增事实的前提下，根据 message 实际调整句式、信息顺序或表达重点，直接返回完整改写稿，不能只加标点或以保留事实为由照抄。'
+        correction = '' if attempt == 0 else '上次未提供实际改写，任务尚未完成。请落实 message 的补充与调整要求，直接返回完整候选草稿；需要核对的新增内容写在 analysis，不能用照抄或追问代替正文。'
         raw = provider.complete(task + correction, payload)
         try:
             value=json.loads(raw.removeprefix('```json').removesuffix('```').strip())
@@ -136,12 +132,14 @@ def discuss_block(facts, body, jd, evidence, context):
                 if not isinstance(value.get(key,''),str) or len(value.get(key,''))>limit:
                     raise ValueError()
             value['text'] = clean_resume_text(value.get('text', ''))
+            if not value['text'] and value.get('questions', '').strip() and attempt == 0:
+                continue
             if not value['text'] and not value.get('questions', '').strip():
                 raise HTTPException(502, '模型只返回了分析，没有提供改写后的正文，请重试；原文未修改')
             sources=value.get('source_chunk_ids',[])
             if not isinstance(sources,list) or not set(sources).issubset({e['chunk_id'] for e in evidence}):
                 raise ValueError()
-            check_text(value.get('text',''),selected)
+            check_text(value.get('text',''))
             normalized = lambda text: re.sub(r'[\s，。；、：！？,.!?;:]+', '', text)
             if value['text'] and draft and normalized(value['text']) == normalized(draft):
                 if not value.get('questions', '').strip() and attempt == 0:
