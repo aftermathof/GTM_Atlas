@@ -14,3 +14,7 @@ def test_parse_skips_icon_only_lines_and_keeps_fact_ids_contiguous(tmp_path):
     result=parse_resume(path.read_bytes(),path.name)
     assert [f['text'] for f in result['facts']]==['张同学','调研 20 家企业','a@example.com']
     assert [f['id'] for f in result['facts']]==['f0','f1','f2']
+
+
+def test_misdecoded_heading_icons_are_removed_but_names_are_preserved():
+    assert clean_resume_text('ŵ教育背景\nǼ 实习经历\nǼvar Andersen')=='教育背景\n实习经历\nǼvar Andersen'

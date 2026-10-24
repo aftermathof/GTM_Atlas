@@ -1,6 +1,6 @@
 export function cleanResumeText(value: string) {
   return value.replace(/[\p{Co}\uFFFD\uFE0F\u200D📞☎📧📍📱✉🔗💼🎓📌🏠🌐]/gu, '')
-    .split('\n').map(line => line.replace(/^\s*[•●▪◦‣⁃∙·◆◇■□►▶➢]+\s*/u, '').trim()).join('\n').trim()
+    .split('\n').map(line => line.replace(/^\s*[ǼǽŵŴ]+(?=\s*(?:[\u3400-\u9fff\d+]|$))\s*/u, '').replace(/^\s*[•●▪◦‣⁃∙·◆◇■□►▶➢]+\s*/u, '').trim()).join('\n').trim()
 }
 
 export function cleanDiagnosis(value: string) {

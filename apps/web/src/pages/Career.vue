@@ -20,7 +20,7 @@ const targetJdId=ref(''), jdFilename=ref(''), uploadingJd=ref(false)
 const generating = ref(false)
 const editorBusy = computed(() => busy.value || generating.value || blocksLoading.value || !!activeBlockId.value)
 const activeBlock = computed(() => blockRows.value.find(b => b.id === activeBlockId.value))
-const editableFacts = computed(() => draftFacts.value.filter(f => !f.locked))
+const editableFacts = computed(() => draftFacts.value.filter(f => !f.locked && !blockRows.value.some(b => b.locked && b.fact_ids.includes(f.id))))
 const experienceFacts = computed(() => {
   const mapping = (selectedVersion.value?.structure || session.value?.structure)?.assignments || {}
   return editableFacts.value.filter(f => ['projects','experience'].includes(f.section || mapping[f.id]))
@@ -51,7 +51,7 @@ async function loadBlocks() {
     const result=await api(`/career/sessions/${sessionId.value}/editing-blocks`+(selectedVersion.value ? '?base_version_id='+selectedVersion.value.id : ''))
     if (own!==blockRequest) return
     blockRows.value=result.blocks.map((block:any) => {
-      const text=block.fact_ids.map((id:string) => draftFacts.value.find(f=>f.id===id)?.text || '').join('\n')
+      const text=cleanResumeText(block.fact_ids.map((id:string) => draftFacts.value.find(f=>f.id===id)?.text || '').join('\n'))
       return {...block,text,original:text}
     })
   } catch(e:any) {if (own===blockRequest) blocksError.value=e.message}

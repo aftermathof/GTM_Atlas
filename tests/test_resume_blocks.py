@@ -119,7 +119,7 @@ def test_block_route_services_with_sqlite_preserve_private_sources_and_version_b
     request=SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(db=factory,mutation_lock=threading.RLock())))
     user=SimpleNamespace(id='owner')
     with factory() as db:
-        record=save(db,user.id,'career',{'facts':FACTS,'confirmed':True,'context':{'jd':'目标岗位调研','role':'overseas_channel_sales'},'structure':{'assignments':{f['id']:f['section'] for f in FACTS}}})
+        record=save(db,user.id,'career',{'facts':FACTS,'confirmed':True,'context':{'jd':'目标岗位调研','role':'overseas_channel_sales'},'structure':{'assignments':{f['id']:f['section'] for f in FACTS}},'editing_blocks':[]})
         sid=record.id
         db.commit()
     calls=[]
@@ -186,3 +186,16 @@ def test_company_and_date_on_separate_lines_stay_in_the_same_experience():
     facts=[{'id':f'f{i}','text':text,'section':'experience'} for i,text in enumerate(texts)]
     groups=group_blocks(facts,{})
     assert [group['fact_ids'] for group in groups]==[['f0','f1','f2','f3'],['f4','f5','f6']]
+
+
+def test_education_module_merges_mixed_locks_without_unlocking_source_facts():
+    facts=[{'id':'f0','text':'ŵ教育背景','section':'education','locked':True},
+           {'id':'f1','text':'示例大学 硕士','section':'education','locked':True},
+           {'id':'f2','text':'2026.09–2028.06','section':'education','locked':False},
+           {'id':'f3','text':'专业：数据科学','section':'education','locked':False},
+           {'id':'f4','text':'另一大学 本科','section':'education','locked':True}]
+    result=group_blocks(facts,{})
+    assert len(result)==1
+    assert result[0]['fact_ids']==['f0','f1','f2','f3','f4']
+    assert result[0]['locked'] is True
+    assert facts[2]['locked'] is False

@@ -195,9 +195,9 @@ def editing_blocks(sid: str, request: Request, base_version_id: str | None = Non
             base = owned(db, base_version_id, user.id, 'resume_version', lock=True)
             if base.parent_id != sid:
                 raise HTTPException(422, '版本不属于当前简历')
-        if 'editing_blocks' not in base.data:
+        if 'editing_blocks' not in base.data or base.data.get('editing_blocks_version') != 2:
             blocks = group_blocks(base.data['facts'], base.data.get('structure') or {})
-            base.data = {**base.data, 'editing_blocks': blocks}
+            base.data = {**base.data, 'editing_blocks': blocks, 'editing_blocks_version': 2}
             db.commit()
         return {'blocks': base.data['editing_blocks']}
 

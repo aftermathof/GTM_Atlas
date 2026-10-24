@@ -447,3 +447,19 @@ test('diagnosis removes internal citation and fact identifiers while preserving 
   assert.match(text,/\*\*有效\*\*/)
   assert.match(text,/\[资料\]/)
 })
+
+
+test('resume cleaning removes misdecoded heading icons without stripping accented names',()=>{
+  const {cleanResumeText}=resumeText()
+  assert.equal(cleanResumeText('ŵ教育背景\nǼ 实习经历\nǼ\nǼvar Andersen\n2026.09–2028.06'), '教育背景\n实习经历\n\nǼvar Andersen\n2026.09–2028.06')
+})
+
+
+test('authorize all excludes unlocked lines inside a locked merged education block',()=>{
+  const editor=careerEditor()
+  editor.draftFacts.value=[{id:'f0',locked:true},{id:'f1',locked:false},{id:'f2',locked:false}]
+  editor.blockRows.value=[{id:'f0',section:'education',fact_ids:['f0','f1'],locked:true},{id:'f2',section:'experience',fact_ids:['f2'],locked:false}]
+  editor.selectAll()
+  assert.deepEqual(Array.from(editor.approved.value),['f2'])
+  assert.equal(editor.allAuthorized.value,true)
+})

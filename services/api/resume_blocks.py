@@ -80,7 +80,7 @@ def group_blocks(facts, structure):
         section = fact.get('section') or assignments[fact['id']]
         locked = bool(fact.get('locked'))
         text = fact['text'].strip()
-        same = bool(blocks and blocks[-1]['section']==section and blocks[-1]['locked']==locked)
+        same = bool(blocks and blocks[-1]['section']==section and (section not in {'experience','projects'} or blocks[-1]['locked']==locked))
         heading = text.split('\n',1)[0]
         # Only explicit company/date headings start another experience, not achievement bullets.
         entry = section in {'experience','projects'} and len(heading)<180 and not re.match(r'^[•●▪·\-]|^(?:负责|参与|协助|完成|通过|实现|提升|累计|推动|主导|与|为|向|对|针对|基于|面向|围绕|输出|策划|搭建|构建|建立|组织|撰写|支持)', heading) and (bool(company.search(heading)) or bool(dates.search(heading)) or bool(re.match(r'^(?:项目名称|项目[一二三四五六七八九十0-9]+[：:、])', heading)))
@@ -88,6 +88,7 @@ def group_blocks(facts, structure):
         if not same or (entry and not previous_header and blocks[-1]['has_entry']):
             blocks.append({'id':fact['id'],'title':names.get(section,'其他经历'),'fact_ids':[],'section':section,'locked':locked,'has_entry':False,'last_text':''})
         blocks[-1]['fact_ids'].append(fact['id'])
+        blocks[-1]['locked'] |= locked
         blocks[-1]['has_entry'] |= bool(entry)
         blocks[-1]['last_text'] = text
     counts = {}
