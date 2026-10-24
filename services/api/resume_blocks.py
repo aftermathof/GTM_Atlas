@@ -70,31 +70,34 @@ def apply_block_patches(facts, patches, approved):
 
 
 def group_blocks(facts, structure):
-    assignments = structure.get('assignments') or local_structure(facts)['assignments']
-    raw = LLMProvider().complete(
-        '简历经历分块。只返回JSON {blocks:[{title,fact_ids}]}。按原文顺序覆盖每个事实ID恰好一次，不改写正文。'
-        '每个独立公司实习、任职、项目各自一块，例如实习经历 1、实习经历 2；其余按 section 聚合。'
-        '只组合连续、同 section 且锁定状态相同的事实。不得将不同企业或不同项目合成一块。',
-        {'facts':facts, 'section_assignments':assignments})
-    try:
-        value=json.loads(raw.removeprefix('```json').removesuffix('```').strip())['blocks']
-        if not isinstance(value,list) or not value:
-            raise ValueError()
-        if [fid for block in value for fid in block['fact_ids']] != [f['id'] for f in facts]:
-            raise ValueError()
-        by_id={f['id']:f for f in facts}
-        result=[]
-        for block in value:
-            ids=block['fact_ids']
-            if not ids or len({assignments[fid] for fid in ids})!=1 or len({bool(by_id[fid].get('locked')) for fid in ids})!=1:
-                raise ValueError()
-            title=block['title']
-            if not isinstance(title,str) or not title.strip() or len(title)>120:
-                raise ValueError()
-            result.append({'id':ids[0],'title':title,'fact_ids':ids,'section':assignments[ids[0]],'locked':bool(by_id[ids[0]].get('locked'))})
-        return result
-    except (ValueError,KeyError,TypeError):
-        raise HTTPException(502, '简历分块未通过完整性校验，请重试；原文未修改')
+    # Grouping is a display operation; opening the editor must not depend on a model.
+    assignments = {**local_structure(facts)['assignments'], **structure.get('assignments', {})}
+    names = {'personal':'个人信息','education':'教育背景','projects':'项目经历','experience':'实习与工作经历','skills':'技能特长','summary':'自我评价','other':'其他经历'}
+    blocks = []
+    company = re.compile(r'(?:公司|集团|工作室|实验室|研究院|Company|Corp|Inc\b|Ltd\b)', re.I)
+    dates = re.compile(r'^(?:20\d{2}[./年-]\d{1,2}.*(?:至|到|[-–—~～]).*(?:20\d{2}|至今|现在))')
+    for fact in facts:
+        section = fact.get('section') or assignments[fact['id']]
+        locked = bool(fact.get('locked'))
+        text = fact['text'].strip()
+        same = bool(blocks and blocks[-1]['section']==section and blocks[-1]['locked']==locked)
+        heading = text.split('\n',1)[0]
+        # Only explicit company/date headings start another experience, not achievement bullets.
+        entry = section in {'experience','projects'} and len(heading)<180 and not re.match(r'^[•●▪·\-]|^(?:负责|参与|协助|完成|通过|实现|提升|累计|推动|主导|与|为|向|对|针对|基于|面向|围绕|输出|策划|搭建|构建|建立|组织|撰写|支持)', heading) and (bool(company.search(heading)) or bool(dates.search(heading)) or bool(re.match(r'^(?:项目名称|项目[一二三四五六七八九十0-9]+[：:、])', heading)))
+        previous_header = same and bool(dates.search(heading)) and not company.search(heading) and company.search(blocks[-1]['last_text']) and not re.search(r'20\d{2}',blocks[-1]['last_text'])
+        if not same or (entry and not previous_header and blocks[-1]['has_entry']):
+            blocks.append({'id':fact['id'],'title':names.get(section,'其他经历'),'fact_ids':[],'section':section,'locked':locked,'has_entry':False,'last_text':''})
+        blocks[-1]['fact_ids'].append(fact['id'])
+        blocks[-1]['has_entry'] |= bool(entry)
+        blocks[-1]['last_text'] = text
+    counts = {}
+    for block in blocks:
+        section = block['section']
+        counts[section] = counts.get(section,0)+1
+        if section in {'experience','projects'}:
+            block['title'] = ('实习与工作经历' if section=='experience' else '项目经历')+' '+str(counts[section])
+        block.pop('has_entry'); block.pop('last_text')
+    return blocks
 
 
 def discuss_block(facts, body, jd, evidence, context):

@@ -19,10 +19,14 @@ def test_grouping_preserves_source_order_and_separates_experiences(monkeypatch):
     assert result[0]['locked'] is True
     assert result[1]['section']=='experience'
 
-@pytest.mark.parametrize('ids', [['f0','f1','f2','f3'],['f1','f2'],['f0','f1','f2','f2','f3'],['f0','f2','f1','f3']])
-def test_grouping_rejects_loss_reorder_duplicates_and_locked_mixing(monkeypatch,ids):
-    monkeypatch.setattr(LLMProvider,'complete',lambda *args: json.dumps({'blocks':[{'title':'经历','fact_ids':ids}]}))
-    with pytest.raises(HTTPException): group_blocks(FACTS,{})
+def test_grouping_is_local_lossless_and_keeps_locked_sections_separate(monkeypatch):
+    monkeypatch.setattr(LLMProvider,'complete',lambda *args: (_ for _ in ()).throw(AssertionError('must not call model')))
+    result=group_blocks(FACTS,{})
+    assert [fid for block in result for fid in block['fact_ids']]==[f['id'] for f in FACTS]
+    assert result[0]['fact_ids']==['f0']
+    assert result[0]['locked'] is True
+    assert result[1]['fact_ids']==['f1','f2']
+    assert result[2]['fact_ids']==['f3']
 
 def test_whole_block_rewrite_can_reorder_existing_numbers_and_keeps_other_experience():
     result=apply_block_patches(FACTS,[BlockPatch(fact_ids=['f1','f2'],text='2025 年在甲公司实习，调研 20 家客户。')],['f1','f2'])
@@ -75,7 +79,7 @@ def test_block_routes_cache_groups_enforce_privacy_and_generate_only_on_confirma
     assert first.status_code==200,first.text
     assert len(first.json()['blocks'])==3
     assert client.get(f'/api/v1/career/sessions/{sid}/editing-blocks',headers=owner).status_code==200
-    assert len(calls)==1
+    assert len(calls)==0
     assert client.get(f'/api/v1/career/sessions/{sid}/editing-blocks',headers=other).status_code==404
     body={'fact_ids':['f1','f2'],'draft_text':'甲公司实习，调研客户','message':'与岗位职能联系','history':[]}
     assert client.post(f'/api/v1/career/sessions/{sid}/block-dialogue',json=body,headers=other).status_code==404
@@ -128,7 +132,7 @@ def test_block_route_services_with_sqlite_preserve_private_sources_and_version_b
     monkeypatch.setattr('services.api.routes_career.career_evidence',lambda *args,**kwargs:[{'chunk_id':'jd:0','text':'岗位需要调研能力'}])
     assert len(editing_blocks(sid,request,user=user)['blocks'])==3
     assert len(editing_blocks(sid,request,user=user)['blocks'])==3
-    assert len(calls)==1
+    assert len(calls)==0
     with pytest.raises(HTTPException) as denied:
         editing_blocks(sid,request,user=SimpleNamespace(id='other'))
     assert denied.value.status_code==404
@@ -175,3 +179,10 @@ def test_long_dialogue_retains_recent_turns_within_model_budget(monkeypatch):
     assert captured['history'][-1]['message']=='第 11 轮'
     assert len(json.dumps(captured,ensure_ascii=False))<=55000
     assert len(body.history)==12
+
+
+def test_company_and_date_on_separate_lines_stay_in_the_same_experience():
+    texts=['实习经历','甲科技有限公司','2024.09 - 2025.06','与乙公司合作调研','乙科技有限公司','2025.07 - 2026.06','负责用户分析']
+    facts=[{'id':f'f{i}','text':text,'section':'experience'} for i,text in enumerate(texts)]
+    groups=group_blocks(facts,{})
+    assert [group['fact_ids'] for group in groups]==[['f0','f1','f2','f3'],['f4','f5','f6']]

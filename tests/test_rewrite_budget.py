@@ -21,7 +21,7 @@ def model_response(monkeypatch, content='{"patches": []}', finish_reason='stop')
     return captured
 
 
-@pytest.mark.parametrize('task', ['只返回JSON {patches:[]}', '题目规划：返回JSON {questions:[]}', '简历分块多轮改写。只返回JSON {text,analysis}', '简历经历分块。只返回JSON {blocks:[]}'])
+@pytest.mark.parametrize('task', ['只返回JSON {patches:[]}', '题目规划：返回JSON {questions:[]}', '简历分块多轮改写。只返回JSON {text,analysis}'])
 def test_structured_tasks_reserve_output_for_answer(monkeypatch, task):
     captured = model_response(monkeypatch)
     assert REAL_COMPLETE(LLMProvider(), task, {}) == '{"patches": []}'

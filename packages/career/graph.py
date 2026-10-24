@@ -1,3 +1,4 @@
+from packages.career.text import clean_resume_text
 import base64
 import copy
 import os
@@ -55,7 +56,8 @@ def parse_resume(content, filename):
     facts = []
     for page, value in enumerate(pages, 1):
         for line in value.splitlines():
-            if line.strip():
+            line = clean_resume_text(line)
+            if line:
                 facts.append({"id": f"f{len(facts)}", "text": line.strip()[:4000], "page": page, "confidence": 0.6 if method == "vision-ocr" else 1.0, "locked": bool(re.search(r"教育|大学|本科|硕士|博士|education|university", line, re.I))})
     if len(facts) > 100:
         raise HTTPException(422, "识别段落超过100条，请缩短文件")
@@ -80,7 +82,7 @@ def diagnose(facts, jd="", role="", evidence=None):
             ("教育与技能", bool(re.search(r"大学|本科|education", text, re.I) and re.search(r"技能|skills|Excel", text, re.I)), "核对教育背景、时间与技能描述。"),
         ]
         dims = [{"name": name, "score": 3 if ok else 1, "max": 4, "advice": advice, "fact_ids": [f["id"] for f in facts]} for name, ok, advice in checks]
-        analysis = provider.complete("诊断简历的表达与岗位关联，仅给建议，不能改写或新增事实", {"facts": facts, "jd": jd, "role": role, "public_evidence": evidence or []})
+        analysis = provider.complete("诊断简历的表达与岗位关联，仅给建议，不能改写或新增事实。正文不显示 f0 等事实编号、页码或 chunk_id；使用经历名称描述问题，资料来源由单独引用区展示", {"facts": facts, "jd": jd, "role": role, "public_evidence": evidence or []})
         return {"diagnosis": {"dimensions": dims, "score": round(sum(d["score"] for d in dims) / 16 * 100), "analysis": analysis, "citations": evidence or [], "provider": provider.mode, "model": provider.model, "rubric_version": "resume-rubric-1", "notice": "分数来自明确的基础完整性规则，非 ATS 官方分数或录用概率；岗位匹配仍需人工审核。", "jd_priority": bool(jd), "trace": [{"node": "diagnosis", "fact_ids": [f["id"] for f in facts]}, {"node": "await_fact_confirmation"}]}}
 
     graph = StateGraph(CareerState)

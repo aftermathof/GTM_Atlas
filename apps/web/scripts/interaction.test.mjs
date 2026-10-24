@@ -202,6 +202,11 @@ function careerEditor(options = {}) {
     if (name === 'vue') return { ...vue, onMounted() {}, onBeforeUnmount() {}, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ params: { pathMatch: ['review', 'test'] }, query: {} }), useRouter: () => ({}) }
     if (name === '../state') return { state: { user: { id: 'test' }, context: {} }, post: options.post, api: options.api }
+    if (name === '../resumeText') {
+      const helper = { exports: {} }
+      vm.runInNewContext(compile(readFileSync(new URL('../src/resumeText.ts', import.meta.url), 'utf8')), helper)
+      return helper.exports
+    }
     return {}
   } })
   vm.runInContext(compile(compileScript(descriptor, { id: 'career-test' }).content), context)
@@ -419,4 +424,26 @@ test('failed block rewrite retains requirements and existing conversation for re
   assert.equal(app.dialogue.draft,'突出调研')
   assert.equal(app.dialogue.turns.length,0)
   assert.match(app.component.error.value,/模型服务/)
+})
+
+function resumeText() {
+  const helper={exports:{}}
+  vm.runInNewContext(compile(readFileSync(new URL('../src/resumeText.ts',import.meta.url),'utf8')),helper)
+  return helper.exports
+}
+
+test('resume display strips decorative glyphs and bullets but keeps dates contacts and percentages',()=>{
+  const {cleanResumeText}=resumeText()
+  assert.equal(cleanResumeText('\ue001📞 13800000000\n• 提升 20%\n▪ 2024–2025 实习\n邮箱：a@example.com'),'13800000000\n提升 20%\n2024–2025 实习\n邮箱：a@example.com')
+})
+
+test('diagnosis removes internal citation and fact identifiers while preserving Markdown and figures',()=>{
+  const {cleanDiagnosis}=resumeText()
+  const text=cleanDiagnosis('## 建议\n见 [[boss-d27686e6c7f6b6300nx50t27GFJV:3]]，参考（f16–f17）。结果 20% **有效** [资料](https://example.com)')
+  assert.ok(!text.includes('boss-'))
+  assert.ok(!text.includes('f16'))
+  assert.ok(!text.includes('f17'))
+  assert.match(text,/20%/)
+  assert.match(text,/\*\*有效\*\*/)
+  assert.match(text,/\[资料\]/)
 })
