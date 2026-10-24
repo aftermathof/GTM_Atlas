@@ -21,8 +21,8 @@ async function auth(){
       return
     }
     saveSession(r);state.user=r.user || await api('/auth/me');Object.assign(state.context,state.user.preferences)
-    const next=String(route.query.next||'/history')
-    await router.push(next.startsWith('/')&&!next.startsWith('//')?next:'/history')
+    const next=String(route.query.next||'/')
+    await router.push(next.startsWith('/')&&!next.startsWith('//')?next:'/')
   }catch(e:any){error.value=e.message}finally{busy.value=false}
 }
 async function logout(){try{await post('/auth/logout',{});clearSession();history.value=[];success.value='已退出登录'}catch(e:any){error.value=e.message}}
