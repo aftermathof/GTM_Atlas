@@ -54,7 +54,7 @@ async function ask() {
       <p v-if="busy" class="notice" role="status">正在检索岗位资料并生成改写建议…</p>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
     </div>
-    <Composer v-model="dialogue.draft" :busy="busy" label="生成改写建议" placeholder="例如：结合 JD 加入 DTC、Kickstarter 相关内容，突出调研与交付物…" @submit="ask"/>
+    <Composer v-model="dialogue.draft" :busy="busy" label="生成改写建议" placeholder="" @submit="ask"/>
   </section>
 </template>
 <style scoped>

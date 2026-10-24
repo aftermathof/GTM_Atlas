@@ -1,5 +1,6 @@
 import os
 import hashlib
+import logging
 import threading
 import time
 from collections import defaultdict, deque
@@ -8,8 +9,8 @@ from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select, text
+from sqlalchemy.exc import IntegrityError, OperationalError, TimeoutError as DatabaseTimeoutError
 from services.api.db import Base, User, Token, Record, make_database, uid
 from services.api.auth import current_user, password_hash, check_password, issue_token
 from services.api.schemas import Credentials, RefreshToken
@@ -21,6 +22,8 @@ from services.api.routes_career import router as career_router
 from packages.rag.knowledge import ingest
 from packages.agent_core.registry import catalog, skills
 from packages.agent_core.providers import LLMProvider
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(url=None):
@@ -73,8 +76,16 @@ def create_app(url=None):
     async def error(request, exc):
         return JSONResponse({"detail": exc.detail, "code": f"http_{exc.status_code}"}, status_code=exc.status_code)
 
+    @app.exception_handler(OperationalError)
+    @app.exception_handler(DatabaseTimeoutError)
+    async def database_unavailable(request, exc):
+        logger.warning('database_unavailable exception=%s', type(exc).__name__)
+        return JSONResponse({"detail": "数据库连接暂时中断，请稍后重试。", "code": "database_unavailable"}, status_code=503)
+
     @app.get("/api/v1/health")
     def health():
+        with engine.connect() as connection:
+            connection.execute(text('SELECT 1'))
         return {"status": "ok", "auth_mode": supabase.auth_mode(), "llm_configured": bool(os.getenv("LLM_API_KEY")) and os.getenv("PROVIDER_MODE", "live") == "live", "provider": LLMProvider().mode, "model": LLMProvider().model, "database": engine.dialect.name, "retrieval": "hybrid-rrf" if os.getenv("EMBEDDING_API_KEY") else "lexical-development", "stt_configured": bool(os.getenv("STT_API_KEY") and os.getenv("STT_BASE_URL")), "vision_configured": bool(os.getenv("VISION_API_KEY")), "render_enabled": os.getenv("RENDER_ENABLED") == "true"}
 
     @app.post("/api/v1/auth/register")
