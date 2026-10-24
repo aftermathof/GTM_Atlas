@@ -6,6 +6,8 @@ COPY services ./services
 COPY requirements.lock ./
 RUN pip install --no-cache-dir -r requirements.lock && pip install --no-cache-dir --no-deps .
 COPY knowledge ./knowledge
+COPY apps/web/public/gtm-overview ./apps/web/public/gtm-overview
+COPY apps/web/src/content/gtm-glossary.json ./apps/web/src/content/gtm-glossary.json
 COPY profiles ./profiles
 COPY skills ./skills
 COPY templates ./templates

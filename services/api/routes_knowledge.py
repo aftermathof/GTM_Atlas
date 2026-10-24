@@ -1,5 +1,6 @@
 import os
 import time
+import re
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from sqlalchemy import select, delete
 from services.api.auth import current_user
@@ -18,7 +19,8 @@ def documents(request: Request, kind: str = "", role: str = "", industry: str = 
     user = current_user(request) if request.headers.get('authorization') else None
     with request.app.state.db() as db:
         docs = db.scalars(select(Document).order_by(Document.id)).all()
-        docs = [d for d in docs if d.meta["permission"] == "public_display" and (not kind or d.kind == kind) and (not role or role == "custom" or role in d.meta.get("role_tags", [])) and (not industry or industry in d.meta.get("industry_tags", [])) and (not q or q.lower() in (d.title + d.body).lower())]
+        docs = [d for d in docs if d.meta["permission"] == "public_display" and d.meta.get('catalog_visible', True) and (not kind or d.kind == kind) and (not role or role == "custom" or role in d.meta.get("role_tags", [])) and (not industry or industry in d.meta.get("industry_tags", [])) and (not q or q.lower() in (d.title + d.body).lower())]
+        docs.sort(key=lambda d: (not d.meta.get('source_note_id'), re.sub(r'\d+', lambda m: m[0].zfill(12), str(d.meta.get('source_note_id'))) if d.meta.get('source_note_id') else d.id, d.id))
         items = [{"id": d.id, "title": d.title, "kind": d.kind, "meta": d.meta, "excerpt": d.meta.get('excerpt') or next((line for line in d.body.splitlines() if line.strip() and not line.startswith(('#','-'))), '')[:180], "minutes": max(3, len(d.body) // 350)} for d in docs]
         if user and kind in {'','jd'}:
             for row in db.scalars(select(Record).where(Record.owner==user.id,Record.kind=='private_jd').order_by(Record.created_at.desc())):

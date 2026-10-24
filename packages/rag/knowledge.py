@@ -9,6 +9,7 @@ from sqlalchemy import select, delete, text
 from services.api.db import Document, Chunk
 from services.api.config import ROOT
 from packages.agent_core.providers import EmbeddingProvider
+from packages.rag.reference_sources import reference_documents
 
 # MVP deliberately indexes only public_display. Other licenses require separate grants.
 PUBLIC = "public_display"
@@ -20,22 +21,28 @@ def terms(value):
     return english + [word[i:i + 2] for word in chinese for i in range(max(1, len(word) - 1))]
 
 
-def ingest(db, root=None):
+def ingest(db, root=None, reference_root=None):
+    if root is None and reference_root is None:
+        reference_root = ROOT
     root = Path(root or ROOT / "knowledge").resolve()
     found, hashes = set(), set()
     report = {"indexed": 0, "skipped": 0, "deleted": 0}
     provider = EmbeddingProvider()
+    sources = []
     for file in sorted(root.rglob("*.md")):
         if file.is_symlink() or not file.resolve().is_relative_to(root) or file.stat().st_size > 2_000_000:
             raise ValueError("Unsafe knowledge file")
-        raw = file.read_text(encoding="utf-8")
+        sources.append((file.relative_to(root).as_posix(), file.read_text(encoding="utf-8")))
+    if reference_root is not None:
+        sources.extend(reference_documents(reference_root))
+    for path, raw in sources:
         pieces = raw.split("---", 2)
         if len(pieces) != 3 or pieces[0].strip():
-            raise ValueError(f"Missing frontmatter: {file.name}")
+            raise ValueError(f"Missing frontmatter: {path}")
         meta = yaml.safe_load(pieces[1])
         required = {"id", "title", "kind", "permission", "quality_status", "source_type", "role_tags", "industry_tags"}
         if not isinstance(meta, dict) or not required.issubset(meta) or meta["kind"] not in {"learning", "interview", "jd"}:
-            raise ValueError(f"Invalid knowledge metadata: {file.name}")
+            raise ValueError(f"Invalid knowledge metadata: {path}")
         did = str(meta["id"])
         if not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", did):
             raise ValueError("Invalid document id")
@@ -63,7 +70,7 @@ def ingest(db, root=None):
         meta = {k: str(v) if hasattr(v, "isoformat") else v for k, v in meta.items()}
         document = old or Document(id=did)
         document.title, document.kind, document.body = str(meta["title"]), meta["kind"], body
-        document.meta, document.sha256, document.path = meta, digest, str(file.relative_to(root))
+        document.meta, document.sha256, document.path = meta, digest, path
         db.add(document)
         db.flush()
         sections = re.split(r"(?m)^(?=#{1,3} )", body)
@@ -100,9 +107,9 @@ def search(db, query, kind=None, role="", industry="", document_id=None, top_k=6
             continue
         if not include_demo and doc.meta.get('demo'):
             continue
-        if role and role != "custom" and role not in doc.meta.get("role_tags", []):
+        if role and role != "custom" and role not in doc.meta.get("role_tags", []) and not doc.meta.get('universal_reference'):
             continue
-        if industry and industry not in doc.meta.get("industry_tags", []):
+        if industry and industry not in doc.meta.get("industry_tags", []) and not doc.meta.get('universal_reference'):
             continue
         tokens = Counter(terms(doc.title + " " + chunk.heading + " " + chunk.body))
         lexical = sum(min(tokens[t], 3) for t in query_terms)

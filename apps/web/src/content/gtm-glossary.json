@@ -1,0 +1,110 @@
+[
+  {
+    "term": "GTM",
+    "fullName": "Go-to-Market · 市场进入与产品经营",
+    "explanation": "把产品价值转化为市场需求与经营结果的一套策略和协作过程，涉及目标客户、定位、定价、渠道、上市及持续经营。",
+    "example": "例如：一款耳机进入东南亚市场，需要选择目标人群、价格带、经销渠道和上市推广方式。"
+  },
+  {
+    "term": "4P",
+    "fullName": "Product / Price / Place / Promotion · 营销组合",
+    "explanation": "分别指产品、价格、渠道与促销。用于检查“卖什么、卖多少钱、在哪里卖、如何让客户了解并购买”是否相互配合。",
+    "example": "例如：面向学生推出入门耳机，以适合的价格在电商销售，再通过校园内容和促销活动触达用户。"
+  },
+  {
+    "term": "PM",
+    "fullName": "Product Manager · 产品经理（常见含义）",
+    "explanation": "通常负责产品需求、规划和跨团队推进。在不同公司也可能指 Project Manager（项目经理）或其他岗位，应以 JD 和上下文为准；产品营销经理通常写作 PMM。",
+    "example": "例如：PM 定义耳机的功能需求与路线图，GTM 团队协同准备上市、销售和市场反馈。"
+  },
+  {
+    "term": "KOL",
+    "fullName": "Key Opinion Leader · 关键意见领袖",
+    "explanation": "在某个领域具有影响力和受众信任的人或创作者。品牌常与其合作开展评测、内容传播或产品推广；影响力不等于实际销售转化。",
+    "example": "例如：与数码测评博主合作介绍耳机的降噪表现，并追踪内容触达和归因范围内的订单。"
+  },
+  {
+    "term": "KOC",
+    "fullName": "Key Opinion Consumer · 关键意见消费者",
+    "explanation": "以普通消费者身份、真实使用体验和小范围信任关系影响购买决策的人。KOC 与 KOL 的边界没有统一粉丝量标准。",
+    "example": "例如：邀请真实用户分享通勤佩戴体验，而不是只依靠头部博主投放。"
+  },
+  {
+    "term": "OBM",
+    "fullName": "Original Brand Manufacturer · 自有品牌制造",
+    "explanation": "以自有品牌面向市场，通常承担品牌建设、产品经营、渠道销售及客户关系等责任；具体研发和生产也可以与外部伙伴合作。",
+    "example": "例如：一家原先为其他品牌代工的企业，推出自己的耳机品牌并建设销售渠道。"
+  },
+  {
+    "term": "ODM",
+    "fullName": "Original Design Manufacturer · 原始设计制造商",
+    "explanation": "供应方提供产品设计或方案以及制造能力，客户在约定范围内选型、定制并以自己的品牌销售；设计权利和定制范围取决于合同。",
+    "example": "例如：品牌从供应商已有的耳机方案出发，定制外观、部分功能和包装后上市。"
+  },
+  {
+    "term": "OEM",
+    "fullName": "Original Equipment Manufacturer · 原始设备制造商",
+    "explanation": "在常见代工语境中，制造方按照品牌方提供或约定的设计、规格和质量要求生产。该缩写在不同产业中的用法有差异，需结合合作合同理解。",
+    "example": "例如：品牌方确定耳机的设计与规格，由合作工厂按要求制造并交付。"
+  },
+  {
+    "term": "PMM",
+    "fullName": "Product Marketing Manager · 产品营销经理",
+    "explanation": "连接产品与市场，常负责客户洞察、定位、价值表达、上市推广和销售赋能。与 PM 的分工因公司而异。",
+    "example": "例如：把“降噪参数”转化为通勤场景下的用户价值，并制作销售话术和上市内容。"
+  },
+  {
+    "term": "PMF",
+    "fullName": "Product–Market Fit · 产品与市场匹配",
+    "explanation": "产品能够持续满足某类客户的重要需求，并呈现留存、复购、付费或推荐等相应信号。没有适用于所有业务的单一判定指标。",
+    "example": "例如：目标用户持续使用并愿意续费一款工具，比一次推广带来的下载量更能支持匹配判断。"
+  },
+  {
+    "term": "STP",
+    "fullName": "Segmentation / Targeting / Positioning",
+    "explanation": "市场细分、目标市场选择与定位：先理解不同客户群，再选择重点服务的人群，最后明确产品在他们心中的独特价值。",
+    "example": "例如：把耳机市场按使用场景细分，选择通勤人群，并定位为“轻便且适合日常通勤的降噪耳机”。"
+  },
+  {
+    "term": "ICP",
+    "fullName": "Ideal Customer Profile · 理想客户画像",
+    "explanation": "描述最适合购买、使用并从产品中获益的客户特征。B2B 场景常包括行业、规模、预算、业务痛点和购买条件。",
+    "example": "例如：某 CRM 产品重点服务销售团队已有一定规模、且存在客户跟进协作问题的企业。"
+  },
+  {
+    "term": "B2B",
+    "fullName": "Business-to-Business · 企业对企业",
+    "explanation": "向企业或组织销售产品与服务的业务模式。采购往往涉及使用者、业务负责人、采购和财务等多个角色。",
+    "example": "例如：向连锁门店销售库存管理系统。"
+  },
+  {
+    "term": "B2C",
+    "fullName": "Business-to-Consumer · 企业对消费者",
+    "explanation": "企业向个人消费者提供产品或服务的业务模式。是否属于 B2C 取决于最终客户，不能只按线上或线下渠道区分。",
+    "example": "例如：耳机品牌通过自己的网店向个人用户销售耳机。"
+  },
+  {
+    "term": "CAC",
+    "fullName": "Customer Acquisition Cost · 客户获取成本",
+    "explanation": "一定统计口径下，获客相关投入除以新增客户数。比较时要统一时间、渠道、投入范围以及“客户”的定义。",
+    "example": "例如：某期获客投入 1 万元，新增 100 位付费客户，在该口径下 CAC 为每人 100 元。"
+  },
+  {
+    "term": "LTV",
+    "fullName": "Lifetime Value · 客户生命周期价值",
+    "explanation": "对客户在整个关系周期内贡献价值的估计。可以按收入或毛利等口径计算，与 CAC 比较时必须说明采用的口径和预测假设。",
+    "example": "例如：订阅产品结合客单价、毛利和留存周期估计一位客户的长期毛利贡献。"
+  },
+  {
+    "term": "ROI",
+    "fullName": "Return on Investment · 投资回报率",
+    "explanation": "衡量投入相对于净回报的比例，常见形式为“净收益 ÷ 投入”。营销中容易与“收入 ÷ 广告费”的 ROAS 混用，使用前应明确公式。",
+    "example": "例如：投入 1 万元，一致口径下回收 1.3 万元、净收益 3000 元，则该口径 ROI 为 30%。"
+  },
+  {
+    "term": "SKU",
+    "fullName": "Stock Keeping Unit · 库存管理单元",
+    "explanation": "用于区分和管理可销售库存的最小品项标识，不一定等同于一个产品型号。不同颜色、容量或套装可能分别管理为不同 SKU。",
+    "example": "例如：同一款耳机的黑色版与白色版，通常对应两个 SKU。"
+  }
+]

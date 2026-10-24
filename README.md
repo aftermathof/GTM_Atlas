@@ -37,7 +37,7 @@ GTM Atlas 将 GTM（Go-to-Market）知识学习、岗位理解、模拟面试和
 | 在职经验 | 业务经验和学习笔记 |
 | GTM 专有名词库 | 名词、解释和场景例子，两列表格，支持预览和完整页面 |
 
-目前正式 Markdown 知识库包含 **30 篇面经研究笔记和 30 篇学习/在职经验笔记**，尚无独立公共 JD。研究笔记不等于原帖逐字全文，也不代表企业官方结论。合成资料仅保留在 `tests/fixtures/`，不进入正式知识库。
+目前正式 Markdown 知识库包含 **10 份岗位 JD、30 篇面经研究笔记和 30 篇学习/在职经验笔记**。三类资料均使用 `research-notes/research-jNN.md`、`research-iNN.md`、`research-lNN.md` 单篇结构；JD 直接匹配与相关职能扩展的边界保留在各单篇中。研究笔记不等于原帖逐字全文，也不代表企业官方结论。合成资料仅保留在 `tests/fixtures/`，不进入正式知识库。
 
 ### AI 问答与语音输入
 
@@ -193,7 +193,7 @@ Dockerfile 将 skills 复制进镜像，修改本机 Skill 后需要重新 build
 
 ## 知识资料与 Embedding
 
-知识源是 `knowledge/` 下的 Markdown。每篇需要 frontmatter，包含 ID、标题、类别、许可、质量状态、来源和岗位/行业标签。只索引 `public_display` 且未弃用的资料。
+知识源包括 `knowledge/` 下的 Markdown、GTM 概览 HTML 正文及名词库 JSON。每篇 Markdown 需要 frontmatter，包含 ID、标题、类别、显示编号、许可、质量状态、来源和岗位/行业标签。只索引 `public_display` 且未弃用的资料；概览和名词库从原文件自动提取，不需维护 Markdown 副本。
 
 入库按章节和约 1800 字符上限分块，检查重复 ID/正文并保存哈希。内容和模型名称未变化时跳过重建；删除或撤销许可的资料会从索引移除。API 启动时执行索引，管理员也可调用 `POST /api/v1/admin/knowledge/reindex` 重建。
 
@@ -207,7 +207,7 @@ PostgreSQL 模式组合词法信号、全文检索和向量余弦排序，通过
 
 当前请求、校验和数据库字段固定 **1536 维**。`EMBEDDING_DIMENSIONS` 当前没有被代码读取；换成 1024 维模型需要修改代码、迁移数据库并重建索引。相同维度但不同模型的向量也不能混用。
 
-个人简历不会进入公共向量库；私人 JD 以授权上下文提供。GTM 概览 HTML 和前端术语表目前仅展示，没有自动进入 Markdown 检索索引。资料扩充方法见 [内容维护指南](docs/CONTENT_GUIDE.md)。
+个人简历不会进入公共向量库；私人 JD 以授权上下文提供。GTM 概览与名词库已作为站内参考资料接入检索和引用；引用可打开索引正文及原页面，不混入 JD、面经、在职经验卡片。资料扩充、统一 Markdown 契约与两份采集 Skill 见 [内容维护指南](docs/CONTENT_GUIDE.md)。
 
 ## 环境变量与模型接口
 
@@ -486,23 +486,10 @@ npm --prefix apps/web run build
 
 详见 [验收清单](docs/ACCEPTANCE.md)、[部署检查](docs/DEPLOYMENT_CHECKS.md)。历史检查报告仅代表当时状态，不代表当前环境已经验收。
 
-## 当前限制与常见问题
+## 后续优先事项
 
-- **必须配所有 AI 接口吗？** 文本 AI 功能需要有效 LLM；STT、Vision、Embedding 可按需配置。浏览公共文章不需要文本模型调用。
-- **能全部放 Vercel 吗？** 当前只部署静态前端到 Vercel，Python API、文件队列和 LaTeX Worker 放 Docker 主机。
-- **改代码为什么没生效？** 容器代码来自构建时快照，需重新构建更新；静态前端也需重新构建或部署。
-- **Unexpected token '<'？** API 请求可能落到前端 HTML 或隧道错误页。检查实际请求 URL、VITE_API_BASE_URL 是否只含 API 来源、新地址是否健康、Vercel 是否重新构建部署，再检查 CORS。
-- **No module named psycopg2？** 当前依赖使用 psycopg 3，检查 DATABASE_URL 是否使用 postgresql+psycopg://，不要误用默认 psycopg2 协议。
-- **apt exit code 100 / 下载 502？** 查看前面的下载错误；当前 renderer 已换 HTTPS 镜像源，网络仍不稳定时单加 --fix-missing 不能保证解决。
-- **Killed / exit code 137？** 先检查 OOM 或外部终止证据；构建资源与服务运行的 mem_limit 是两回事。可先分开构建，避免无依据调大限制或清空数据。
-- **注册短密码仍失败？** 本应用只限制非空，Supabase 的云端密码策略独立生效。
-- **PDF 一直等待？** 检查 renderer 是否运行、与 API 是否共享同一套卷，并刷新任务状态。
-- **支持多机扩容吗？** 当前按单 API 进程、单 Worker 设计，文件队列和内存限流需改造后才能多副本运行。
-- **评分代表录用概率吗？** 不代表。Mock 为训练反馈，简历分数为基础完整性参考，不是官方 ATS 或招聘结论。
-- **AI 能保证事实正确吗？** 不能。数字、锁定和授权检查覆盖部分规则，识别和改写仍需人工核对。
-
-后续优先事项：将耗时知识入库从 API 启动过程拆出并补充进度日志；将 Skill 关键词路由改为显式任务参数；落实一页与留白的实际排版检查；完成真实云端双账号及 PDF 全流程验收。以上是改进方向，不代表当前已经实现。
+将耗时知识入库从 API 启动过程拆出并补充进度日志；将 Skill 关键词路由改为显式任务参数；落实一页与留白的实际排版检查；完成真实云端双账号及 PDF 全流程验收。以上是改进方向，不代表当前已经实现。
 
 当前未实现完整流式回答、通用会话导出、收藏/阅读进度、共享队列和企业身份体系。文档或单元测试不能替代真实部署中的隔离、备份和模型全流程验收。
 
-更多资料：[实施规划](IMPLEMENTATION_PLAN.md) · [架构说明](docs/ARCHITECTURE.md) · [部署指南](docs/DEPLOYMENT.md) · [内容维护](docs/CONTENT_GUIDE.md)。本 README 按当前代码整理，历史文档中的旧配置名称或验收状态需结合现有实现核对。
+更多资料：[实施规划](IMPLEMENTATION_PLAN.md) · [架构说明](docs/ARCHITECTURE.md) · [部署指南](docs/DEPLOYMENT.md) · [内容维护](docs/CONTENT_GUIDE.md)。

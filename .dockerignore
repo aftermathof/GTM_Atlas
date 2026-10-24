@@ -9,6 +9,16 @@ apps/web/.npm-cache
 **/__pycache__
 .pytest_cache
 *.egg-info
-apps/web
+# Include only the web sources required by the API's reference index.
+apps/web/*
+!apps/web/public/
+apps/web/public/*
+!apps/web/public/gtm-overview/
+!apps/web/public/gtm-overview/**
+!apps/web/src/
+apps/web/src/*
+!apps/web/src/content/
+apps/web/src/content/*
+!apps/web/src/content/gtm-glossary.json
 tests
 docs/screenshots
