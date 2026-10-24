@@ -38,7 +38,9 @@ def test_mock_seed_idempotency_and_ownership(client):
     body = {"role": "kol_marketing", "industry": "consumer_electronics", "count": 5, "seed": 42}
     first = client.post("/api/v1/mock/sessions", json=body, headers=a).json()
     second = client.post("/api/v1/mock/sessions", json=body, headers=a).json()
-    assert [q["text"] for q in first["questions"]] == [q["text"] for q in second["questions"]]
+    assert not {q["text"] for q in first["questions"]} & {q["text"] for q in second["questions"]}
+    other = client.post("/api/v1/mock/sessions", json=body, headers=b).json()
+    assert [q['text'] for q in other['questions']] == [q['text'] for q in first['questions']]
     assert len(set(q["dimension"] for q in first["questions"])) >= 3
     sid = first["id"]
     assert client.get(f"/api/v1/mock/sessions/{sid}", headers=b).status_code == 404

@@ -1,5 +1,7 @@
 import json
 import random
+import re
+import unicodedata
 from typing import TypedDict
 from fastapi import HTTPException
 from langgraph.graph import StateGraph, END
@@ -33,34 +35,74 @@ EN = [
 ]
 
 
-def plan_interview(db, setup, resume=None):
+def question_key(text):
+    return re.sub(r'[\W_]+', '', unicodedata.normalize('NFKC', text).casefold())
+
+
+def plan_interview(db, setup, resume=None, excluded_questions=None):
+    excluded_questions = excluded_questions or []
+    excluded = {question_key(text) for text in excluded_questions}
     rng = random.Random(setup.seed)
-    # First three always cover distinct competencies; seeded tail sampling is reproducible.
-    indexes = [0, 2, 4] + rng.sample([1, 3, 5, 6, 7, 8, 9], 7)
+    profiles = catalog()
+    indexes = []
+    while len(indexes) < setup.count:
+        indexes.extend(rng.sample(range(len(ZH)), len(ZH)))
     questions = []
+    references = {}
+    scenarios = [('新品上市', 'a product launch'), ('渠道伙伴评估', 'channel partner evaluation'), ('内容本地化', 'content localization'), ('客户线索转化', 'lead conversion'), ('用户留存', 'user retention'), ('销售与市场协作', 'sales and marketing collaboration'), ('定价测试', 'pricing tests'), ('市场进入试点', 'a market entry pilot')]
     for i in indexes[:setup.count]:
         dimension, question = ZH[i]
         if setup.language == "en":
             question = EN[i]
-        evidence = search(db, ZH[i][1], "interview", setup.role, setup.industry, top_k=1)
-        questions.append({"text": question, "dimension": dimension, "source_type": "interview_reference" if evidence else "role_profile_generated", "citations": evidence, "rubric_version": catalog()["version"]})
+        used = excluded | {question_key(q['text']) for q in questions}
+        if question_key(question) in used:
+            for zh, en in rng.sample(scenarios, len(scenarios)):
+                candidate = question + (f' Focus on {en}.' if setup.language == 'en' else f' 请结合{zh}场景作答。')
+                if question_key(candidate) not in used:
+                    question = candidate
+                    break
+        if i not in references:
+            references[i] = search(db, ZH[i][1], "interview", setup.role, setup.industry, top_k=1)
+        evidence = references[i]
+        questions.append({"text": question, "dimension": dimension, "source_type": "interview_reference" if evidence else "role_profile_generated", "citations": evidence, "rubric_version": profiles["version"]})
     if resume:
         factual = next((f for f in resume if not f.get("locked") and len(f["text"]) > 15), resume[-1])
-        questions[2] = {**questions[2], "text": ((f'In your resume you wrote: "{factual["text"]}". What was your own contribution and how did you verify the outcome?') if setup.language == "en" else f'你在简历中提到「{factual["text"]}」。你具体负责什么？如何验证结果？没有量化数据也可以解释验证方式。'), "source_type": "authorized_resume", "fact_id": factual["id"]}
+        index = min(2, len(questions)-1)
+        question = (f'In your resume you wrote: "{factual["text"][:500]}". What was your own contribution and how did you verify the outcome?' if setup.language == 'en' else f'你在简历中提到「{factual["text"][:500]}」。你具体负责什么？如何验证结果？')
+        if question_key(question) in excluded:
+            question += (' What would you change next time, and why?' if setup.language == 'en' else '如果重新开展这项工作，你会改变哪一步，为什么？')
+        questions[index] = {**questions[index], "text": question, "source_type": "authorized_resume", "fact_id": factual["id"]}
     provider = LLMProvider()
-    raw = provider.complete("题目规划：返回JSON {questions:[{text,dimension}]}。按给定题数、语言、难度、岗位与JD规划；覆盖至少三个能力维度；不编造个人经历。", {"setup": setup.model_dump(), "role_profiles": catalog()["roles"], "blueprint": questions, "authorized_facts": resume})
+    previous = []
+    budget = 12000
+    for text in reversed(excluded_questions):
+        if len(text) <= budget:
+            previous.append(text)
+            budget -= len(text)
+    task = f"题目规划：返回JSON {{questions:[{{text,dimension}}]}}。按给定题数、语言、难度、岗位与JD规划；覆盖至少{min(3, setup.count)}个能力维度；不编造个人经历。本轮题目和previous_questions中的题目均不得重复；引用简历时只依据authorized_facts，围绕不同个人行动、判断、协作或验证方式提问。"
+    payload = {"setup": setup.model_dump(), "role_profiles": profiles["roles"], "blueprint": questions, "authorized_facts": resume, "previous_questions": previous}
+    for attempt in range(2):
+        raw = provider.complete(task, payload)
+        try:
+            planned = json.loads(raw.removeprefix("```json").removesuffix("```").strip())["questions"]
+            keys = [question_key(q['text']) for q in planned]
+            if not excluded.intersection(keys) and len(set(keys)) == len(keys):
+                break
+            task += ' 上次输出包含重复题，请从不同任务场景与追问角度重新规划全部题目。'
+        except (ValueError, KeyError, TypeError, AttributeError):
+            raise HTTPException(502, "面试规划结构校验失败，请重试；未创建不完整会话")
+    else:
+        raise HTTPException(503, "生成的题目与历史重复，请重新开始；未保存重复题目")
     try:
-        planned = json.loads(raw.removeprefix("```json").removesuffix("```").strip())["questions"]
-        if len(planned) != setup.count or len({q["dimension"] for q in planned}) < 3 or len({q["text"] for q in planned}) != setup.count:
+        if len(planned) != setup.count or len({q["dimension"] for q in planned}) < min(3, setup.count):
             raise ValueError()
         for i, question in enumerate(planned):
             if not isinstance(question["text"], str) or not 10 <= len(question["text"]) <= 1500:
                 raise ValueError()
-            if questions[i].get("source_type") != "authorized_resume":
-                questions[i] = {**questions[i], "text": question["text"], "dimension": question["dimension"], "source_type": "ai_generated_with_blueprint"}
+            questions[i] = {**questions[i], "text": question["text"], "dimension": question["dimension"], "source_type": "authorized_resume" if questions[i].get("source_type") == "authorized_resume" else "ai_generated_with_blueprint"}
     except (ValueError, KeyError, TypeError):
         raise HTTPException(502, "面试规划结构校验失败，请重试；未创建不完整会话")
-    return {"context": setup.model_dump(), "questions": questions, "current_question_index": 0, "answers": [], "followup_counts": {}, "pending_followup": None, "status": "in_progress", "blueprint_version": "blueprint-1", "rubric_version": catalog()["version"], "provider": LLMProvider().mode}
+    return {"context": setup.model_dump(), "questions": questions, "current_question_index": 0, "answers": [], "followup_counts": {}, "pending_followup": None, "status": "in_progress", "blueprint_version": "blueprint-1", "rubric_version": profiles["version"], "provider": LLMProvider().mode}
 
 
 class MockState(TypedDict):

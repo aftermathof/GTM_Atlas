@@ -1,4 +1,5 @@
 from typing import Literal
+import secrets
 from pydantic import BaseModel, Field
 
 
@@ -35,8 +36,8 @@ class Search(Context):
 
 
 class MockSetup(Context):
-    count: Literal[3, 5, 10] = 5
-    seed: int = 42
+    count: int = Field(default=5, ge=1, le=20)
+    seed: int = Field(default_factory=lambda: secrets.randbits(63))
     difficulty: Literal["基础", "进阶", "挑战"] = "基础"
     company: str = Field(default="", max_length=200)
     jd: str = Field(default="", max_length=8000)

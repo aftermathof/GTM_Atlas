@@ -21,9 +21,10 @@ def model_response(monkeypatch, content='{"patches": []}', finish_reason='stop')
     return captured
 
 
-def test_rewriting_reserves_output_for_answer(monkeypatch):
+@pytest.mark.parametrize('task', ['只返回JSON {patches:[]}', '题目规划：返回JSON {questions:[]}'])
+def test_structured_tasks_reserve_output_for_answer(monkeypatch, task):
     captured = model_response(monkeypatch)
-    assert REAL_COMPLETE(LLMProvider(), '只返回JSON {patches:[]}', {}) == '{"patches": []}'
+    assert REAL_COMPLETE(LLMProvider(), task, {}) == '{"patches": []}'
     assert captured['max_tokens'] == 8192
     assert captured['thinking'] == {'type': 'disabled'}
 

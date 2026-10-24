@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/v1/mock")
 
 @router.post("/sessions")
 def create(body: MockSetup, request: Request, user=Depends(current_user)):
-    with request.app.state.db() as db:
+    with request.app.state.mutation_lock, request.app.state.db() as db:
         facts = None
         if body.resume_session_id or body.resume_version_id:
             if not body.resume_consent:
@@ -25,7 +25,8 @@ def create(body: MockSetup, request: Request, user=Depends(current_user)):
             if not body.resume_version_id and not row.data["confirmed"]:
                 raise HTTPException(409, "请先确认简历事实")
             facts = row.data["facts"]
-        row = save(db, user.id, "mock", plan_interview(db, body, facts))
+        previous = [q['text'] for questions in db.scalars(select(Record.data['questions']).where(Record.owner == user.id, Record.kind == 'mock').order_by(Record.created_at)) for q in questions or [] if isinstance(q, dict) and isinstance(q.get('text'), str)]
+        row = save(db, user.id, "mock", plan_interview(db, body, facts, excluded_questions=previous))
         trace(db, user.id, "mock_interview_graph", row.id, [{"node": "planner", "seed": body.seed, "blueprint": "blueprint-1"}])
         db.commit()
         return expose(row)

@@ -27,16 +27,18 @@ class LLMProvider:
         skill_name = "resume-extraction" if "提取简历" in task else "resume-diagnosis" if "诊断" in task else "interview-evaluation" if "dimensions" in task else "interview-planning" if "题目规划" in task else "resume-rewriting" if "patches" in task else "learning-qa"
         instructions = next((s["instructions"] for s in skills() if s["name"] == skill_name), "")
         rewriting = skill_name == 'resume-rewriting'
-        request_body = {"model": self.model, "messages": [{"role": "system", "content": SYSTEM + "\n受控领域技能 v1：\n" + instructions}, {"role": "user", "content": json.dumps({"task": task, "untrusted_data": payload}, ensure_ascii=False)}], "max_tokens": 8192 if rewriting else 2400, "temperature": 0.2}
-        if rewriting and self.model.startswith('deepseek'):
+        structured = rewriting or skill_name == 'interview-planning'
+        request_body = {"model": self.model, "messages": [{"role": "system", "content": SYSTEM + "\n受控领域技能 v1：\n" + instructions}, {"role": "user", "content": json.dumps({"task": task, "untrusted_data": payload}, ensure_ascii=False)}], "max_tokens": 8192 if structured else 2400, "temperature": 0.2}
+        if structured and self.model.startswith('deepseek'):
             request_body['thinking'] = {'type': 'disabled'}
         try:
             response = httpx.post(os.getenv("LLM_BASE_URL", "https://api.deepseek.com").rstrip("/") + "/chat/completions", headers={"Authorization": "Bearer " + key}, json=request_body, timeout=45)
             response.raise_for_status()
             choice = response.json()["choices"][0]
             content = choice["message"]["content"]
-            if rewriting and (choice.get('finish_reason') == 'length' or not content or not content.strip()):
-                raise HTTPException(503, "模型未返回完整正文，请减少授权段落后重试；原文未修改")
+            if structured and (choice.get('finish_reason') == 'length' or not content or not content.strip()):
+                detail = "模型未返回完整正文，请减少授权段落后重试；原文未修改" if rewriting else "模型未返回完整正文，请减少题目数量后重试；未创建面试会话"
+                raise HTTPException(503, detail)
             return content
         except (httpx.HTTPError, KeyError, ValueError, IndexError):
             raise HTTPException(502, "模型服务暂不可用，请保留草稿后重试")

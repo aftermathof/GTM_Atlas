@@ -96,7 +96,20 @@ async function cachedList(path: string, ttl: number) {
 }
 
 export function knowledgeDocuments(query: string) { return cachedList('/knowledge/documents?' + query, 60_000) }
-export function historyRecords() { return cachedList('/history', 30_000) }
+export async function historyRecords() {
+  const rows = await cachedList('/history', 30_000)
+  const counters = new Map<string, number>(), names = new Map<string, string>()
+  const dateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' })
+  const resumes = rows.filter((r: any) => r.kind === 'career').sort((a: any, b: any) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id.localeCompare(b.id))
+  for (const row of resumes) {
+    const date = new Date(row.created_at)
+    if (!Number.isFinite(date.getTime())) continue
+    const day = dateFormat.format(date).replace(/\D/g, ''), index = counters.get(day) || 0
+    names.set(row.id, day + (index ? 'n' + index : ''))
+    counters.set(day, index + 1)
+  }
+  return rows.map((row: any) => names.has(row.id) ? { ...row, display_name: names.get(row.id) } : row)
+}
 
 export function post(path: string, body: any) { return api(path, { method: 'POST', body: JSON.stringify(body) }) }
 export async function initialize() {

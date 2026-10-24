@@ -89,7 +89,7 @@ function mockInterview(confirmExit = true, options = {}) {
   const context = vm.createContext({ exports: {}, crypto: webcrypto, window: { confirm: message => { confirmations.push(message); return confirmExit } }, require: name => {
     if (name === 'vue') return { ...vue, onMounted() {}, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ path: '/interviews/mock/test', params: { pathMatch: options.pathMatch || ['mock', 'test'] } }), useRouter: () => ({ push: path => navigations.push(path) }) }
-    if (name === '../state') return { state, api: options.api }
+    if (name === '../state') return { state, api: options.api, post: options.post, historyRecords: options.historyRecords || (() => options.api('/history')) }
     return {}
   } })
   vm.runInContext(compile(compileScript(descriptor, { id: 'interview-test' }).content), context)
@@ -100,6 +100,28 @@ test('ask AI uses the saved answer and its original question, including followup
   const app = mockInterview()
   app.component.askAI({ question: '追问：你会如何验证？', answer: '我会先做小规模实验。' })
   assert.equal(app.state.assistantRequest.question, '题目：追问：你会如何验证？\n\n用户回答：我会先做小规模实验。\n\n请结合资料给出更标准的回答：')
+})
+
+test('custom Mock counts are submitted without a fixed random seed', async () => {
+  let body
+  const app = mockInterview(true, { post: async (path, value) => { body = value; return { id: 'custom-mock' } } })
+  app.component.count.value = 'custom'
+  app.component.customCount.value = 7
+  await app.component.begin()
+  assert.equal(body.count, 7)
+  assert.equal(Object.hasOwn(body, 'seed'), false)
+  assert.deepEqual(app.navigations, ['/interviews/mock/custom-mock'])
+})
+
+test('invalid custom Mock counts do not start a session', async () => {
+  for (const count of [0, 21, 1.5]) {
+    const app = mockInterview(true, { post: () => { throw new Error('must not submit') } })
+    app.component.count.value = 'custom'
+    app.component.customCount.value = count
+    await app.component.begin()
+    assert.match(app.component.error.value, /1–20/)
+    assert.equal(app.navigations.length, 0)
+  }
 })
 
 test('ask AI does not submit another request while the assistant is replying', () => {

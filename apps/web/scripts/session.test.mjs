@@ -230,3 +230,17 @@ test('startup fetches history while profile validation is still pending', async 
   await app.historyRecords()
   assert.equal(calls.filter(url => url.endsWith('/history')).length, 1)
 })
+
+test('resume display names use Shanghai dates and chronological same-day suffixes', async () => {
+  const rows = [
+    {id:'third',kind:'career',created_at:'2026-10-24T08:00:00Z'},
+    {id:'chat',kind:'chat_thread',created_at:'2026-10-24T01:00:00Z'},
+    {id:'second',kind:'career',created_at:'2026-10-24T00:00:00Z'},
+    {id:'first',kind:'career',created_at:'2026-10-23T16:01:00Z'},
+    {id:'yesterday',kind:'career',created_at:'2026-10-23T15:59:00Z'}
+  ]
+  const app = load(storage(), storage(), async () => new Response(JSON.stringify(rows)))
+  const result = await app.historyRecords()
+  assert.deepEqual(Array.from(result, row => row.display_name), ['20261024n2',undefined,'20261024n1','20261024','20261023'])
+  assert.deepEqual(Array.from(result, row => row.id), rows.map(row => row.id))
+})
