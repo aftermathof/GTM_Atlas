@@ -73,7 +73,13 @@ export async function authorizedFetch(path: string, options: RequestInit = {}): 
 }
 
 export async function api(path: string, options: RequestInit = {}): Promise<any> {
-  const r = await authorizedFetch('/api/v1' + path, options)
+  const rewriting = path.endsWith('/block-dialogue')
+  let r: Response
+  try { r = await authorizedFetch('/api/v1' + path, options) }
+  catch (error: any) {
+    if (rewriting && error?.name === 'TypeError') throw new Error('改写请求的网络连接中断，未收到生成结果；当前输入已保留，请重试。')
+    throw error
+  }
   if (!r.ok) {
     const body = await r.json().catch(() => ({}))
     if (r.status === 401 && !path.startsWith('/auth/login')) clearSession()
@@ -87,13 +93,18 @@ export async function api(path: string, options: RequestInit = {}): Promise<any>
       })
       throw new Error(details.join('；'))
     }
+    if (rewriting && r.status >= 500) throw new Error(`改写服务网关返回错误 (${r.status})，当前输入已保留，请稍后重试。`)
     throw new Error(`请求失败 (${r.status})，请检查输入`)
   }
   if ((options.method || 'GET').toUpperCase() !== 'GET') {
     listCache.clear()
     if (path.startsWith('/career/job-descriptions') || path.startsWith('/knowledge/')) knowledgeCache.clear()
   }
-  return r.json()
+  try { return await r.json() }
+  catch (error) {
+    if (rewriting) throw new Error('改写结果读取失败，连接可能中断；当前输入已保留，请重试。')
+    throw error
+  }
 }
 
 async function cachedList(path: string, ttl: number, cache = listCache) {

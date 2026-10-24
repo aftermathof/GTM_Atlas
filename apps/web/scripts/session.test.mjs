@@ -34,6 +34,26 @@ function load(localStorage = storage(), sessionStorage = storage(), fetch = asyn
   return { ...context.exports, localStorage, sessionStorage, listeners }
 }
 
+test('rewrite network interruption is explained without retrying the POST or clearing login', async()=>{
+  let calls=0
+  const app=load(storage({'atlas-token':'access'}),storage(),async()=>{calls++;throw new TypeError('Failed to fetch')})
+  await assert.rejects(app.post('/career/sessions/test/block-dialogue',{}),/改写.*连接.*中断/)
+  assert.equal(calls,1)
+  assert.equal(app.state.token,'access')
+})
+
+test('gateway errors and model errors are distinguished for rewrite requests', async()=>{
+  const gateway=load(storage(),storage(),async()=>new Response('<html>Bad Gateway</html>',{status:502}))
+  await assert.rejects(gateway.post('/career/sessions/test/block-dialogue',{}),/网关.*502/)
+  const model=load(storage(),storage(),async()=>new Response(JSON.stringify({detail:'模型服务暂不可用，请保留草稿后重试'}),{status:502}))
+  await assert.rejects(model.post('/career/sessions/test/block-dialogue',{}),/模型服务暂不可用/)
+})
+
+test('interruption while reading a rewrite response retains a useful error', async()=>{
+  const app=load(storage(),storage(),async()=>({ok:true,json:async()=>{throw new TypeError('Failed to fetch')}}))
+  await assert.rejects(app.post('/career/sessions/test/block-dialogue',{}),/改写结果读取失败/)
+})
+
 test('login survives closing a tab and recreating application state', () => {
   const disk = storage()
   load(disk).saveSession({ token: 'access', refresh_token: 'refresh' })

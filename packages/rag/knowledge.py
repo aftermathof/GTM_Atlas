@@ -96,7 +96,7 @@ def ingest(db, root=None, reference_root=None):
     return report
 
 
-def search(db, query, kind=None, role="", industry="", document_id=None, top_k=6, include_demo=True):
+def search(db, query, kind=None, role="", industry="", document_id=None, top_k=6, include_demo=True, embedding_cache=None):
     statement = select(Chunk, Document).join(Document, Chunk.doc_id == Document.id).options(
         load_only(Document.id, Document.title, Document.kind, Document.meta))
     if db.bind.dialect.name == 'postgresql':
@@ -134,8 +134,14 @@ def search(db, query, kind=None, role="", industry="", document_id=None, top_k=6
     fused = {c["chunk"].id: 1 / (60 + i + 1) for i, c in enumerate(lexical)}
     vector_enabled = EmbeddingProvider().enabled
     if vector_enabled and query.strip():
-        vector = EmbeddingProvider().embed([query])[0]
         model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+        key = (model, query)
+        if embedding_cache is None:
+            vector = EmbeddingProvider().embed([query])[0]
+        else:
+            if key not in embedding_cache:
+                embedding_cache[key] = EmbeddingProvider().embed([query])[0]
+            vector = embedding_cache[key]
         eligible = {c["chunk"].id for c in candidates if c["chunk"].embedding_model == model}
         if db.bind.dialect.name == "postgresql" and eligible:
             ranked_ids = db.scalars(select(Chunk.id).where(Chunk.id.in_(eligible)).order_by(Chunk.embedding.cosine_distance(vector)).limit(20)).all()

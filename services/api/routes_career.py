@@ -1,5 +1,7 @@
 import copy
 import hashlib
+import logging
+import time
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
 from fastapi.responses import FileResponse, Response
@@ -21,6 +23,7 @@ from packages.career.retrieval import career_evidence
 from packages.agent_core.registry import catalog
 
 router = APIRouter(prefix="/api/v1/career")
+logger = logging.getLogger(__name__)
 
 
 @router.post('/job-descriptions')
@@ -214,10 +217,16 @@ def block_dialogue(sid: str, body: BlockDialogue, request: Request, user=Depends
             if base.parent_id != sid:
                 raise HTTPException(422, '版本不属于当前简历')
         context = row.data['context']
-        evidence = career_evidence(db, context, context.get('jd',''), body.message, owner_id=user.id)
         mapping = base.data.get('structure', {}).get('assignments', {})
         facts = [{**f, 'section': f.get('section') or mapping.get(f['id'])} for f in base.data['facts']]
-        return discuss_block(facts, body, context.get('jd',''), evidence, context)
+        stage, started = 'retrieval', time.monotonic()
+        try:
+            evidence = career_evidence(db, context, context.get('jd',''), body.message, owner_id=user.id)
+            stage = 'rewrite'
+            return discuss_block(facts, body, context.get('jd',''), evidence, context)
+        except HTTPException as error:
+            logger.warning('career_block_dialogue_failed stage=%s status=%s elapsed=%.2f reason=%s', stage, error.status_code, time.monotonic()-started, error.detail)
+            raise
 
 
 @router.post("/sessions/{sid}/feedback")

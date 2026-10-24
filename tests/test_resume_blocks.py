@@ -1,4 +1,5 @@
 import json
+import os
 import pytest
 from fastapi import HTTPException
 from packages.agent_core.providers import LLMProvider
@@ -54,8 +55,6 @@ def test_block_dialogue_uses_current_draft_history_jd_and_retrieved_evidence(mon
 
 
 @pytest.mark.parametrize('response', [
-    {'text':'调研 20 家客户','analysis':'建议突出调研对象'},
-    {'text':'• ϻ调研 20 家客户。','analysis':'已优化表达'},
     {'analysis':'建议你精简内容并突出岗位能力'},
 ])
 def test_rewrite_does_not_present_unchanged_draft_or_analysis_only_as_a_result(monkeypatch, response):
@@ -80,6 +79,44 @@ def test_rewrite_cleans_model_inputs_and_returns_replaceable_text(monkeypatch):
     assert '不要复述' in captured['task']
     assert result['text'] == '访谈并整理 20 家客户需求。'
     assert facts[1]['text'].startswith('ϻ ')
+
+
+def test_unchanged_model_draft_is_corrected_once_before_returning_a_result(monkeypatch):
+    calls = []
+    def complete(self, task, payload):
+        calls.append(task)
+        text = '调研 20 家客户。' if len(calls) == 1 else '面向 20 家客户开展调研。'
+        return json.dumps({'text':text,'analysis':'调整句式以突出调研对象'})
+    monkeypatch.setattr(LLMProvider, 'complete', complete)
+    result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='调研 20 家客户',message='让表达更专业'), '', [], {})
+    assert result['text'] == '面向 20 家客户开展调研。'
+    assert len(calls) == 2
+    assert '上次输出' in calls[1]
+    assert FACTS[2]['text'] == '调研 20 家客户'
+
+
+def test_unchanged_model_correction_has_a_strict_retry_limit(monkeypatch):
+    calls = []
+    def complete(self, *args):
+        calls.append(1)
+        return json.dumps({'text':'调研 20 家客户','analysis':'保留事实'})
+    monkeypatch.setattr(LLMProvider, 'complete', complete)
+    result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='调研 20 家客户',message='优化表达'), '', [], {})
+    assert result['text'] == ''
+    assert result['questions']
+    assert len(calls) == 2
+
+
+def test_new_dtc_and_kickstarter_experience_is_a_clarification_not_a_server_error(monkeypatch):
+    calls = []
+    def complete(self, task, payload):
+        calls.append(task)
+        return json.dumps({'text':payload['draft_text'],'analysis':'当前事实没有相关平台经历。','questions':'你实际参与过哪些 DTC 或 Kickstarter 任务？请补充职责与产出。'})
+    monkeypatch.setattr(LLMProvider, 'complete', complete)
+    result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='调研 20 家客户',message='确实需要添加一些比如像DTC还有Kickstarter这样的一些经验更贴合GTM岗位'), '', [], {})
+    assert result['text'] == ''
+    assert 'Kickstarter' in result['questions']
+    assert len(calls) == 1
 
 
 def test_dialogue_rejects_fabricated_citations_and_numbers(monkeypatch):
@@ -132,6 +169,27 @@ def test_empty_draft_can_ask_questions_without_inventing_a_resume(monkeypatch):
     result=discuss_block(FACTS,BlockDialogue(fact_ids=['f1','f2'],draft_text='',message='和 AI 聊聊'),'',[],{})
     assert result['text']==''
     assert '负责什么' in result['questions']
+
+
+@pytest.mark.parametrize('stage', ['retrieval','rewrite'])
+def test_rewrite_failure_logs_stage_and_preserves_readable_cors_response(client, monkeypatch, caplog, stage):
+    origin = os.getenv('ALLOWED_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',')[0]
+    owner = login(client)
+    resume = client.post('/api/v1/career/resumes', files={'file':('test.txt','姓名：示例\n教育：示例大学\n项目经历：调研客户并整理需求表'.encode(),'text/plain')}, headers=owner).json()
+    session = client.post('/api/v1/career/sessions', json={'resume_id':resume['id']}, headers=owner).json()
+    sid = session['id']
+    client.post(f'/api/v1/career/sessions/{sid}/confirm-facts', json={'facts':FACTS}, headers=owner)
+    def fail(*args, **kwargs):
+        raise HTTPException(502, '测试服务暂不可用')
+    monkeypatch.setattr('services.api.routes_career.career_evidence', fail if stage == 'retrieval' else lambda *a, **k: [])
+    if stage == 'rewrite':
+        monkeypatch.setattr('services.api.routes_career.discuss_block', fail)
+    response = client.post(f'/api/v1/career/sessions/{sid}/block-dialogue', json={'fact_ids':['f1','f2'],'draft_text':'私有草稿不得写入日志','message':'私有输入不得写入日志'}, headers={**owner,'Origin':origin})
+    assert response.status_code == 502
+    assert response.json()['detail'] == '测试服务暂不可用'
+    assert response.headers['access-control-allow-origin'] == origin
+    assert 'stage='+stage in caplog.text
+    assert '私有' not in caplog.text
 
 
 def test_block_route_services_with_sqlite_preserve_private_sources_and_version_boundary(monkeypatch):

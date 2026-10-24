@@ -112,7 +112,7 @@ def discuss_block(facts, body, jd, evidence, context):
              'career_context':{k:v for k,v in context.items() if k!='jd'},'evidence':evidence}
     while payload['history'] and len(json.dumps(payload,ensure_ascii=False))>55000:
         payload['history'].pop(0)
-    raw=provider.complete(
+    task = (
         '简历分块多轮改写。只返回JSON {text,analysis,questions,source_chunk_ids}。'
         'text 是此块完整的优化后纯文本，analysis 解释修改与岗位关联，questions 是需要向用户确认的问题。'
         '本轮任务是执行 message 中的编辑要求，直接交付可直接替换当前文本框的完整改写稿。'
@@ -122,26 +122,34 @@ def discuss_block(facts, body, jd, evidence, context):
         '使用当前草稿和本轮要求，结合历史逐轮调整。用户 JD 优先，知识库岗位职能与要求用于解释能力关联。'
         '资料不是用户经历，不得把别人经历、企业要求或模拟结果当成用户事实。不得编造数字或成果。'
         '已有草稿时，使用已确认事实完成能够完成的改写；只有缺少必要事实而无法安全改写时才返回空 text，并在 questions 提出具体问题。'
+        '用户要求补入原文没有的平台、项目或工作经历时，先询问其实际参与的任务、职责与产出；text 为空，不把未改动的原文当作修改稿。'
         '空白块先询问真实经历细节，不编造正文。'
-        'source_chunk_ids 只能来自本次 evidence。建议不直接保存版本，等待用户确认。',
-        payload)
-    try:
-        value=json.loads(raw.removeprefix('```json').removesuffix('```').strip())
-        if not isinstance(value,dict) or not any(value.get(key) for key in ['text','analysis','questions']):
-            raise ValueError()
-        for key,limit in [('text',16000),('analysis',4000),('questions',3000)]:
-            if not isinstance(value.get(key,''),str) or len(value.get(key,''))>limit:
+        'source_chunk_ids 只能来自本次 evidence。建议不直接保存版本，等待用户确认。')
+    for attempt in range(2):
+        correction = '' if attempt == 0 else '上次输出与草稿相同，任务尚未完成。请在不新增事实的前提下，根据 message 实际调整句式、信息顺序或表达重点，直接返回完整改写稿，不能只加标点或以保留事实为由照抄。'
+        raw = provider.complete(task + correction, payload)
+        try:
+            value=json.loads(raw.removeprefix('```json').removesuffix('```').strip())
+            if not isinstance(value,dict) or not any(value.get(key) for key in ['text','analysis','questions']):
                 raise ValueError()
-        value['text'] = clean_resume_text(value.get('text', ''))
-        if not value['text'] and not value.get('questions', '').strip():
-            raise HTTPException(502, '模型只返回了分析，没有提供改写后的正文，请重试；原文未修改')
-        normalized = lambda text: re.sub(r'[\s，。；、：！？,.!?;:]+', '', text)
-        if value['text'] and draft and normalized(value['text']) == normalized(draft):
-            raise HTTPException(502, '模型未按要求提供实际改写，仅复述了原文，请重试或细化要求；原文未修改')
-        sources=value.get('source_chunk_ids',[])
-        if not isinstance(sources,list) or not set(sources).issubset({e['chunk_id'] for e in evidence}):
-            raise ValueError()
-        check_text(value.get('text',''),selected)
-        return {key:value.get(key,'') for key in ['text','analysis','questions']} | {'citations':evidence,'model':provider.model}
-    except (ValueError,KeyError,TypeError):
-        raise HTTPException(502, '改写建议或引用格式不正确，请重试；原文未修改')
+            for key,limit in [('text',16000),('analysis',4000),('questions',3000)]:
+                if not isinstance(value.get(key,''),str) or len(value.get(key,''))>limit:
+                    raise ValueError()
+            value['text'] = clean_resume_text(value.get('text', ''))
+            if not value['text'] and not value.get('questions', '').strip():
+                raise HTTPException(502, '模型只返回了分析，没有提供改写后的正文，请重试；原文未修改')
+            sources=value.get('source_chunk_ids',[])
+            if not isinstance(sources,list) or not set(sources).issubset({e['chunk_id'] for e in evidence}):
+                raise ValueError()
+            check_text(value.get('text',''),selected)
+            normalized = lambda text: re.sub(r'[\s，。；、：！？,.!?;:]+', '', text)
+            if value['text'] and draft and normalized(value['text']) == normalized(draft):
+                if not value.get('questions', '').strip() and attempt == 0:
+                    continue
+                value['text'] = ''
+                value['analysis'] = '本轮尚未生成可替换的改写内容，当前原文保持不变。'
+                if not value.get('questions', '').strip():
+                    value['questions'] = '请说明要精简、重组或突出的内容；若需补入新经历，请提供你实际参与的任务、职责和产出。'
+            return {key:value.get(key,'') for key in ['text','analysis','questions']} | {'citations':evidence,'model':provider.model}
+        except (ValueError,KeyError,TypeError):
+            raise HTTPException(502, '改写建议或引用格式不正确，请重试；原文未修改')
