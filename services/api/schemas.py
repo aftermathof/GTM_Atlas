@@ -1,6 +1,7 @@
 from typing import Literal
 import secrets
 from pydantic import BaseModel, Field
+from services.api.resume_blocks import BlockPatch
 
 
 class Credentials(BaseModel):
@@ -61,7 +62,7 @@ class CareerSetup(Context):
 
 class Fact(BaseModel):
     id: str = Field(pattern=r"^f\d+$")
-    text: str = Field(min_length=1, max_length=4000)
+    text: str = Field(min_length=1, max_length=16000)
     locked: bool = False
     confidence: float = Field(default=1.0, ge=0, le=1)
     page: int = Field(default=1, ge=1)
@@ -78,7 +79,8 @@ class Patch(BaseModel):
 
 
 class Rewrite(BaseModel):
-    patches: list[Patch] = Field(min_length=1, max_length=100)
+    patches: list[Patch] = Field(default_factory=list, max_length=100)
+    blocks: list['BlockPatch'] = Field(default_factory=list, max_length=100)
     approved_fact_ids: list[str] = Field(min_length=1, max_length=100)
     template: Literal["classic-cn", "classic-en", "modern-onepage", "gtm-original"] = "gtm-original"
     base_version_id: str | None = None

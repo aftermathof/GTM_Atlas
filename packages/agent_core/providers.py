@@ -24,10 +24,10 @@ class LLMProvider:
         if len(json.dumps(payload, ensure_ascii=False)) > 60_000:
             raise HTTPException(413, "当前任务文本超过模型输入预算，请缩短简历、JD或问题")
         from packages.agent_core.registry import skills
-        skill_name = "resume-extraction" if "提取简历" in task else "resume-diagnosis" if "诊断" in task else "interview-evaluation" if "dimensions" in task else "interview-planning" if "题目规划" in task else "resume-rewriting" if "patches" in task else "learning-qa"
+        skill_name = "resume-extraction" if "提取简历" in task else "resume-diagnosis" if "诊断" in task else "interview-evaluation" if "dimensions" in task else "interview-planning" if "题目规划" in task else "resume-rewriting" if "patches" in task or "简历分块多轮改写" in task else "resume-grouping" if "简历经历分块" in task else "learning-qa"
         instructions = next((s["instructions"] for s in skills() if s["name"] == skill_name), "")
         rewriting = skill_name == 'resume-rewriting'
-        structured = rewriting or skill_name == 'interview-planning'
+        structured = rewriting or skill_name == 'interview-planning' or '简历经历分块' in task
         request_body = {"model": self.model, "messages": [{"role": "system", "content": SYSTEM + "\n受控领域技能 v1：\n" + instructions}, {"role": "user", "content": json.dumps({"task": task, "untrusted_data": payload}, ensure_ascii=False)}], "max_tokens": 8192 if structured else 2400, "temperature": 0.2}
         if structured and self.model.startswith('deepseek'):
             request_body['thinking'] = {'type': 'disabled'}

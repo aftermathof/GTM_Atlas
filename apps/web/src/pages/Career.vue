@@ -6,18 +6,19 @@ import { ArrowUpRight, ArrowLeft, Upload, Lock, Check, FileText } from 'lucide-v
 import { api, post, state, download, authorizedFetch } from '../state'
 import ContextPicker from '../components/ContextPicker.vue'
 import ChatPanel from '../components/ChatPanel.vue'
-import Composer from '../components/Composer.vue'
+import BlockRewriteDialog from '../components/BlockRewriteDialog.vue'
 import Markdown from '../components/Markdown.vue'
 const route = useRoute(), router = useRouter(), session = ref<any>(null), facts = ref<any[]>([]), draftFacts = ref<any[]>([]), versions = ref<any[]>([]), selectedVersion = ref<any>(null), artifacts = ref<any>(null), approved = ref<string[]>([]), busy = ref(false), error = ref(''), file = ref<File|null>(null), jd = ref(''), template = ref('gtm-original'), manual = ref(''), tab = ref('diagnosis')
 const parts = computed(() => (route.params.pathMatch as string[] || []).filter(Boolean))
-const rewriteInstruction = ref(''), suggestionNotice = ref('')
+const blockRows = ref<any[]>([]), blocksLoading = ref(false), blocksError = ref(''), activeBlockId = ref('')
+const blockChats = ref<Record<string, any>>({})
+let blockRequest = 0
 const versionError = ref(''), versionNotice = ref('')
 const pdfUrl = ref(''), sessionLoading = ref(false)
-const targetJdId=ref(''), jdFilename=ref(''), uploadingJd=ref(false), suggestionEvidence=ref<any[]>([])
-type RewriteSuggestion = { text: string; reason: string; originalText: string }
-const pendingSuggestions = ref<Record<string, RewriteSuggestion>>({})
-const suggesting = ref(false), generating = ref(false)
-const editorBusy = computed(() => busy.value || suggesting.value || generating.value)
+const targetJdId=ref(''), jdFilename=ref(''), uploadingJd=ref(false)
+const generating = ref(false)
+const editorBusy = computed(() => busy.value || generating.value || blocksLoading.value || !!activeBlockId.value)
+const activeBlock = computed(() => blockRows.value.find(b => b.id === activeBlockId.value))
 const editableFacts = computed(() => draftFacts.value.filter(f => !f.locked))
 const experienceFacts = computed(() => {
   const mapping = (selectedVersion.value?.structure || session.value?.structure)?.assignments || {}
@@ -25,9 +26,7 @@ const experienceFacts = computed(() => {
 })
 const allAuthorized = computed(() => editableFacts.value.length > 0 && editableFacts.value.every(f => approved.value.includes(f.id)))
 const experienceAuthorized = computed(() => experienceFacts.value.length > 0 && experienceFacts.value.every(f => approved.value.includes(f.id)))
-const pendingCount = computed(() => Object.keys(pendingSuggestions.value).length)
-const hasChanges = computed(() => editableFacts.value.some(f => approved.value.includes(f.id) && f.text !== facts.value.find(x => x.id === f.id)?.text))
-let suggestionRequest = 0
+const hasChanges = computed(() => blockRows.value.some(b => blockAuthorized(b) && b.text !== b.original))
 const sectionNames:Record<string,string>={personal:'个人信息',education:'教育背景',projects:'项目经历',experience:'实习/工作经历',skills:'技能特长',summary:'自我评价',other:'其他经历'}
 const diagnosisText = computed(() => String(session.value?.diagnosis?.analysis || '').replace(/\*\*([^*\n]*?[^*\s])[ \t]+\*\*/g, '**$1**'))
 function cloneFacts(value:any[]) {return value.map(f=>({...f}))}
@@ -39,20 +38,38 @@ function toggleAuthorization(ids: string[]) {
 }
 function selectExperience(){toggleAuthorization(experienceFacts.value.map(f=>f.id))}
 function selectAll(){toggleAuthorization(editableFacts.value.map(f=>f.id))}
-function resetSuggestions() {
-  suggestionRequest++; suggesting.value = false; pendingSuggestions.value = {}
-  suggestionNotice.value = ''; suggestionEvidence.value = []
+function resetBlocks() {
+  blockRequest++; blockRows.value=[]; blockChats.value={}; activeBlockId.value=''; blocksLoading.value=false; blocksError.value=''
 }
-function acceptSuggestion(id: string) {
-  if (editorBusy.value) return
-  const suggestion = pendingSuggestions.value[id], fact = draftFacts.value.find(f => f.id === id)
-  if (!suggestion || !fact || fact.locked || !approved.value.includes(id)) return
-  if (fact.text !== suggestion.originalText) { error.value = '原文已修改，请重新生成建议，避免覆盖你的手动编辑。'; return }
-  fact.text = suggestion.text
-  delete pendingSuggestions.value[id]
-  error.value = ''; suggestionNotice.value = '已确认替换。核对文字并选择模板后，可生成新版本。'
+function blockAuthorized(block:any) { return !block.locked && block.fact_ids.every((id:string) => approved.value.includes(id)) }
+async function loadBlocks() {
+  if (sessionLoading.value || !session.value?.confirmed || tab.value!=='editor' || blockRows.value.length || blocksLoading.value) return
+  const own=++blockRequest
+  blocksLoading.value=true; blocksError.value=''
+  try {
+    const result=await api(`/career/sessions/${sessionId.value}/editing-blocks`+(selectedVersion.value ? '?base_version_id='+selectedVersion.value.id : ''))
+    if (own!==blockRequest) return
+    blockRows.value=result.blocks.map((block:any) => {
+      const text=block.fact_ids.map((id:string) => draftFacts.value.find(f=>f.id===id)?.text || '').join('\n')
+      return {...block,text,original:text}
+    })
+  } catch(e:any) {if (own===blockRequest) blocksError.value=e.message}
+  finally {if (own===blockRequest) blocksLoading.value=false}
 }
-function ignoreSuggestion(id: string) { if (!editorBusy.value) delete pendingSuggestions.value[id] }
+function authorizeBlock(block:any) { toggleAuthorization(block.fact_ids) }
+function openBlock(block:any) {
+  if (editorBusy.value || !blockAuthorized(block)) return
+  if (!blockChats.value[block.id] || blockChats.value[block.id].original!==block.text) {
+    blockChats.value[block.id]={turns:[],draft:'',original:block.text}
+  }
+  activeBlockId.value=block.id
+}
+function acceptBlock(text:string, original:string) {
+  const block=activeBlock.value
+  if (!block || !blockAuthorized(block)) return
+  if (block.text!==original) {error.value='原文已修改，请重新进入改写对话。'; activeBlockId.value=''; return}
+  block.text=text; activeBlockId.value=''; error.value=''
+}
 function resizeEditor(element: HTMLTextAreaElement) {
   element.style.height = 'auto'
   element.style.height = element.scrollHeight + 2 + 'px'
@@ -64,7 +81,7 @@ const sessionId = computed(() => ['review','editor'].includes(parts.value[0]) ? 
 async function load() {
   sessionLoading.value=false
   versionError.value=''; versionNotice.value=''
-  resetSuggestions()
+  resetBlocks()
   error.value = ''; session.value = null; selectedVersion.value=null; artifacts.value=null; versions.value=[]; approved.value=[]
   if (!sessionId.value) {if(route.query.jd_id && state.user){try{const r=await api('/knowledge/documents/'+route.query.jd_id);jd.value=r.body;targetJdId.value=r.id;jdFilename.value=r.title}catch(e:any){error.value=e.message}}return}
   sessionLoading.value=true
@@ -88,55 +105,34 @@ async function confirm() {
   try {
     if (!facts.value.length && manual.value.trim()) facts.value = manual.value.trim().split('\n').filter(Boolean).map((text,i) => ({id:'f'+i,text,locked:/教育|大学|本科/.test(text),confidence:1,page:1}))
     session.value = await post(`/career/sessions/${sessionId.value}/confirm-facts`, {facts:facts.value})
-    draftFacts.value = cloneFacts(facts.value)
-    resetSuggestions()
+    draftFacts.value = cloneFacts(facts.value); selectedVersion.value=null; approved.value=[]
+    resetBlocks()
   } catch(e:any) {error.value=e.message} finally {busy.value=false}
 }
 async function rewrite() {
   if (editorBusy.value) return
   generating.value = true; error.value = ''; versionError.value=''; versionNotice.value=''
   try {
-    if (pendingCount.value) throw new Error('请先确认或忽略段落建议，再生成新版。')
-    const patches = draftFacts.value.filter(f => approved.value.includes(f.id) && f.text !== facts.value.find(x=>x.id===f.id)?.text).map(f=>({fact_id:f.id,text:f.text}))
-    if (!patches.length) throw new Error('请修改已勾选授权的段落，随后再生成版本。')
-    const result = await post(`/career/sessions/${sessionId.value}/approve-rewrite`, {patches,approved_fact_ids:approved.value,template:template.value,base_version_id:selectedVersion.value?.id || null})
+    const blocks = blockRows.value.filter(b => blockAuthorized(b) && b.text !== b.original).map(b=>({fact_ids:b.fact_ids,text:b.text}))
+    if (!blocks.length) throw new Error('请修改已勾选授权的段落，随后再生成版本。')
+    const result = await post(`/career/sessions/${sessionId.value}/approve-rewrite`, {blocks,approved_fact_ids:approved.value,template:template.value,base_version_id:selectedVersion.value?.id || null})
     versions.value.unshift(result); approved.value=[]; versionNotice.value='已保存为新版本。可下载 TeX；PDF 编译状态见右侧。'
     try { await selectVersion(result) }
     catch(e:any) { versionError.value='新版已保存，但下载信息暂时无法加载：'+e.message+'。可在右侧刷新编译状态，无需重复生成。' }
   } catch(e:any) {versionError.value=e.message} finally {generating.value=false}
 }
-async function suggest() {
-  if (editorBusy.value) return
-  error.value = ''; versionError.value=''; versionNotice.value=''
-  const selected = editableFacts.value.filter(f => approved.value.includes(f.id))
-  if (!selected.length) { error.value = '请先授权至少一个未锁定段落，再生成改写建议。'; return }
-  const current = ++suggestionRequest
-  const originals = Object.fromEntries(selected.map(f => [f.id, f.text]))
-  suggesting.value = true; pendingSuggestions.value = {}; suggestionNotice.value = ''; suggestionEvidence.value = []
-  try {
-    const result = await post(`/career/sessions/${sessionId.value}/suggest-rewrite`, {approved_fact_ids: selected.map(f => f.id), instruction: rewriteInstruction.value || '保留事实，改善表达结构', base_version_id: selectedVersion.value?.id || null})
-    if (current !== suggestionRequest) return
-    for (const patch of result.patches || []) {
-      const fact = draftFacts.value.find(f => f.id === patch.fact_id)
-      if (fact && !fact.locked && approved.value.includes(fact.id) && Object.hasOwn(originals, fact.id) && patch.text !== originals[fact.id]) {
-        pendingSuggestions.value[fact.id] = { text: patch.text, reason: patch.reason || '', originalText: originals[fact.id] }
-      }
-    }
-    suggestionNotice.value = pendingCount.value ? '建议已显示在对应段落下方，确认后才替换原文。' : '本次没有生成不同于原文的建议，可调整要求后重试。'
-    suggestionEvidence.value=result.citations||[]
-  } catch(e:any) { if (current === suggestionRequest) error.value=e.message } finally { if (current === suggestionRequest) suggesting.value=false }
-}
 async function selectVersion(version:any) {
-  resetSuggestions()
-  selectedVersion.value=version; artifacts.value=await api(`/career/versions/${version.id}/artifacts`); facts.value=cloneFacts(version.facts);draftFacts.value=cloneFacts(version.facts)
+  resetBlocks()
+  facts.value=cloneFacts(version.facts); draftFacts.value=cloneFacts(version.facts); selectedVersion.value=version
+  artifacts.value=await api(`/career/versions/${version.id}/artifacts`)
   if (pdfUrl.value) { URL.revokeObjectURL(pdfUrl.value); pdfUrl.value='' }
+  await loadBlocks()
   if (artifacts.value.pdf) { const r = await authorizedFetch(artifacts.value.pdf); if(r.ok) pdfUrl.value=URL.createObjectURL(await r.blob()) }
 }
 async function rollback(version:any) { try { await post(`/career/sessions/${sessionId.value}/rollback`,{version_id:version.id}); await selectVersion(version) } catch(e:any) {error.value=e.message} }
 async function exportFile(kind:string) {try {await download(`/api/v1/career/versions/${selectedVersion.value.id}/download/${kind}`, 'resume.'+kind)} catch(e:any) {error.value=e.message} }
-watch(approved, ids => {
-  for (const id of Object.keys(pendingSuggestions.value)) if (!ids.includes(id)) delete pendingSuggestions.value[id]
-})
+watch(() => [tab.value, session.value?.confirmed, selectedVersion.value?.id, sessionLoading.value], loadBlocks)
+onBeforeUnmount(resetBlocks)
 watch(() => route.fullPath,load); onMounted(load)
 </script>
 <template>
@@ -146,8 +142,8 @@ watch(() => route.fullPath,load); onMounted(load)
     <LoadingState v-else-if="sessionLoading" label="正在加载简历与修改记录…"/><template v-else-if="session"><RouterLink to="/career" class="back-link"><ArrowLeft :size="15" /> 简历工作台</RouterLink><div class="workspace-heading"><div><p class="eyebrow">YOUR CAREER WORKSPACE / PRIVATE</p><h1 class="h-xl">把经历，说清楚。</h1></div><span class="status-label">{{ session.confirmed ? '事实已确认' : '等待事实确认' }} · 私有</span></div><div class="tabs"><button :class="{active:tab==='facts'}" @click="tab='facts'">识别与事实</button><button :class="{active:tab==='diagnosis'}" @click="tab='diagnosis'">诊断建议</button><button :class="{active:tab==='editor'}" @click="tab='editor'">修改与版本</button></div>
       <section v-if="tab==='facts'" class="facts-section"><div v-if="session.structure" class="extracted-profile"><span v-for="(field,key) in session.structure.profile" :key="key" v-show="field.value"><small>{{ ({name:"姓名",email:"邮箱",phone:"电话",target_role:"求职意向"} as Record<string,string>)[key] }}</small>{{ field.value }}</span></div><p class="meta">核对关键字段与段落归属。确认后，后台按这些映射填入你的 TeX 模板。</p><p class="notice">{{ session.parse_warning }} 勾选锁定可保护段落；新增事实请在此补充后再次确认。</p><div v-for="f in facts" :key="f.id" class="fact-row"><span class="eyebrow">{{ f.id }} / P{{ f.page }}<span v-if="f.confidence<0.9" class="error">需核对</span></span><div><textarea v-autosize v-model="f.text" rows="1" :disabled="busy" :aria-label="'核对段落 '+f.id"></textarea><select v-model="f.section" :aria-label="'段落归属 '+f.id" class="section-select"><option v-for="(name,key) in sectionNames" :key="key" :value="key">{{ name }}</option></select></div><label class="checkbox-label"><input v-model="f.locked" type="checkbox">锁定</label></div><textarea v-if="!facts.length" v-autosize v-model="manual" rows="1" class="manual-facts" placeholder="逐行录入姓名、教育、经历与技能；不清楚的字段请核对原件。"></textarea><div class="career-submit"><button class="primary" :disabled="busy" @click="confirm"><Check :size="16" />{{ busy ? '确认中…' : '我已核对，确认这些事实' }}</button></div></section>
       <section v-if="tab==='diagnosis'"><div v-if="session.diagnosis" class="diagnosis-layout"><div><p class="eyebrow">DIAGNOSIS / {{ session.diagnosis.provider === 'mock' ? '旧版诊断' : session.diagnosis.model }}</p><h2>先看见可以改进的地方。</h2><p class="notice">{{ session.diagnosis.notice }}</p><div v-for="d in session.diagnosis.dimensions" :key="d.name" class="dimension-row"><h3>{{ d.name }}<span>{{ d.score }} / {{ d.max }}</span></h3><p>{{ d.advice }}</p></div><Markdown class="diagnosis-analysis" :source="diagnosisText" /><div class="citations"><RouterLink v-for="c in session.diagnosis.citations" :key="c.chunk_id" :to="c.url+'?heading='+encodeURIComponent(c.heading_path)">{{ c.title }} · {{ c.kind==='interview'?'个人面经参考':'岗位/学习依据' }} ↗</RouterLink></div></div><aside class="score-block"><strong>{{ session.diagnosis.score }}</strong><span>内部完整性参考 / 100</span><button class="secondary" @click="tab='facts'">补充 / 纠正信息</button><button class="primary" @click="tab=session.confirmed?'editor':'facts'">{{ session.confirmed ? '选择需要修改的段落' : '先确认识别事实' }}</button><p class="meta">只查看建议即可结束，系统不会自动改写。</p></aside></div><div v-else class="empty-state">识别文本不足。请先进入「识别与事实」录入并确认简历内容。<button @click="tab='facts'">去确认事实</button></div><div class="article-qa"><h2>围绕当前简历，继续讨论。</h2><ChatPanel scope="career" :session-id="sessionId" /></div></section>
-      <section v-if="tab==='editor'"><p v-if="!session.confirmed" class="notice">请先在「识别与事实」确认内容，再授权改写。</p><div v-else class="editor-layout"><div><p class="eyebrow">EDIT WITH EVIDENCE</p><p>授权段落并输入改写要求，确认建议后再选择模板生成新版。</p><div class="editor-bulk-actions"><button type="button" class="secondary" :disabled="editorBusy || !editableFacts.length" @click="selectAll">{{ allAuthorized ? '全部取消授权' : '全部授权' }}</button><button type="button" class="secondary" :disabled="editorBusy || !experienceFacts.length" @click="selectExperience">{{ experienceAuthorized ? '取消项目与经历授权' : '选择项目与经历段落' }}</button></div><div v-for="f in draftFacts" :key="f.id" class="edit-fact"><div><label class="checkbox-label"><input v-model="approved" :value="f.id" type="checkbox" :disabled="f.locked || editorBusy">{{ f.id }} · {{ f.locked ? '已锁定' : '授权修改此段' }}</label><Lock v-if="f.locked" :size="14" /></div><textarea v-autosize v-model="f.text" rows="1" :aria-label="'修改段落 '+f.id" :disabled="f.locked || !approved.includes(f.id) || editorBusy"></textarea><p v-if="approved.includes(f.id) && !f.text.trim()" class="meta">此段已清空，生成新版时将移除；原始事实和历史版本保留。</p><div v-if="pendingSuggestions[f.id] && approved.includes(f.id) && !f.locked" class="rewrite-suggestion"><p class="eyebrow">修改建议</p><p class="suggestion-text">{{ pendingSuggestions[f.id].text }}</p><div v-if="pendingSuggestions[f.id].reason" class="suggestion-analysis"><p class="eyebrow">分析</p><p class="suggestion-reason">{{ pendingSuggestions[f.id].reason }}</p></div><div class="suggestion-actions"><button type="button" class="text-link" :disabled="editorBusy" @click="ignoreSuggestion(f.id)">忽略</button><button type="button" class="text-link" :disabled="editorBusy" @click="acceptSuggestion(f.id)"><Check :size="14" />确认替换</button></div></div></div><Composer v-model="rewriteInstruction" :busy="suggesting" :disabled="generating || busy" label="生成改写建议" placeholder="先勾选授权段落，再描述改写要求；支持语音校对后提交。" @submit="suggest" /><p v-if="suggesting" class="meta" role="status">正在生成段落建议，原文尚未修改…</p><p v-if="error" class="error" role="alert">{{ error }}</p><p v-if="suggestionNotice" class="notice">{{ suggestionNotice }}</p><div v-if="suggestionEvidence.length" class="citations"><span class="eyebrow">岗位与知识参考</span><RouterLink v-for="c in suggestionEvidence" :key="c.chunk_id" :to="c.url+'?heading='+encodeURIComponent(c.heading_path)">{{ c.kind==='jd'?'岗位资料':c.kind==='interview'?'面经参考':'学习框架' }} · {{c.title}} ↗</RouterLink></div><label>排版模板<select v-model="template" :disabled="editorBusy"><option value="gtm-original">你的 GTM 中文简历模板</option><option value="classic-cn">经典中文</option><option value="classic-en">经典英文（保留原文，不自动翻译）</option><option value="modern-onepage">现代单页</option></select></label><p v-if="pendingCount" class="meta">请先确认或忽略段落建议，再生成新版。</p><div class="career-submit"><button type="button" class="primary" @click="rewrite" :disabled="editorBusy || !hasChanges || !!pendingCount">{{ generating ? '生成新版中…' : '确认并生成新版' }}<ArrowUpRight :size="16" /></button></div><p v-if="versionNotice" class="notice version-feedback" role="status">{{ versionNotice }}</p><p v-if="versionError" class="error version-feedback" role="alert">{{ versionError }}</p></div><aside class="versions-panel"><p class="eyebrow">VERSION HISTORY</p><p v-if="!versions.length" class="meta">还没有生成版本，原始文件保持不变。</p><button v-for="(v,i) in versions" :key="v.id" :class="{selected:selectedVersion?.id===v.id}" class="version-row" :disabled="editorBusy" @click="selectVersion(v)"><FileText :size="17" /><span>版本 {{ versions.length-i }}<small>{{ new Date(v.created_at).toLocaleString() }}</small></span></button><template v-if="selectedVersion"><p class="notice">{{ artifacts?.job?.message || '编译任务：' + artifacts?.job?.status }}</p><button class="secondary" :disabled="editorBusy" @click="selectVersion(selectedVersion)">刷新编译状态</button><button class="secondary" @click="exportFile('tex')">下载 .tex</button><button class="primary" :disabled="!artifacts?.pdf" @click="exportFile('pdf')">下载 PDF</button><button class="text-link" :disabled="editorBusy" @click="rollback(selectedVersion)">回到此版本 ↶</button><p class="meta">回滚只切换活动版本，其他版本完整保留。继续编辑可只授权技能栏等指定段落。</p></template></aside></div><section v-if="pdfUrl" class="pdf-preview"><h2>简历 PDF 预览</h2><iframe :src="pdfUrl" title="简历 PDF 预览"></iframe></section><div class="article-qa"><h2>先讨论，再决定如何修改。</h2><ChatPanel scope="career" :session-id="sessionId" /></div></section>
-    </template><p v-if="error && (!session || tab!=='editor')" class="error" role="alert">{{ error }}</p>
+      <section v-if="tab==='editor'"><p v-if="!session.confirmed" class="notice">请先在「识别与事实」确认内容，再授权改写。</p><div v-else class="editor-layout"><div><p class="eyebrow">EDIT WITH EVIDENCE</p><p>按完整经历编辑，进入每块的 AI 对话逐轮修改；确认回填后选择模板生成新版。</p><div class="editor-bulk-actions"><button type="button" class="secondary" :disabled="editorBusy || !editableFacts.length" @click="selectAll">{{ allAuthorized ? '全部取消授权' : '全部授权' }}</button><button type="button" class="secondary" :disabled="editorBusy || !experienceFacts.length" @click="selectExperience">{{ experienceAuthorized ? '取消项目与经历授权' : '选择项目与经历段落' }}</button></div><LoadingState v-if="blocksLoading" label="正在整理完整经历…" compact/><div v-else-if="blocksError"><p class="error" role="alert">{{ blocksError }}</p><button class="secondary" @click="loadBlocks">重新加载分块</button></div><section v-for="block in blockRows" :key="block.id" class="edit-block"><div class="block-heading"><h3>{{ block.title }}</h3><label class="checkbox-label"><input type="checkbox" :checked="blockAuthorized(block)" :disabled="block.locked || editorBusy" @change="authorizeBlock(block)">{{ block.locked ? '已锁定' : '授权修改此块' }}</label></div><textarea v-autosize v-model="block.text" rows="4" maxlength="16000" :aria-label="'修改 '+block.title" :disabled="block.locked || !blockAuthorized(block) || editorBusy"></textarea><p v-if="blockAuthorized(block) && !block.text.trim()" class="meta">此块为空，可和 AI 梳理真实经历；保持空白并生成新版时将移除此块。</p><div v-if="!block.locked" class="block-actions"><button class="text-link" :disabled="!blockAuthorized(block) || editorBusy" @click="openBlock(block)">{{ block.text.trim() ? '生成改写建议' : '和 AI 聊聊' }}<ArrowUpRight :size="16"/></button></div></section><p v-if="error" class="error" role="alert">{{ error }}</p><label>排版模板<select v-model="template" :disabled="editorBusy"><option value="gtm-original">你的 GTM 中文简历模板</option><option value="classic-cn">经典中文</option><option value="classic-en">经典英文（保留原文，不自动翻译）</option><option value="modern-onepage">现代单页</option></select></label><div class="career-submit"><button type="button" class="primary" @click="rewrite" :disabled="editorBusy || !hasChanges">{{ generating ? '生成新版中…' : '确认并生成新版' }}<ArrowUpRight :size="16" /></button></div><p v-if="versionNotice" class="notice version-feedback" role="status">{{ versionNotice }}</p><p v-if="versionError" class="error version-feedback" role="alert">{{ versionError }}</p></div><aside class="versions-panel"><p class="eyebrow">VERSION HISTORY</p><p v-if="!versions.length" class="meta">还没有生成版本，原始文件保持不变。</p><button v-for="(v,i) in versions" :key="v.id" :class="{selected:selectedVersion?.id===v.id}" class="version-row" :disabled="editorBusy" @click="selectVersion(v)"><FileText :size="17" /><span>版本 {{ versions.length-i }}<small>{{ new Date(v.created_at).toLocaleString() }}</small></span></button><template v-if="selectedVersion"><p class="notice">{{ artifacts?.job?.message || '编译任务：' + artifacts?.job?.status }}</p><button class="secondary" :disabled="editorBusy" @click="selectVersion(selectedVersion)">刷新编译状态</button><button class="secondary" @click="exportFile('tex')">下载 .tex</button><button class="primary" :disabled="!artifacts?.pdf" @click="exportFile('pdf')">下载 PDF</button><button class="text-link" :disabled="editorBusy" @click="rollback(selectedVersion)">回到此版本 ↶</button><p class="meta">回滚只切换活动版本，其他版本完整保留。继续编辑可只授权技能栏等指定段落。</p></template></aside></div><section v-if="pdfUrl" class="pdf-preview"><h2>简历 PDF 预览</h2><iframe :src="pdfUrl" title="简历 PDF 预览"></iframe></section><div class="article-qa"><h2>先讨论，再决定如何修改。</h2><ChatPanel scope="career" :session-id="sessionId" /></div></section>
+    </template><BlockRewriteDialog v-if="activeBlock" :key="activeBlock.id" :block="activeBlock" :session-id="sessionId" :base-version-id="selectedVersion?.id" :dialogue="blockChats[activeBlock.id]" @close="activeBlockId=''" @accept="acceptBlock"/><p v-if="error && (!session || tab!=='editor')" class="error" role="alert">{{ error }}</p>
   </div>
 </template>
 
@@ -155,16 +151,14 @@ watch(() => route.fullPath,load); onMounted(load)
 .career-submit{display:flex;justify-content:flex-end;margin-top:24px}
 .version-feedback{margin-top:14px}
 .editor-bulk-actions{display:flex;gap:10px;flex-wrap:wrap}
-.edit-fact{padding:14px 0}
-.edit-fact .checkbox-label{margin-bottom:8px}
-.edit-fact textarea,.fact-row textarea,.manual-facts{min-height:0;padding:6px 10px;font-size:14px;line-height:1.75;resize:none;overflow:hidden}
-.edit-fact>.rewrite-suggestion{display:flex;flex-direction:column;align-items:stretch;gap:12px;min-width:0;margin-top:10px;padding:12px 14px;background:var(--gray);border-left:2px solid var(--blue)}
-.rewrite-suggestion .eyebrow{margin:0;white-space:nowrap}
-.suggestion-text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;margin:0}
-.suggestion-analysis .eyebrow{margin-bottom:6px}
-.suggestion-reason{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:var(--muted);margin:0}
-.suggestion-actions{display:flex;justify-content:flex-end;gap:16px;flex-wrap:nowrap}
-.suggestion-actions .text-link{flex-shrink:0;white-space:nowrap}
+.fact-row textarea,.manual-facts{min-height:0;padding:6px 10px;font-size:14px;line-height:1.75;resize:none;overflow:hidden}
+.edit-block{padding:24px 0;border-bottom:1px solid var(--line)}
+.block-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.block-heading h3{font-size:18px;margin:0}
+.block-heading label{margin:0}
+.edit-block textarea{min-height:130px;padding:12px;font-size:14px;line-height:1.9;resize:vertical;overflow:hidden}
+.block-actions{display:flex;justify-content:flex-end;margin-top:16px}
+.block-actions button{white-space:nowrap}
 .diagnosis-analysis{margin-top:24px;font-size:15px;line-height:1.95;white-space:normal}
 .diagnosis-analysis :deep(h1),.diagnosis-analysis :deep(h2){font-size:22px}
 </style>

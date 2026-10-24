@@ -14,6 +14,7 @@ from packages.career.graph import parse_resume, diagnose, apply_patches
 from packages.document_renderer.render import render_tex
 from packages.document_renderer.jobs import enqueue, refresh
 from services.api.suggestions import SuggestRewrite, suggest
+from services.api.resume_blocks import BlockDialogue, apply_block_patches, group_blocks, discuss_block
 from packages.career import approvals
 from packages.career.structure import extract_structure, refresh_structure
 from packages.career.retrieval import career_evidence
@@ -110,6 +111,7 @@ def confirm(sid: str, body: ConfirmFacts, request: Request, user=Depends(current
         row = owned(db, sid, user.id, "career", lock=True)
         facts = [f.model_dump(exclude_none=True) for f in body.facts]
         state = copy.deepcopy(row.data)
+        state.pop("editing_blocks", None)
         was_confirmed = state["confirmed"]
         if was_confirmed:
             state["approval_thread_id"] = uid()
@@ -138,12 +140,17 @@ def rewrite(sid: str, body: Rewrite, request: Request, user=Depends(current_user
             if version.parent_id != sid:
                 raise HTTPException(422, "版本不属于当前简历")
             base = version.data["facts"]
-        facts = apply_patches(base, body.patches, body.approved_fact_ids)
+        if bool(body.patches) == bool(body.blocks):
+            raise HTTPException(422, '请选择一种改写方式并提供修改内容')
+        if body.blocks:
+            mapping = (version.data if body.base_version_id else row.data).get('structure', {}).get('assignments', {})
+            base = [{**f, 'section': f.get('section') or mapping.get(f['id'])} for f in base]
+        facts = apply_block_patches(base, body.blocks, body.approved_fact_ids) if body.blocks else apply_patches(base, body.patches, body.approved_fact_ids)
         structure = refresh_structure(facts, version.data.get('structure') if body.base_version_id else row.data.get('structure'))
         # Each generated version has its own durable human approval checkpoint.
         approval_id = uid()
         approvals.approve(request.app.state.db, user.id, approval_id, [f["id"] for f in base], body.approved_fact_ids)
-        version = save(db, user.id, "resume_version", {"facts": facts, "patches": [p.model_dump() for p in body.patches], "approved_fact_ids": body.approved_fact_ids, "approval_thread_id": approval_id, "base_version_id": body.base_version_id, "template": body.template, "status": "pending", "notice": "人工确认改写草稿；新增语义无法仅靠规则完全验证，请逐段复核。"}, sid)
+        version = save(db, user.id, "resume_version", {"facts": facts, "patches": [p.model_dump() for p in body.patches], "blocks": [b.model_dump() for b in body.blocks], "approved_fact_ids": body.approved_fact_ids, "approval_thread_id": approval_id, "base_version_id": body.base_version_id, "template": body.template, "status": "pending", "notice": "人工确认改写草稿；新增语义无法仅靠规则完全验证，请逐段复核。"}, sid)
         version.data = {**version.data, 'structure':structure}
         role = row.data['context'].get('role_raw') or next((r['name'] for r in catalog()['roles'] if r['id']==row.data['context']['role']), '')
         tex = render_tex(version.id, facts, body.template, structure, role)
@@ -175,6 +182,42 @@ def suggest_rewrite(sid: str, body: SuggestRewrite, request: Request, user=Depen
         trace(db, user.id, "career_resume_graph", sid, [{"node": "suggest_patch", "fact_ids": body.approved_fact_ids, "model": result["model"]}, {"node": "await_patch_review"}])
         db.commit()
         return result
+
+
+@router.get('/sessions/{sid}/editing-blocks')
+def editing_blocks(sid: str, request: Request, base_version_id: str | None = None, user=Depends(current_user)):
+    with request.app.state.db() as db:
+        row = owned(db, sid, user.id, 'career', lock=True)
+        if not row.data['confirmed']:
+            raise HTTPException(409, '请先确认解析事实')
+        base = row
+        if base_version_id:
+            base = owned(db, base_version_id, user.id, 'resume_version', lock=True)
+            if base.parent_id != sid:
+                raise HTTPException(422, '版本不属于当前简历')
+        if 'editing_blocks' not in base.data:
+            blocks = group_blocks(base.data['facts'], base.data.get('structure') or {})
+            base.data = {**base.data, 'editing_blocks': blocks}
+            db.commit()
+        return {'blocks': base.data['editing_blocks']}
+
+
+@router.post('/sessions/{sid}/block-dialogue')
+def block_dialogue(sid: str, body: BlockDialogue, request: Request, user=Depends(current_user)):
+    with request.app.state.db() as db:
+        row = owned(db, sid, user.id, 'career')
+        if not row.data['confirmed']:
+            raise HTTPException(409, '请先确认解析事实')
+        base = row
+        if body.base_version_id:
+            base = owned(db, body.base_version_id, user.id, 'resume_version')
+            if base.parent_id != sid:
+                raise HTTPException(422, '版本不属于当前简历')
+        context = row.data['context']
+        evidence = career_evidence(db, context, context.get('jd',''), body.message, owner_id=user.id)
+        mapping = base.data.get('structure', {}).get('assignments', {})
+        facts = [{**f, 'section': f.get('section') or mapping.get(f['id'])} for f in base.data['facts']]
+        return discuss_block(facts, body, context.get('jd',''), evidence, context)
 
 
 @router.post("/sessions/{sid}/feedback")

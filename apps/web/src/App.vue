@@ -46,7 +46,9 @@ function trap(e: KeyboardEvent) {
 .header-settings{font-size:13px;white-space:nowrap}
 .header-settings:hover,.header-settings.router-link-active{color:var(--blue)}
 .assistant-drawer{display:flex;flex-direction:column;overflow:hidden}
-.assistant-drawer.expanded{width:100%;max-width:none}
+.assistant-drawer.expanded{width:100%;max-width:none;padding-inline:max(24px,calc((100vw - 1120px)/2));border-left:0}
+.expanded :deep(.chat-panel){width:100%;margin-inline:auto}
+@media(max-width:760px){.assistant-drawer.expanded{padding-inline:20px}}
 .drawer-actions{display:flex;align-items:center;gap:16px}
 .drawer-header{flex-shrink:0}
 @media(max-width:760px){.brand{gap:8px}.brand-mark{width:26px;height:26px}.header-settings{font-size:12px}}

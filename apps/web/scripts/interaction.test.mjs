@@ -235,104 +235,73 @@ test('bulk authorization toggles off and experience toggle preserves other selec
   assert.deepEqual(Array.from(editor.approved.value), [])
 })
 
-test('suggestions remain separate until confirmed and never generate a version', async () => {
-  const calls = []
-  let reply
-  const editor = careerEditor({ post: (path, body) => { calls.push({ path, body }); return new Promise(resolve => { reply = resolve }) } })
-  editor.facts.value = [{ id: 'f1', text: '原文' }]
-  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
-  editor.approved.value = ['f1']
-  editor.rewriteInstruction.value = '突出个人行动'
-  const task = editor.suggest()
-  assert.equal(editor.suggesting.value, true)
-  assert.equal(editor.generating.value, false)
-  reply({ patches: [{ fact_id: 'f1', text: '建议改写', reason: '表达更清晰' }] })
-  await task
-  assert.equal(editor.draftFacts.value[0].text, '原文')
-  assert.equal(editor.pendingSuggestions.value.f1.text, '建议改写')
-  assert.equal(calls.length, 1)
-  assert.ok(calls[0].path.endsWith('/suggest-rewrite'))
-  assert.equal(calls[0].body.instruction, '突出个人行动')
-  editor.acceptSuggestion('f1')
-  assert.equal(editor.draftFacts.value[0].text, '建议改写')
+function readyBlock(editor, text = '原文') {
+  editor.facts.value = [{ id:'f1', text:'原文', section:'experience' }, { id:'f2', text:'第二行', section:'experience' }]
+  editor.draftFacts.value = editor.facts.value.map(f=>({...f}))
+  editor.blockRows.value = [{ id:'f1', title:'实习经历 1', fact_ids:['f1','f2'], text, original:'原文' }]
+  editor.approved.value = ['f1','f2']
+  return editor.blockRows.value[0]
+}
+
+test('block dialogue opens with the whole current experience and only confirmation replaces it', () => {
+  const editor = careerEditor()
+  const block = readyBlock(editor)
+  editor.openBlock(block)
+  assert.equal(editor.activeBlockId.value, 'f1')
+  assert.equal(editor.blockChats.value.f1.original, '原文')
+  assert.equal(block.text, '原文')
+  editor.acceptBlock('整块新内容', '原文')
+  assert.equal(block.text, '整块新内容')
   assert.equal(editor.facts.value[0].text, '原文')
-  assert.equal(editor.pendingSuggestions.value.f1, undefined)
+  assert.equal(editor.activeBlockId.value, '')
   assert.equal(editor.versions.value.length, 0)
 })
 
-test('suggestion cannot overwrite text edited after the suggestion was generated', async () => {
-  const editor = careerEditor({ post: async () => ({ patches: [{ fact_id: 'f1', text: '建议', reason: '说明' }] }) })
-  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
+test('partially authorized blocks cannot open AI rewrite or generate a version', () => {
+  const editor = careerEditor()
+  const block = readyBlock(editor, '改写')
   editor.approved.value = ['f1']
-  await editor.suggest()
-  editor.draftFacts.value[0].text = '手动新内容'
-  editor.acceptSuggestion('f1')
-  assert.equal(editor.draftFacts.value[0].text, '手动新内容')
-  assert.ok(editor.error.value)
+  editor.openBlock(block)
+  assert.equal(editor.activeBlockId.value, '')
+  assert.equal(editor.hasChanges.value, false)
 })
 
-test('requesting suggestions without authorization gives a useful message', async () => {
-  const editor = careerEditor({ post: () => { throw new Error('must not call API') } })
-  await editor.suggest()
-  assert.match(editor.error.value, /授权/)
+test('a stale block suggestion cannot overwrite a manual edit', () => {
+  const editor = careerEditor()
+  const block = readyBlock(editor)
+  editor.openBlock(block)
+  block.text = '手动新内容'
+  editor.acceptBlock('过期建议', '原文')
+  assert.equal(block.text, '手动新内容')
+  assert.match(editor.error.value, /原文已修改/)
 })
 
-test('only a confirmed suggestion is sent to version generation with the selected template', async () => {
+test('version generation sends an authorized whole block and selected template', async () => {
   const calls = []
-  const editor = careerEditor({
-    post: async (path, body) => {
-      calls.push({ path, body })
-      if (path.endsWith('/suggest-rewrite')) return { patches: [{ fact_id: 'f1', text: '确认后的新表达', reason: '更清晰' }] }
-      return { id: 'v1', facts: [{ id: 'f1', text: '确认后的新表达' }] }
-    },
-    api: async () => ({ job: { status: 'queued' } })
-  })
-  editor.facts.value = [{ id: 'f1', text: '原文' }]
-  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
-  editor.approved.value = ['f1']
+  const editor = careerEditor({ post:async(path,body)=>{ calls.push({path,body}); return {id:'v1',facts:[{id:'f1',text:'完整新经历'}]} }, api:async()=>({job:{status:'queued'}}) })
+  readyBlock(editor, '完整新经历')
   editor.template.value = 'classic-cn'
-  await editor.suggest()
   await editor.rewrite()
   assert.equal(calls.length, 1)
-  assert.equal(editor.versions.value.length, 0)
-  editor.acceptSuggestion('f1')
-  await editor.rewrite()
-  assert.equal(calls.length, 2)
-  assert.ok(calls[1].path.endsWith('/approve-rewrite'))
-  assert.equal(calls[1].body.patches[0].text, '确认后的新表达')
-  assert.equal(calls[1].body.template, 'classic-cn')
+  assert.equal(calls[0].body.blocks[0].text, '完整新经历')
+  assert.deepEqual(Array.from(calls[0].body.blocks[0].fact_ids), ['f1','f2'])
+  assert.equal(calls[0].body.template, 'classic-cn')
   assert.equal(editor.versions.value.length, 1)
 })
 
-test('failed suggestion request restores controls and preserves the original text', async () => {
-  const editor = careerEditor({ post: async () => { throw new Error('模型服务暂不可用') } })
-  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
-  editor.approved.value = ['f1']
-  await editor.suggest()
-  assert.equal(editor.suggesting.value, false)
-  assert.equal(editor.generating.value, false)
-  assert.equal(editor.draftFacts.value[0].text, '原文')
-  assert.match(editor.error.value, /模型服务/)
-})
-
-test('a suggestion response from a previous resume view is discarded', async () => {
-  let reply
-  const editor = careerEditor({ post: () => new Promise(resolve => { reply = resolve }) })
-  editor.draftFacts.value = [{ id: 'f1', text: '原文' }]
-  editor.approved.value = ['f1']
-  const task = editor.suggest()
-  editor.resetSuggestions()
-  reply({ patches: [{ fact_id: 'f1', text: '过期建议' }] })
-  await task
-  assert.equal(editor.pendingCount.value, 0)
-  assert.equal(editor.draftFacts.value[0].text, '原文')
+test('closing and reopening the same unmodified block preserves its dialogue', () => {
+  const editor = careerEditor()
+  const block = readyBlock(editor)
+  editor.openBlock(block)
+  editor.blockChats.value.f1.turns.push({message:'突出调研',text:'建议内容'})
+  editor.activeBlockId.value = ''
+  editor.openBlock(block)
+  assert.equal(editor.blockChats.value.f1.turns.length, 1)
 })
 
 test('version generation errors belong to the confirmation action rather than suggestion feedback', async () => {
   const editor = careerEditor({post:async()=>{throw new Error('具体字段错误')}})
-  editor.facts.value=[{id:'f1',text:'原文'}]
-  editor.draftFacts.value=[{id:'f1',text:'修改'}]
-  editor.approved.value=['f1']
+  readyBlock(editor, '修改')
   await editor.rewrite()
   assert.equal(editor.error.value,'')
   assert.equal(editor.versionError.value,'具体字段错误')
@@ -341,9 +310,7 @@ test('version generation errors belong to the confirmation action rather than su
 
 test('artifact loading failure does not turn a saved version into a generation failure', async () => {
   const editor = careerEditor({post:async()=>({id:'saved',facts:[{id:'f1',text:'修改'}]}),api:async()=>{throw new Error('下载信息暂不可用')}})
-  editor.facts.value=[{id:'f1',text:'原文'}]
-  editor.draftFacts.value=[{id:'f1',text:'修改'}]
-  editor.approved.value=['f1']
+  readyBlock(editor, '修改')
   await editor.rewrite()
   assert.equal(editor.versions.value.length,1)
   assert.match(editor.versionNotice.value,/已保存/)
@@ -351,12 +318,12 @@ test('artifact loading failure does not turn a saved version into a generation f
   assert.equal(editor.approved.value.length,0)
 })
 
-function chatPanel(api = async () => []) {
+function chatPanel(api = async () => [], post = async () => ({ context_after: 2 })) {
   const { descriptor } = parse(readFileSync(new URL('../src/components/ChatPanel.vue', import.meta.url), 'utf8'))
   const context = vm.createContext({ exports: {}, require: name => {
     if (name === 'vue') return { ...vue, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ query: {} }), useRouter: () => ({}) }
-    if (name === '../state') return { state: { user: { id: 'test' } }, api }
+    if (name === '../state') return { state: { user: { id: 'test' } }, api, post }
     return {}
   } })
   vm.runInContext(compile(compileScript(descriptor, { id: 'chat-test' }).content), context)
@@ -401,4 +368,55 @@ test('resume history stays loading until its version list is ready', async () =>
   finish([])
   await pending
   assert.equal(editor.sessionLoading.value, false)
+})
+
+test('clearing context hides previous turns without deleting saved messages', async () => {
+  const chat = chatPanel()
+  chat.conversation.value = 'saved'
+  chat.messages.value = [{ turn: 1 }, { turn: 2 }]
+  await chat.clearContext()
+  assert.equal(chat.visibleMessages.value.length, 0)
+  assert.equal(chat.messages.value.length, 2)
+  chat.messages.value.push({ turn: 3 })
+  assert.equal(chat.visibleMessages.value.length, 1)
+  await chat.restore('')
+  assert.equal(chat.contextAfter.value, 0)
+})
+
+function blockDialog(post) {
+  const events=[]
+  const { descriptor } = parse(readFileSync(new URL('../src/components/BlockRewriteDialog.vue', import.meta.url), 'utf8'))
+  const context = vm.createContext({ exports:{}, document:{body:{style:{overflow:''}}}, require:name=>{
+    if(name==='vue') return {...vue,onMounted(){},onBeforeUnmount(){}}
+    if(name==='../state') return {post}
+    return {}
+  } })
+  vm.runInContext(compile(compileScript(descriptor,{id:'block-dialog-test'}).content),context)
+  const dialogue={turns:[],draft:'突出调研',original:'当前整段原文'}
+  const component=context.exports.default.setup({block:{fact_ids:['f1','f2']},sessionId:'resume',baseVersionId:'v1',dialogue},{expose(){},emit:(...args)=>events.push(args)})
+  return {component,dialogue,events}
+}
+
+test('block rewrite sends current text and multi-turn context while leaving the original unchanged', async()=>{
+  const requests=[]
+  const app=blockDialog(async(path,body)=>{requests.push(body);return {text:'完整新建议',analysis:'与岗位要求关联',questions:'',citations:[]}})
+  await app.component.ask()
+  assert.equal(requests[0].draft_text,'当前整段原文')
+  assert.equal(requests[0].base_version_id,'v1')
+  assert.equal(app.dialogue.original,'当前整段原文')
+  assert.equal(app.events.length,0)
+  app.dialogue.draft='再简洁一点'
+  await app.component.ask()
+  assert.equal(requests[1].draft_text,'完整新建议')
+  assert.equal(requests[1].history[0].message,'突出调研')
+  assert.equal(app.dialogue.turns.length,2)
+})
+
+test('failed block rewrite retains requirements and existing conversation for retry', async()=>{
+  const app=blockDialog(async()=>{throw new Error('模型服务暂不可用')})
+  await app.component.ask()
+  assert.equal(app.component.busy.value,false)
+  assert.equal(app.dialogue.draft,'突出调研')
+  assert.equal(app.dialogue.turns.length,0)
+  assert.match(app.component.error.value,/模型服务/)
 })

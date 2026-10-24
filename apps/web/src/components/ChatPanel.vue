@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import LoadingState from './LoadingState.vue'
-import { ref, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, post, state } from '../state'
 import Composer from './Composer.vue'
@@ -11,7 +11,8 @@ const draft = ref(''), busy = ref(false), error = ref(''), messages = ref<any[]>
 const conversation = ref(''), threads = ref<any[]>([]), contextAfter = ref(0), legacy = ref(false)
 const scope = ref(props.scope || 'global'), documentId = ref(props.documentId || ''), sessionId = ref(props.sessionId || '')
 const messageList = ref<HTMLElement>()
-const restoring = ref(false)
+const restoring = ref(false), showPrevious = ref(false)
+const visibleMessages = computed(() => showPrevious.value ? messages.value : messages.value.filter(m => !m.turn || m.turn > contextAfter.value))
 function shortTitle(title: string) {
   const characters = Array.from(title.replace(/\s+/g, ' ').trim())
   return characters.length > 14 ? characters.slice(0, 13).join('') + '…' : characters.join('')
@@ -24,7 +25,7 @@ async function list() {
 }
 function resetView() {
   generation++; busy.value=false; restoring.value=false
-  conversation.value=''; messages.value=[]; draft.value=''; contextAfter.value=0; legacy.value=false
+  conversation.value=''; messages.value=[]; draft.value=''; contextAfter.value=0; legacy.value=false; showPrevious.value=false
   scope.value=props.scope || 'global'; documentId.value=props.documentId || ''; sessionId.value=props.sessionId || ''
 }
 async function newChat() {
@@ -39,16 +40,19 @@ async function restore(id:string) {
     const row=await api('/ai/conversations/'+id)
     if(current!==generation) return
     conversation.value=row.id; scope.value=row.scope; documentId.value=row.document_id || ''; sessionId.value=row.session_id || ''
-    contextAfter.value=row.context_after || 0; legacy.value=!!row.legacy
+    showPrevious.value=false; contextAfter.value=row.context_after || 0; legacy.value=!!row.legacy
     messages.value=row.messages.map((m:any)=>({question:m.message, turn:m.turn, ...m.response}))
     void list().catch(() => {})
   } catch(e:any) { if(current===generation) {resetView(); error.value=e.message} } finally { if(current===generation) {busy.value=false; restoring.value=false} }
 }
 async function clearContext() {
   if (!conversation.value || busy.value) return
+  const current=generation
   busy.value=true; error.value=''
-  try { const row=await post('/ai/conversations/'+conversation.value+'/reset',{}); contextAfter.value=row.context_after }
-  catch(e:any) {error.value=e.message} finally {busy.value=false}
+  try {
+    const row=await post('/ai/conversations/'+conversation.value+'/reset',{})
+    if(current===generation) {contextAfter.value=row.context_after; showPrevious.value=false}
+  } catch(e:any) {if(current===generation) error.value=e.message} finally {if(current===generation) busy.value=false}
 }
 async function remove() {
   if (!conversation.value || !window.confirm('删除此会话的所有问答和引用？此操作无法恢复。')) return
@@ -62,12 +66,13 @@ async function ask() {
   const question = draft.value
   const current=generation
   const pendingIndex=messages.value.length
-  messages.value.push({question, turn:pendingIndex+1, pending:true, answer:'', citations:[]})
+  const turn=Math.max(contextAfter.value, ...messages.value.map(m=>m.turn || 0)) + 1
+  messages.value.push({question, turn, pending:true, answer:'', citations:[]})
   draft.value=''
   try {
     const result = await post('/ai/chat', { ...state.context, message: question, scope: scope.value, document_id: documentId.value || null, session_id: sessionId.value || null, conversation_id: conversation.value || null })
     if(current!==generation) return
-    conversation.value=result.conversation_id || ''; messages.value[pendingIndex]={question, turn:pendingIndex+1, ...result}
+    conversation.value=result.conversation_id || ''; messages.value[pendingIndex]={question, turn, ...result}
     if(conversation.value && !threads.value.some(t=>t.id===conversation.value)) threads.value.unshift({id:conversation.value,title:question.slice(0,80)})
   } catch (e: any) { if(current===generation) {messages.value.splice(pendingIndex,1); draft.value=question; error.value = e.message} } finally { if(current===generation) busy.value = false }
 }
@@ -103,9 +108,9 @@ watch(()=>[messages.value.length,error.value,busy.value], async()=>{
     <p v-if="!state.user" class="meta">登录后可保存并恢复问答。访客问答仅在当前页面可见。</p>
     <p v-if="legacy" class="notice">这是旧版单条问答记录。可查看或删除；继续提问请新建会话。</p>
     <p v-if="scope !== (props.scope || 'global')" class="meta">已恢复原会话范围：{{scope}}。新建会话可回到当前页面范围。</p>
-    <p v-if="contextAfter" class="notice">已清空前 {{contextAfter}} 轮的上下文。记录仍可查看，后续提问不会发送这些旧消息。</p>
+    <p v-if="contextAfter" class="notice">已清空前 {{contextAfter}} 轮的上下文。旧消息已从当前窗口隐藏，历史记录保留。<button class="text-link" @click="showPrevious = !showPrevious">{{ showPrevious ? '隐藏旧消息' : '查看旧消息' }}</button></p>
     <LoadingState v-if="restoring" label="正在加载历史对话…" compact />
-    <div v-for="(message, index) in messages" :key="index" class="message-pair">
+    <div v-for="(message, index) in visibleMessages" :key="index" class="message-pair">
       <p class="question">{{ message.question }}</p><p v-if="message.pending" class="thinking meta" role="status">正在思考…</p><template v-else><p class="provider-label">{{ message.provider === 'mock' ? '旧版记录' : message.model }}{{message.turn <= contextAfter ? ' · 已移出上下文' : ''}}</p><Markdown class="answer chat-answer" :source="message.answer || ''" /></template>
       <div class="citations"><RouterLink v-for="c in message.citations" :key="c.chunk_id" :to="c.url + '?heading=' + encodeURIComponent(c.heading_path)">{{ c.title }} · {{ c.heading_path }} ↗</RouterLink></div>
       <p class="meta">{{ message.limitations }}</p>
@@ -127,7 +132,7 @@ watch(()=>[messages.value.length,error.value,busy.value], async()=>{
 .docked .chat-messages{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 .docked :deep(.composer){flex-shrink:0;margin-top:16px;max-height:55%;overflow-y:auto}
 .docked :deep(.composer textarea){max-height:30dvh}
-.chat-answer{white-space:normal}
+.chat-answer{white-space:normal;max-width:none}
 .chat-answer :deep(h1),.chat-answer :deep(h2){font-size:21px;margin:20px 0 12px}
 .chat-answer :deep(h3){font-size:18px;margin:16px 0 10px}
 .chat-answer :deep(pre){overflow-x:auto;max-width:100%}
