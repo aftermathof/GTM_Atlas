@@ -459,6 +459,34 @@ test('resume cleaning handles mixed bullets and heading glyphs without erasing m
   assert.equal(cleanResumeText('• ϻ教育背景\nϻ • 实习经历\nϻ\nϻvar Andersen\nμ = 20\nϻ = 3'), '教育背景\n实习经历\n\nϻvar Andersen\nμ = 20\nϻ = 3')
 })
 
+test('both resume screens clean arbitrary decorative heading prefixes and flag unreadable body text',()=>{
+  const {cleanResumeText}=resumeText()
+  for (const prefix of ['ˌ ', 'ë ', 'Ӝ ', '¤ ', '• ë ', 'ˌ\të ', '\uFFFD ']) {
+    for (const heading of ['项目经历','实习经历','教育背景','工作经历','技能特长']) {
+      assert.equal(cleanResumeText(prefix+heading),heading)
+    }
+  }
+  assert.equal(cleanResumeText('Zoë Müller\në 是荷兰语变音字母\nμ = 20\nGTM 项目经历\nC++ / C#\n姓名：张\uFFFD'), 'Zoë Müller\në 是荷兰语变音字母\nμ = 20\nGTM 项目经历\nC++ / C#\n姓名：张[待确认]')
+})
+
+test('loading saved facts and a historical version applies the same heading cleanup',async()=>{
+  const facts=[{id:'f0',text:'ˌ 项目经历',section:'projects'},{id:'f1',text:'ë 实习经历',section:'experience'}]
+  const editor=careerEditor({api:async path=>{
+    if(path==='/career/sessions/test') return {facts,confirmed:true}
+    if(path.endsWith('/versions')) return []
+    if(path.includes('/editing-blocks')) return {blocks:[{id:'f0',fact_ids:['f0']},{id:'f1',fact_ids:['f1']}]}
+    if(path.endsWith('/artifacts')) return {pdf:null}
+    throw new Error('Unexpected route: '+path)
+  }})
+  await editor.load()
+  assert.deepEqual(Array.from(editor.facts.value,f=>f.text),['项目经历','实习经历'])
+  await editor.selectVersion({id:'v1',facts})
+  editor.tab.value='editor'
+  await editor.loadBlocks()
+  assert.deepEqual(Array.from(editor.blockRows.value,b=>b.text),['项目经历','实习经历'])
+  assert.equal(facts[0].text,'ˌ 项目经历')
+})
+
 
 test('authorize all excludes unlocked lines inside a locked merged education block',()=>{
   const editor=careerEditor()
