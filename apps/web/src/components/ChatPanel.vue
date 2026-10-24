@@ -70,10 +70,17 @@ watch(()=>[props.scope,props.documentId,props.sessionId,props.conversationId,sta
   if(props.conversationId && state.user) await restore(props.conversationId)
   else {try {await list()} catch(e:any){error.value=e.message}}
 }, {immediate:true})
-defineExpose({ setQuestion: (q: string) => { draft.value = q } })
+async function submitQuestion(question: string) {
+  if (busy.value) return
+  await newChat()
+  draft.value = question
+  await ask()
+}
+defineExpose({ setQuestion: (q: string) => { draft.value = q }, submitQuestion })
+watch(busy, value => { if (props.docked) state.assistantBusy = value }, {flush:'sync', immediate:true})
 watch(()=>[messages.value.length,error.value,busy.value], async()=>{
   await nextTick()
-  if(props.docked && messageList.value) messageList.value.scrollTop=messageList.value.scrollHeight
+  if(messageList.value) messageList.value.scrollTop=messageList.value.scrollHeight
 })
 </script>
 <template>
@@ -86,7 +93,7 @@ watch(()=>[messages.value.length,error.value,busy.value], async()=>{
       <button v-if="conversation && !legacy" class="text-link" :disabled="busy" @click="clearContext">清空上下文</button>
       <button v-if="conversation" class="text-link" :disabled="busy" @click="remove">删除会话</button>
     </div>
-    <div ref="messageList" class="chat-messages">
+    <div ref="messageList" class="chat-messages" role="region" aria-label="对话记录" tabindex="0">
     <p v-if="!state.user" class="meta">登录后可保存并恢复问答。访客问答仅在当前页面可见。</p>
     <p v-if="legacy" class="notice">这是旧版单条问答记录。可查看或删除；继续提问请新建会话。</p>
     <p v-if="scope !== (props.scope || 'global')" class="meta">已恢复原会话范围：{{scope}}。新建会话可回到当前页面范围。</p>
@@ -104,6 +111,8 @@ watch(()=>[messages.value.length,error.value,busy.value], async()=>{
 <style scoped>
 .chat-toolbar{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:24px}
 .chat-toolbar select{max-width:280px;min-width:0}
+.chat-messages{overflow-y:auto;overscroll-behavior:contain;overflow-wrap:anywhere;scrollbar-gutter:stable}
+.chat-panel:not(.docked) .chat-messages{max-height:min(60dvh,640px)}
 .docked{display:flex;flex-direction:column;flex:1;min-height:0}
 .docked .chat-toolbar{flex-shrink:0}
 .docked .chat-messages{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}

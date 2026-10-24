@@ -6,6 +6,7 @@ from collections import Counter
 from pathlib import Path
 import yaml
 from sqlalchemy import select, delete, text
+from sqlalchemy.orm import load_only, defer
 from services.api.db import Document, Chunk
 from services.api.config import ROOT
 from packages.agent_core.providers import EmbeddingProvider
@@ -95,7 +96,10 @@ def ingest(db, root=None, reference_root=None):
 
 
 def search(db, query, kind=None, role="", industry="", document_id=None, top_k=6, include_demo=True):
-    statement = select(Chunk, Document).join(Document, Chunk.doc_id == Document.id)
+    statement = select(Chunk, Document).join(Document, Chunk.doc_id == Document.id).options(
+        load_only(Document.id, Document.title, Document.kind, Document.meta))
+    if db.bind.dialect.name == 'postgresql':
+        statement = statement.options(defer(Chunk.embedding))
     if kind:
         statement = statement.where(Document.kind == kind)
     if document_id:
@@ -133,7 +137,9 @@ def search(db, query, kind=None, role="", industry="", document_id=None, top_k=6
         model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
         eligible = {c["chunk"].id for c in candidates if c["chunk"].embedding_model == model}
         if db.bind.dialect.name == "postgresql" and eligible:
-            ranked = db.scalars(select(Chunk).where(Chunk.id.in_(eligible)).order_by(Chunk.embedding.cosine_distance(vector)).limit(20)).all()
+            ranked_ids = db.scalars(select(Chunk.id).where(Chunk.id.in_(eligible)).order_by(Chunk.embedding.cosine_distance(vector)).limit(20)).all()
+            by_chunk_id = {c['chunk'].id: c['chunk'] for c in candidates}
+            ranked = [by_chunk_id[cid] for cid in ranked_ids]
         else:
             def cosine(c):
                 v = c["chunk"].embedding

@@ -9,7 +9,11 @@ import Utility from './pages/Utility.vue'
 import Glossary from './pages/Glossary.vue'
 import './style.css'
 
-const router = createRouter({ history: createWebHistory(), scrollBehavior: () => ({ top: 0 }), routes: [
+const router = createRouter({ history: createWebHistory(), scrollBehavior: (to, from, savedPosition) => {
+  if (savedPosition) return savedPosition
+  if (to.path === from.path) return false
+  return { top: 0 }
+}, routes: [
   { path: '/', component: Home },
   { path: '/glossary', component: Glossary },
   { path: '/learn/:slug?', component: Learn },

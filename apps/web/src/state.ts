@@ -1,31 +1,51 @@
 import { reactive } from 'vue'
 
 export const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+const knowledgeCache = new Map<string, { expires: number; pending: Promise<any> }>()
+
+if (!localStorage.getItem('atlas-token') && sessionStorage.getItem('atlas-token')) {
+  for (const key of ['atlas-token', 'atlas-refresh']) {
+    const value = sessionStorage.getItem(key)
+    if (value) localStorage.setItem(key, value)
+  }
+}
+sessionStorage.removeItem('atlas-token'); sessionStorage.removeItem('atlas-refresh')
 
 export const state = reactive({
   user: null as any,
-  token: sessionStorage.getItem('atlas-token') || '',
+  token: localStorage.getItem('atlas-token') || '',
   context: { role: '', role_raw: '', industry: '', language: 'zh-CN', region: '', seniority: 'intern', business_model: 'unknown' },
   roles: [] as any[], industries: [] as any[], health: null as any,
-  assistant: false, scope: 'global', documentId: '', careerId: '', notice: ''
+  assistant: false, assistantBusy: false, assistantRequest: null as { question: string } | null,
+  scope: 'global', documentId: '', careerId: '', notice: ''
 })
 
 export function saveSession(value: any) {
+  knowledgeCache.clear()
   state.token = value.token
-  sessionStorage.setItem('atlas-token', value.token)
-  if (value.refresh_token) sessionStorage.setItem('atlas-refresh', value.refresh_token)
-  else sessionStorage.removeItem('atlas-refresh')
+  localStorage.setItem('atlas-token', value.token)
+  if (value.refresh_token) localStorage.setItem('atlas-refresh', value.refresh_token)
+  else localStorage.removeItem('atlas-refresh')
 }
 
 export function clearSession() {
+  knowledgeCache.clear()
   state.user = null; state.token = ''
+  localStorage.removeItem('atlas-token'); localStorage.removeItem('atlas-refresh')
   sessionStorage.removeItem('atlas-token'); sessionStorage.removeItem('atlas-refresh')
 }
+
+window.addEventListener('storage', event => {
+  if (event.storageArea !== localStorage || (event.key !== 'atlas-token' && event.key !== null)) return
+  knowledgeCache.clear()
+  state.token = event.key === null ? '' : event.newValue || ''
+  if (!state.token) state.user = null
+})
 
 let refreshing: Promise<void> | null = null
 async function refreshSession() {
   if (!refreshing) refreshing = (async () => {
-    const token = sessionStorage.getItem('atlas-refresh')
+    const token = localStorage.getItem('atlas-refresh')
     if (!token) throw new Error('请重新登录')
     const r = await fetch(API_ORIGIN + '/api/v1/auth/refresh', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({refresh_token:token}) })
     if (!r.ok) {
@@ -42,7 +62,7 @@ export async function authorizedFetch(path: string, options: RequestInit = {}): 
   if (state.token) headers.set('Authorization', `Bearer ${state.token}`)
   if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   let r = await fetch(API_ORIGIN + path, { ...options, headers })
-  if (r.status === 401 && sessionStorage.getItem('atlas-refresh') && !path.startsWith('/api/v1/auth/login') && !path.startsWith('/api/v1/auth/register')) {
+  if (r.status === 401 && localStorage.getItem('atlas-refresh') && !path.startsWith('/api/v1/auth/login') && !path.startsWith('/api/v1/auth/register')) {
     await refreshSession()
     headers.set('Authorization', `Bearer ${state.token}`)
     r = await fetch(API_ORIGIN + path, {...options, headers})
@@ -57,7 +77,22 @@ export async function api(path: string, options: RequestInit = {}): Promise<any>
     if (r.status === 401 && !path.startsWith('/auth/login')) clearSession()
     throw new Error(typeof body.detail === 'string' ? body.detail : `请求失败 (${r.status})，请检查输入`)
   }
+  if ((options.method || 'GET').toUpperCase() !== 'GET') knowledgeCache.clear()
   return r.json()
+}
+
+export async function knowledgeDocuments(query: string) {
+  const key = state.token + '\n' + query
+  const saved = knowledgeCache.get(key)
+  if (saved && saved.expires > Date.now()) return saved.pending
+  if (knowledgeCache.size >= 32) knowledgeCache.delete(knowledgeCache.keys().next().value!)
+  const pending = api('/knowledge/documents?' + query)
+  knowledgeCache.set(key, { expires: Date.now() + 60_000, pending })
+  try { return await pending }
+  catch (error) {
+    if (knowledgeCache.get(key)?.pending === pending) knowledgeCache.delete(key)
+    throw error
+  }
 }
 
 export function post(path: string, body: any) { return api(path, { method: 'POST', body: JSON.stringify(body) }) }

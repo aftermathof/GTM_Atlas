@@ -1,0 +1,179 @@
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { test } from 'node:test'
+import vm from 'node:vm'
+import ts from 'typescript'
+
+const source = readFileSync(new URL('../src/state.ts', import.meta.url), 'utf8')
+const compiled = ts.transpileModule(source.replace('import.meta.env.VITE_API_BASE_URL', "''"), {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
+}).outputText
+
+function storage(initial = {}) {
+  const values = new Map(Object.entries(initial))
+  return {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, String(value)),
+    removeItem: key => values.delete(key)
+  }
+}
+
+function load(localStorage = storage(), sessionStorage = storage(), fetch = async () => {
+  throw new Error('Unexpected network request')
+}, clock = Date) {
+  const listeners = new Map()
+  const context = vm.createContext({
+    exports: {}, localStorage, sessionStorage, fetch, Headers, FormData, Date: clock,
+    window: { addEventListener: (name, handler) => listeners.set(name, handler) },
+    require: name => {
+      assert.equal(name, 'vue')
+      return { reactive: value => value }
+    }
+  })
+  vm.runInContext(compiled, context)
+  return { ...context.exports, localStorage, sessionStorage, listeners }
+}
+
+test('login survives closing a tab and recreating application state', () => {
+  const disk = storage()
+  load(disk).saveSession({ token: 'access', refresh_token: 'refresh' })
+  const reopened = load(disk)
+  assert.equal(reopened.state.token, 'access')
+  assert.equal(disk.getItem('atlas-refresh'), 'refresh')
+  assert.equal(reopened.sessionStorage.getItem('atlas-token'), null)
+})
+
+test('application startup restores the signed-in user from persistent credentials', async () => {
+  const app = load(storage({ 'atlas-token': 'access', 'atlas-refresh': 'refresh' }), storage(), async (url, options) => {
+    if (url.endsWith('/auth/me')) {
+      assert.equal(options.headers.get('Authorization'), 'Bearer access')
+      return new Response(JSON.stringify({ id: 'user', preferences: { role: 'gtm' } }))
+    }
+    return new Response(JSON.stringify(url.endsWith('/health') ? { status: 'ok' } : []))
+  })
+  await app.initialize()
+  assert.equal(app.state.user.id, 'user')
+  assert.equal(app.state.context.role, 'gtm')
+})
+
+test('existing tab session migrates once to persistent storage', () => {
+  const old = storage({ 'atlas-token': 'old-access', 'atlas-refresh': 'old-refresh' })
+  const app = load(storage(), old)
+  assert.equal(app.localStorage.getItem('atlas-token'), 'old-access')
+  assert.equal(app.localStorage.getItem('atlas-refresh'), 'old-refresh')
+  assert.equal(old.getItem('atlas-token'), null)
+  assert.equal(old.getItem('atlas-refresh'), null)
+})
+
+test('newer persistent session wins over an older tab session', () => {
+  const disk = storage({ 'atlas-token': 'new', 'atlas-refresh': 'new-refresh' })
+  const old = storage({ 'atlas-token': 'old', 'atlas-refresh': 'old-refresh' })
+  const app = load(disk, old)
+  assert.equal(app.state.token, 'new')
+  assert.equal(disk.getItem('atlas-refresh'), 'new-refresh')
+  assert.equal(old.getItem('atlas-token'), null)
+})
+
+test('expired access refreshes, persists rotated credentials and retries request', async () => {
+  const disk = storage({ 'atlas-token': 'expired', 'atlas-refresh': 'refresh' })
+  const calls = []
+  const app = load(disk, storage(), async (url, options) => {
+    calls.push(url)
+    if (url.endsWith('/auth/refresh')) {
+      assert.equal(JSON.parse(options.body).refresh_token, 'refresh')
+      return new Response(JSON.stringify({ token: 'renewed', refresh_token: 'rotated' }))
+    }
+    return options.headers.get('Authorization') === 'Bearer renewed'
+      ? new Response(JSON.stringify({ id: 'user', preferences: {} }))
+      : new Response('{}', { status: 401 })
+  })
+  assert.equal((await app.api('/auth/me')).id, 'user')
+  assert.equal(calls.length, 3)
+  assert.equal(load(disk).state.token, 'renewed')
+  assert.equal(disk.getItem('atlas-refresh'), 'rotated')
+})
+
+test('temporary refresh network failure preserves the saved session', async () => {
+  const disk = storage({ 'atlas-token': 'expired', 'atlas-refresh': 'refresh' })
+  const app = load(disk, storage(), async url => {
+    if (url.endsWith('/auth/refresh')) throw new Error('offline')
+    return new Response('{}', { status: 401 })
+  })
+  await assert.rejects(app.api('/auth/me'), /offline/)
+  assert.equal(disk.getItem('atlas-refresh'), 'refresh')
+})
+
+test('revoked refresh session is removed rather than retried forever', async () => {
+  const disk = storage({ 'atlas-token': 'expired', 'atlas-refresh': 'revoked' })
+  const app = load(disk, storage(), async () => new Response('{}', { status: 401 }))
+  await assert.rejects(app.api('/auth/me'), /请重新登录/)
+  assert.equal(disk.getItem('atlas-token'), null)
+  assert.equal(disk.getItem('atlas-refresh'), null)
+})
+
+test('explicit logout removes saved credentials and cannot restore on reopen', () => {
+  const disk = storage({ 'atlas-token': 'access', 'atlas-refresh': 'refresh' })
+  const app = load(disk)
+  app.state.user = { id: 'user' }
+  app.clearSession()
+  assert.equal(app.state.user, null)
+  assert.equal(load(disk).state.token, '')
+  assert.equal(disk.getItem('atlas-refresh'), null)
+})
+
+test('logout in another tab clears the active user and access token', () => {
+  const app = load(storage({ 'atlas-token': 'access', 'atlas-refresh': 'refresh' }))
+  app.state.user = { id: 'user' }
+  app.listeners.get('storage')?.({ storageArea: app.localStorage, key: 'atlas-token', newValue: null })
+  assert.equal(app.state.user, null)
+  assert.equal(app.state.token, '')
+})
+
+test('revisiting or concurrently loading the same catalog reuses one request', async () => {
+  let calls = 0
+  const app = load(storage(), storage(), async () => { calls++; return new Response(JSON.stringify({ items: [{ id: 'public' }] })) })
+  await Promise.all([app.knowledgeDocuments('limit=100'), app.knowledgeDocuments('limit=100')])
+  await app.knowledgeDocuments('limit=100')
+  assert.equal(calls, 1)
+})
+
+test('catalog cache separates filters and authenticated users and clears on logout', async () => {
+  let calls = 0
+  const app = load(storage(), storage(), async () => { calls++; return new Response(JSON.stringify({ items: [] })) })
+  await app.knowledgeDocuments('role=pmm')
+  await app.knowledgeDocuments('role=sales')
+  app.saveSession({ token: 'user-access', refresh_token: 'refresh' })
+  await app.knowledgeDocuments('role=pmm')
+  app.clearSession()
+  await app.knowledgeDocuments('role=pmm')
+  assert.equal(calls, 4)
+})
+
+test('a successful upload invalidates cached knowledge lists', async () => {
+  let calls = 0
+  const app = load(storage(), storage(), async () => { calls++; return new Response(JSON.stringify({ items: [] })) })
+  await app.knowledgeDocuments('limit=100')
+  await app.api('/job-descriptions', { method: 'POST', body: '{}' })
+  await app.knowledgeDocuments('limit=100')
+  assert.equal(calls, 3)
+})
+
+test('a failed catalog request is retried instead of cached', async () => {
+  let calls = 0
+  const app = load(storage(), storage(), async () => {
+    calls++
+    return new Response(JSON.stringify({ items: [] }), { status: calls === 1 ? 503 : 200 })
+  })
+  await assert.rejects(app.knowledgeDocuments('limit=100'))
+  await app.knowledgeDocuments('limit=100')
+  assert.equal(calls, 2)
+})
+
+test('catalog cache expires after one minute', async () => {
+  let calls = 0, now = 0
+  const app = load(storage(), storage(), async () => { calls++; return new Response('{"items":[]}') }, { now: () => now })
+  await app.knowledgeDocuments('limit=100')
+  now = 60_001
+  await app.knowledgeDocuments('limit=100')
+  assert.equal(calls, 2)
+})

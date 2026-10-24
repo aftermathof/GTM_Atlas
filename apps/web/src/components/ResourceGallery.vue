@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, BookOpen, BriefcaseBusiness, MessageSquare, Search, Lock, BookA, Compass } from 'lucide-vue-next'
-import { api, state } from '../state'
+import { knowledgeDocuments, state } from '../state'
 import ContextPicker from './ContextPicker.vue'
 import GtmGlossaryPreview from './GtmGlossaryPreview.vue'
 import GtmOverview from './GtmOverview.vue'
@@ -14,7 +14,7 @@ const filtered=computed(()=>items.value.filter(d=>!d.meta.demo))
 const columns=computed(()=>kinds.filter(k=>k.id===selected.value))
 const total=computed(()=>filtered.value.filter(d=>d.kind===selected.value).length)
 let generation=0
-async function load(){const own=++generation;busy.value=true;error.value='';try{const r=await api('/knowledge/documents?'+new URLSearchParams({limit:'100',q:query.value,role:state.context.role,industry:state.context.industry}));if(own===generation)items.value=r.items}catch(e:any){if(own===generation)error.value=e.message}finally{if(own===generation)busy.value=false}}
+async function load(){const own=++generation;busy.value=true;error.value='';try{const r=await knowledgeDocuments(new URLSearchParams({limit:'100',q:query.value,role:state.context.role,industry:state.context.industry}).toString());if(own===generation)items.value=r.items}catch(e:any){if(own===generation)error.value=e.message}finally{if(own===generation)busy.value=false}}
 function choose(kind:string){router.replace({query:{...route.query,kind}})}
 function count(kind:string){return filtered.value.filter(d=>d.kind===kind).length}
 function cards(kind:string){return filtered.value.filter(d=>d.kind===kind)}

@@ -98,7 +98,7 @@ Worker 无网络、不含 Supabase/数据库密钥，只挂载 artifacts 和队�
 4. Deploy。修改 Vite 环境变量之后要重新部署，因为 API 地址在构建时写入。
 5. 确认首页、`/learn`、`/learn/ask`、`/history` 刷新能打开，`/handbook/` 及某个手册文章正常。
 
-前端直接 HTTPS 请求 API，API 通过 CORS 限定域名。API 请求/文件不会经过 Vercel Function，不受其请求体容量限制。Auth 访问凭证和刷新凭证只在当前标签页 sessionStorage；关闭标签页后需重新登录，数据库历史仍然保留。注销撤销当前刷新会话；Supabase 已签发 access JWT 的效力按项目有效期策略执行，建议短期有效期。
+前端直接 HTTPS 请求 API，API 通过 CORS 限定域名。API 请求/文件不会经过 Vercel Function，不受其请求体容量限制。Auth 访问凭证和刷新凭证保存在当前站点 localStorage，关闭标签页或浏览器后重新打开会恢复会话，访问凭证过期时自动使用刷新凭证续期；旧版 sessionStorage 会话在页面加载时迁移。主动退出会清除本地凭证并同步其他已打开标签页的退出状态，同时请求服务端撤销会话；撤销失败也会清除本地登录并显示失败信息。清除浏览器站点数据、服务端撤销或刷新会话失效后需要重新登录，临时断网不主动删除凭证。Supabase 已签发 access JWT 的效力按项目有效期策略执行，建议短期有效期。
 
 ## 5. 上线前用两个账号验收
 

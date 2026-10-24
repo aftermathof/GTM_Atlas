@@ -5,7 +5,7 @@ import { api, state } from '../state'
 const props = withDefaults(defineProps<{ modelValue: string; placeholder?: string; busy?: boolean; label?: string }>(), { placeholder: '写下你的问题，也可以用语音开始…', label: '发送' })
 const emit = defineEmits<{ 'update:modelValue': [value: string]; submit: [mode: string] }>()
 const mode = ref<'idle'|'recording'|'transcribing'|'review'|'error'>('idle')
-const error = ref(''), seconds = ref(0), showConsent = ref(false), consent = ref(false)
+const error = ref(''), seconds = ref(0)
 const starting = ref(false)
 let recorder: MediaRecorder | null = null, stream: MediaStream | null = null, timer: ReturnType<typeof setInterval> | undefined
 let abort: AbortController | null = null, chunks: Blob[] = [], canceled = false
@@ -16,7 +16,6 @@ async function start() {
   error.value = ''
   if (!state.user) { error.value = '语音输入需要登录。你仍可键盘输入。'; return }
   if (!state.health?.stt_configured) { error.value = 'STT 服务尚未配置，当前可使用文字输入。'; return }
-  if (!consent.value) { showConsent.value = true; return }
   if (starting.value) return
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { error.value = '浏览器不支持录音，请使用文字输入。'; return }
   const ownGeneration = ++generation
@@ -67,7 +66,6 @@ onBeforeUnmount(cancel)
       </div>
       <button class="primary compact" @click="send" :disabled="busy || !modelValue.trim() || ['recording','transcribing'].includes(mode)">{{ busy ? '处理中…' : label }}<Send :size="14" /></button>
     </div>
-    <div v-if="showConsent" class="voice-consent"><label><input v-model="consent" type="checkbox"> 我同意将本次录音发送至配置的 STT 服务，转写后不保存原音频。</label><button @click="showConsent = false; start()" :disabled="!consent">同意并开始录音</button></div>
     <p v-if="error" role="alert" class="error">{{ error }}</p>
   </div>
 </template>

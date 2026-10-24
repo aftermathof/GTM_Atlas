@@ -6,6 +6,7 @@ from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -41,6 +42,7 @@ def create_app(url=None):
     app = FastAPI(title="GTM Atlas API", version="0.1.0", lifespan=lifespan)
     app.state.db = factory
     app.state.mutation_lock = threading.RLock()
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(CORSMiddleware, allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(","), allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Authorization", "Content-Type"])
     rate = defaultdict(deque)
     rate_lock = threading.Lock()
