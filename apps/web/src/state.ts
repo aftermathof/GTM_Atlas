@@ -1,7 +1,7 @@
 import { reactive } from 'vue'
 
 export const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
-const knowledgeCache = new Map<string, { expires: number; pending: Promise<any> }>()
+const listCache = new Map<string, { expires: number; pending: Promise<any> }>()
 
 if (!localStorage.getItem('atlas-token') && sessionStorage.getItem('atlas-token')) {
   for (const key of ['atlas-token', 'atlas-refresh']) {
@@ -21,7 +21,7 @@ export const state = reactive({
 })
 
 export function saveSession(value: any) {
-  knowledgeCache.clear()
+  listCache.clear()
   state.token = value.token
   localStorage.setItem('atlas-token', value.token)
   if (value.refresh_token) localStorage.setItem('atlas-refresh', value.refresh_token)
@@ -29,7 +29,7 @@ export function saveSession(value: any) {
 }
 
 export function clearSession() {
-  knowledgeCache.clear()
+  listCache.clear()
   state.user = null; state.token = ''
   localStorage.removeItem('atlas-token'); localStorage.removeItem('atlas-refresh')
   sessionStorage.removeItem('atlas-token'); sessionStorage.removeItem('atlas-refresh')
@@ -37,7 +37,7 @@ export function clearSession() {
 
 window.addEventListener('storage', event => {
   if (event.storageArea !== localStorage || (event.key !== 'atlas-token' && event.key !== null)) return
-  knowledgeCache.clear()
+  listCache.clear()
   state.token = event.key === null ? '' : event.newValue || ''
   if (!state.token) state.user = null
 })
@@ -77,27 +77,31 @@ export async function api(path: string, options: RequestInit = {}): Promise<any>
     if (r.status === 401 && !path.startsWith('/auth/login')) clearSession()
     throw new Error(typeof body.detail === 'string' ? body.detail : `请求失败 (${r.status})，请检查输入`)
   }
-  if ((options.method || 'GET').toUpperCase() !== 'GET') knowledgeCache.clear()
+  if ((options.method || 'GET').toUpperCase() !== 'GET') listCache.clear()
   return r.json()
 }
 
-export async function knowledgeDocuments(query: string) {
-  const key = state.token + '\n' + query
-  const saved = knowledgeCache.get(key)
+async function cachedList(path: string, ttl: number) {
+  const key = state.token + '\n' + path
+  const saved = listCache.get(key)
   if (saved && saved.expires > Date.now()) return saved.pending
-  if (knowledgeCache.size >= 32) knowledgeCache.delete(knowledgeCache.keys().next().value!)
-  const pending = api('/knowledge/documents?' + query)
-  knowledgeCache.set(key, { expires: Date.now() + 60_000, pending })
+  if (listCache.size >= 32) listCache.delete(listCache.keys().next().value!)
+  const pending = api(path)
+  listCache.set(key, { expires: Date.now() + ttl, pending })
   try { return await pending }
   catch (error) {
-    if (knowledgeCache.get(key)?.pending === pending) knowledgeCache.delete(key)
+    if (listCache.get(key)?.pending === pending) listCache.delete(key)
     throw error
   }
 }
 
+export function knowledgeDocuments(query: string) { return cachedList('/knowledge/documents?' + query, 60_000) }
+export function historyRecords() { return cachedList('/history', 30_000) }
+
 export function post(path: string, body: any) { return api(path, { method: 'POST', body: JSON.stringify(body) }) }
 export async function initialize() {
   try {
+    if (state.token) void historyRecords().catch(() => {})
     const profile = state.token ? api('/auth/me').catch((e: any) => { state.notice = e.message; return null }) : Promise.resolve(null)
     const [health, roles, industries, user] = await Promise.all([api('/health'), api('/catalog/roles'), api('/catalog/industries'), profile])
     Object.assign(state, { health, roles, industries })

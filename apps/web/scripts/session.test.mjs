@@ -177,3 +177,56 @@ test('catalog cache expires after one minute', async () => {
   await app.knowledgeDocuments('limit=100')
   assert.equal(calls, 2)
 })
+
+test('history visits share a request and reuse results for thirty seconds', async () => {
+  let calls = 0, now = 0
+  const app = load(storage({ 'atlas-token': 'user' }), storage(), async () => {
+    calls++; return new Response('[{"id":"saved"}]')
+  }, { now: () => now })
+  await Promise.all([app.historyRecords(), app.historyRecords()])
+  await app.historyRecords()
+  assert.equal(calls, 1)
+  now = 30_001
+  await app.historyRecords()
+  assert.equal(calls, 2)
+})
+
+test('history is refreshed after mutations and cannot survive account changes', async () => {
+  let calls = 0
+  const app = load(storage({ 'atlas-token': 'first' }), storage(), async () => {
+    calls++; return new Response('[]')
+  })
+  await app.historyRecords()
+  await app.api('/mock/sessions', { method: 'POST', body: '{}' })
+  await app.historyRecords()
+  app.saveSession({ token: 'second' })
+  await app.historyRecords()
+  app.clearSession()
+  await app.historyRecords()
+  assert.equal(calls, 5)
+})
+
+test('history failures are not cached', async () => {
+  let calls = 0
+  const app = load(storage(), storage(), async () => new Response('[]', { status: ++calls === 1 ? 503 : 200 }))
+  await assert.rejects(app.historyRecords())
+  await app.historyRecords()
+  assert.equal(calls, 2)
+})
+
+test('startup fetches history while profile validation is still pending', async () => {
+  const calls = []
+  let finishProfile
+  const app = load(storage({ 'atlas-token': 'user' }), storage(), async url => {
+    calls.push(url)
+    if (url.endsWith('/auth/me')) return new Promise(resolve => { finishProfile = () => resolve(new Response('{"id":"user","preferences":{}}')) })
+    return new Response('[]')
+  })
+  const pending = app.initialize()
+  await new Promise(resolve => setImmediate(resolve))
+  assert.ok(calls.includes('/api/v1/history'))
+  finishProfile()
+  await pending
+  await app.historyRecords()
+  assert.equal(calls.filter(url => url.endsWith('/history')).length, 1)
+})

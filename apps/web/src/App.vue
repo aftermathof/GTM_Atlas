@@ -29,7 +29,7 @@ function trap(e: KeyboardEvent) {
 <template>
   <a class="skip-link" href="#main">跳转到主要内容</a>
   <header class="site-header"><div class="container header-inner">
-    <RouterLink to="/" class="brand"><svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true" focusable="false"><path fill="currentColor" d="M0 0h36v36H0z" /><g fill="none" stroke="#fff" stroke-linejoin="round"><path d="M7 26V12l7-3 8 3 7-3v15l-7 3-8-3-7 2Z" stroke-opacity=".55" /><path d="M14 9v15m8-12v15" stroke-opacity=".35" /><path d="m10 23 15-13m-7 0h7v7" stroke-width="2" /></g></svg><span class="brand-wordmark">GTM <span>Atlas</span><sup>↗</sup></span></RouterLink>
+    <RouterLink to="/" class="brand"><svg class="brand-mark" viewBox="0 0 36 36" aria-hidden="true" focusable="false"><path fill="currentColor" d="M0 0h36v36H0z" /><g fill="none" stroke="#fff" stroke-linejoin="round"><path d="M7 26V12l7-3 8 3 7-3v15l-7 3-8-3-7 2Z" stroke-opacity=".55" /><path d="M14 9v15m8-12v15" stroke-opacity=".35" /><path d="m10 23 15-13m-7 0h7v7" stroke-width="2" /></g></svg><span class="brand-wordmark"><span class="brand-initials">GTM</span> <span>Atlas</span><sup>↗</sup></span></RouterLink>
     <nav class="desktop-nav" aria-label="主导航"><RouterLink to="/learn" :class="{active: route.path.startsWith('/learn')}">知识学习</RouterLink><RouterLink to="/interviews" :class="{active: route.path.startsWith('/interviews')}">面经与 Mock</RouterLink><RouterLink to="/career" :class="{active: route.path.startsWith('/career')}">简历工作台</RouterLink></nav>
     <div class="header-actions"><RouterLink to="/search" class="icon-button" aria-label="全站搜索"><Search :size="19" /></RouterLink><button class="assistant-toggle" @click="state.assistant = true"><Sparkles :size="16" /><span>AI Assistant</span></button><RouterLink :to="state.user ? '/history' : '/login'" class="account-link">{{ state.user ? '我的空间' : '登录' }}<ArrowUpRight :size="14" /></RouterLink><RouterLink to="/settings" class="header-settings">设置</RouterLink><button class="mobile-menu icon-button" @click="menu = !menu" aria-label="菜单" :aria-expanded="menu"><Menu :size="21" /></button></div>
   </div><nav v-if="menu" class="mobile-nav"><RouterLink to="/learn">知识学习</RouterLink><RouterLink to="/interviews">面经与 Mock</RouterLink><RouterLink to="/career">简历工作台</RouterLink><RouterLink to="/history">我的历史</RouterLink></nav></header>
@@ -42,6 +42,7 @@ function trap(e: KeyboardEvent) {
 .brand{display:inline-flex;align-items:center;gap:10px}
 .brand-mark{width:30px;height:30px;flex-shrink:0;color:var(--blue)}
 .brand .brand-wordmark{font-weight:600}
+.brand .brand-initials{font-weight:600;font-kerning:none;letter-spacing:.025em}
 .header-settings{font-size:13px;white-space:nowrap}
 .header-settings:hover,.header-settings.router-link-active{color:var(--blue)}
 .assistant-drawer{display:flex;flex-direction:column;overflow:hidden}
