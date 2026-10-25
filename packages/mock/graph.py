@@ -118,7 +118,7 @@ def evaluate_answer(session, submission, checkpointer=None, thread_id=None):
         answer = state["answer"]["answer"]
         dimensions = {'相关性', '结构性', '专业准确性', '可验证经历', '商业逻辑', '沟通表达'}
         question = session["questions"][session["current_question_index"]]
-        raw = provider.complete("返回JSON：dimensions各维0-4或null（不适用）；feedback；evidence须原答摘录；followup可为null。不要虚构事实。", {"question": question, "confirmed_answer": answer, "rubric": catalog()["rubric"]})
+        raw = provider.complete("返回JSON：dimensions各维0-4或null（不适用）；feedback；evidence须原答摘录；followup可为null。结合前序回答决定是否继续追问，信息充分则followup为null，不重复已回答的问题。不要虚构事实。", {"question": {**question, 'text': session.get('pending_followup') or question['text']}, "original_question": question, "previous_answers": [{'question': a['question'], 'answer': a['answer']} for a in session['answers'] if a['question_index'] == session['current_question_index']], "confirmed_answer": answer, "rubric": catalog()["rubric"]})
         try:
             value = json.loads(raw.removeprefix("```json").removesuffix("```").strip())
             scores = value["dimensions"]

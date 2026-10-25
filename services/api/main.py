@@ -150,11 +150,12 @@ def create_app(url=None):
         return allowed
 
     @app.get("/api/v1/history")
-    def history(user=Depends(current_user)):
+    def history(prefetch: bool = False, user=Depends(current_user)):
         with factory() as db:
             rows = db.scalars(select(Record).where(Record.owner == user.id, Record.kind.in_(["mock", "career", "conversation", "chat_thread"])).order_by(Record.created_at.desc())).all()
             rows = [r for r in rows if (r.kind != 'conversation' or not r.data.get('conversation_id')) and (r.kind != 'mock' or r.data.get('answers'))][:100]
-            return [{"id": r.id, "kind": r.kind, "created_at": r.created_at.isoformat(), "status": r.data.get("status"), "context": r.data.get("context"), "message": r.data.get('title') or r.data.get("message")} for r in rows]
+            from services.api.routes_mock import report_snapshot
+            return [{"id": r.id, "kind": r.kind, "created_at": r.created_at.isoformat(), "status": r.data.get("status"), "context": r.data.get("context"), "message": r.data.get('title') or r.data.get("message"), **({'snapshot': report_snapshot(expose(r))} if prefetch and r.kind == 'mock' else {})} for r in rows]
 
     @app.get("/api/v1/jobs/{jid}")
     def job(jid: str, user=Depends(current_user)):

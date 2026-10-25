@@ -1,4 +1,4 @@
-import { api, historyRecords, knowledgeDocuments, knowledgeDocument, peekKnowledge, peekHistory, state } from './state'
+import { api, preloadDocuments, preloadHistory, knowledgeDocuments, knowledgeDocument, peekKnowledge, peekHistory, state } from './state'
 import { cachedNotes, cachedNote, fetchNotes, fetchNote } from './notesStore'
 import { warmOverview } from './publicLearning'
 
@@ -62,45 +62,29 @@ export function preloadWorkspace() {
       void knowledgeDocuments('limit=100&q=&role=' + encodeURIComponent(role) + '&industry=' + encodeURIComponent(industry)).catch(() => {})
     }
     const catalog = async () => {
-      const ids: string[] = []
       let offset = 0
       while (current()) {
         const page = await knowledgeDocuments('limit=100&q=&role=&industry=' + (offset ? '&offset=' + offset : ''))
         if (!current()) break
-        ids.push(...page.items.map((item: {id:string}) => item.id))
         offset += page.items.length
         if (!page.items.length || offset >= page.total) break
       }
-      return ids
     }
-    const [documents, notes, records, chats] = await Promise.allSettled([
-      catalog(), cachedNotes() || fetchNotes(), historyRecords(), api('/ai/conversations'),
+    // Start each domain independently: a slow chat list must not hold up articles or Mock reviews.
+    await Promise.allSettled([
+      catalog(),
+      schedule('documents','all',preloadDocuments,false),
+      schedule('overview','all',warmOverview,false),
+      Promise.resolve(cachedNotes() || fetchNotes()).then(notes=>current()?Promise.all(notes.map(note=>warmNote(note.id))):undefined),
+      preloadHistory().then(records=>{
+        if(!current())return
+        const paths=records.flatMap((record:any)=>record.kind==='career'
+          ? ['/career/sessions/'+record.id,'/career/sessions/'+record.id+'/versions']
+          : record.kind==='conversation' ? ['/ai/conversations/'+record.id] : [])
+        return Promise.all(paths.map((path:string)=>warmHistory(path)))
+      }),
+      api('/ai/conversations').then(chats=>current()?Promise.all(chats.map((chat:any)=>warmHistory('/ai/conversations/'+chat.id))):undefined),
     ])
-    if (!current()) return
-    const paths = new Set<string>()
-    if (chats.status === 'fulfilled') for (const chat of chats.value) paths.add('/ai/conversations/' + chat.id)
-    if (records.status === 'fulfilled') for (const record of records.value) {
-      if (record.kind === 'chat_thread' || record.kind === 'conversation') paths.add('/ai/conversations/' + record.id)
-      if (record.kind === 'mock') {
-        paths.add('/mock/sessions/' + record.id); paths.add('/mock/sessions/' + record.id + '/report')
-      }
-      if (record.kind === 'career') {
-        paths.add('/career/sessions/' + record.id); paths.add('/career/sessions/' + record.id + '/versions')
-      }
-    }
-    const jobs: (() => Promise<unknown>)[] = [
-      () => schedule('overview', 'all', warmOverview, false),
-      ...(notes.status === 'fulfilled' ? notes.value.map(note => () => warmNote(note.id)) : []),
-      ...[...paths].map(path => () => warmHistory(path)),
-      ...(documents.status === 'fulfilled' ? [...new Set(documents.value)].map(id => () => warmDocument(id)) : []),
-    ]
-    let cursor = 0
-    await Promise.all(Array.from({length:3}, async () => {
-      while (current() && cursor < jobs.length) {
-        const job = jobs[cursor++]
-        try { await job() } catch { /* A failed preload can be retried when opening its card. */ }
-      }
-    }))
   })()
   return activeRun
 }

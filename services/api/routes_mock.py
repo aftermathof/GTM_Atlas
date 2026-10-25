@@ -56,7 +56,7 @@ def answer(sid: str, body: Answer, request: Request, user=Depends(current_user))
         evaluation = evaluate_answer(state, body.model_dump(), SQLCheckpointer(request.app.state.db, user.id), thread_id)
         state["answers"].append({**body.model_dump(), "evaluation": evaluation, "question": state["pending_followup"] or state["questions"][body.question_index]["text"]})
         followups = state["followup_counts"].get(str(body.question_index), 0)
-        if evaluation.get("followup") and followups < 1:
+        if evaluation.get("followup"):
             state["pending_followup"] = evaluation["followup"]
             state["followup_counts"][str(body.question_index)] = followups + 1
         else:
@@ -86,6 +86,10 @@ def history(sid: str, request: Request, user=Depends(current_user)):
 @router.get("/sessions/{sid}/report")
 def report(sid: str, request: Request, user=Depends(current_user)):
     state = get(sid, request, user)
+    return report_snapshot(state)
+
+
+def report_snapshot(state):
     scores = [a["evaluation"]["score"] for a in state["answers"] if a["evaluation"]["score"] is not None]
     return {**state, "average_score": round(sum(scores) / len(scores)) if scores else None, "recommendations": ["用 STAR 结构重答薄弱题，区分个人行动与团队结果。", "补充指标口径、归因限制与下一步验证计划。"], "notice": "训练参考；语音识别误差可能影响评价，请以校对后的文字为准。"}
 

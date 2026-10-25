@@ -74,7 +74,7 @@ export async function authorizedFetch(path: string, options: RequestInit = {}): 
 }
 
 function historyPath(path: string) {
-  return path === '/history' || /^\/ai\/conversations(?:\/[^/?]+)?$/.test(path) ||
+  return path === '/history' || path === '/history?prefetch=true' || /^\/ai\/conversations(?:\/[^/?]+)?$/.test(path) ||
     /^\/mock\/sessions\/[^/?]+(?:\/report)?$/.test(path) ||
     /^\/career\/sessions\/[^/?]+(?:\/versions|\/editing-blocks(?:\?[^#]*)?)?$/.test(path)
 }
@@ -86,14 +86,17 @@ export function api(path: string, options: RequestInit = {}): Promise<any> {
 function invalidateHistory(path: string) {
   const chat = path.startsWith('/ai/chat') || path.startsWith('/ai/conversations')
   const mock = path.startsWith('/mock/'), career = path.startsWith('/career/')
+  const mockId = path.match(/^\/mock\/sessions\/([^/?]+)/)?.[1]
   for (const key of privateHistoryCache.keys()) {
     const cachedPath = key.slice(key.indexOf('\n') + 1)
-    if (((chat || mock || career) && cachedPath === '/history') ||
+    if (((chat || mock || career) && cachedPath.startsWith('/history')) ||
         (chat && cachedPath.startsWith('/ai/conversations')) ||
-        (mock && cachedPath.startsWith('/mock/')) || (career && cachedPath.startsWith('/career/'))) privateHistoryCache.delete(key)
+        (mock && mockId && cachedPath.startsWith('/mock/sessions/'+mockId+'/')) ||
+        (mock && cachedPath === '/mock/sessions/'+mockId) || (career && cachedPath.startsWith('/career/'))) privateHistoryCache.delete(key)
   }
 }
 async function requestApi(path: string, options: RequestInit = {}): Promise<any> {
+  const ownerToken=state.token
   const rewriting = path.endsWith('/block-dialogue')
   let r: Response
   try { r = await authorizedFetch('/api/v1' + path, options) }
@@ -117,15 +120,59 @@ async function requestApi(path: string, options: RequestInit = {}): Promise<any>
     if (rewriting && r.status >= 500) throw new Error(`改写服务网关返回错误 (${r.status})，当前输入已保留，请稍后重试。`)
     throw new Error(`请求失败 (${r.status})，请检查输入`)
   }
-  if ((options.method || 'GET').toUpperCase() !== 'GET') {
+  const mutation=(options.method || 'GET').toUpperCase() !== 'GET'
+  const previousHistory=peekHistory('/history')
+  if (mutation) {
     listCache.clear(); invalidateHistory(path)
     if (path.startsWith('/career/job-descriptions') || path.startsWith('/knowledge/')) knowledgeCache.clear()
   }
-  try { return await r.json() }
+  try {
+    const value=await r.json()
+    if(mutation && ownerToken===state.token && path.startsWith('/mock/sessions')) {
+      const id=value.id || path.match(/^\/mock\/sessions\/([^/?]+)/)?.[1]
+      if(value.id && Array.isArray(value.answers)) {
+        prime(privateHistoryCache,'/mock/sessions/'+id,value)
+        prime(privateHistoryCache,'/mock/sessions/'+id+'/report',value)
+      }
+      if(previousHistory && id) {
+        const rows=previousHistory.filter((row:any)=>row.id!==id)
+        if(value.id && value.answers?.length) rows.unshift({id,kind:'mock',created_at:value.created_at,status:value.status,context:value.context})
+        prime(privateHistoryCache,'/history',rows)
+      }
+      if(id)void preloadHistory().catch(()=>{})
+    }
+    if(mutation && ownerToken===state.token && (path.startsWith('/ai/') || path.startsWith('/career/')) && state.user) {
+      void preloadHistory().catch(()=>{})
+    }
+    return value
+  }
   catch (error) {
     if (rewriting) throw new Error('改写结果读取失败，连接可能中断；当前输入已保留，请重试。')
     throw error
   }
+}
+
+function prime(cache: Map<string,CachedResult>, path: string, value: any) {
+  cache.set(state.token+'\n'+path,{expires:Infinity,value,pending:Promise.resolve(value)})
+}
+export async function preloadDocuments() {
+  const path='/knowledge/preload', key=state.token+'\n'+path
+  const pending=cachedList(path,Infinity,knowledgeCache), entry=knowledgeCache.get(key)
+  const result=await pending
+  if(knowledgeCache.get(key)!==entry)return
+  for(const document of result.items) prime(knowledgeCache,'/knowledge/documents/'+encodeURIComponent(document.id),document)
+}
+export async function preloadHistory() {
+  const path='/history?prefetch=true', key=state.token+'\n'+path
+  const pending=api(path), entry=privateHistoryCache.get(key)
+  const rows=await pending
+  if(privateHistoryCache.get(key)!==entry)return []
+  prime(privateHistoryCache,'/history',rows.map(({snapshot,...row}:any)=>row))
+  for(const row of rows) if(row.kind==='mock' && row.snapshot) {
+    prime(privateHistoryCache,'/mock/sessions/'+row.id,row.snapshot)
+    prime(privateHistoryCache,'/mock/sessions/'+row.id+'/report',row.snapshot)
+  }
+  return rows
 }
 
 async function cachedList(path: string, ttl: number, cache = listCache) {

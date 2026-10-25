@@ -12,6 +12,40 @@ function compileState(apiOrigin = '') {
 }
 const compiled = compileState()
 
+test('saving a Mock answer keeps other reports and updates its own visible snapshot',async()=>{
+  const app=load(storage({'atlas-token':'alice'}),storage(),async url=>new Response(JSON.stringify(
+    url.endsWith('/answers')?{id:'m1',answers:[{answer:'saved'}],status:'in_progress'}:
+    url.includes('prefetch')?[]:{id:'m2',answers:[]}
+  )))
+  await app.api('/mock/sessions/m2/report')
+  await app.post('/mock/sessions/m1/answers',{})
+  assert.equal(app.peekHistory('/mock/sessions/m2/report').id,'m2')
+  assert.equal(app.peekHistory('/mock/sessions/m1/report').answers[0].answer,'saved')
+})
+
+test('bulk document preload primes every individual article without extra requests',async()=>{
+  let calls=0
+  const app=load(storage({'atlas-token':'alice'}),storage(),async()=>{
+    calls++;return new Response('{"items":[{"id":"jd1","body":"正文"},{"id":"work1","body":"经验"}]}')
+  })
+  await app.preloadDocuments()
+  assert.equal(app.peekKnowledge('/knowledge/documents/jd1').body,'正文')
+  await app.knowledgeDocument('work1')
+  assert.equal(calls,1)
+})
+
+test('bulk history primes Mock report and session before opening their links',async()=>{
+  let calls=0
+  const app=load(storage({'atlas-token':'alice'}),storage(),async()=>{
+    calls++;return new Response('[{"id":"m1","kind":"mock","snapshot":{"id":"m1","answers":[],"status":"in_progress"}}]')
+  })
+  await app.preloadHistory()
+  assert.equal(app.peekHistoryRecords()[0].id,'m1')
+  assert.equal(app.peekHistory('/mock/sessions/m1/report').id,'m1')
+  await app.api('/mock/sessions/m1')
+  assert.equal(calls,1)
+})
+
 test('preloading a large catalog keeps its first article available for instant opening',async()=>{
   let requests=0
   const app=load(storage({'atlas-token':'alice'}),storage(),async url=>{

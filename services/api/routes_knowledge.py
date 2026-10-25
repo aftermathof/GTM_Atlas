@@ -14,6 +14,18 @@ from packages.agent_core.providers import SpeechToTextProvider
 router = APIRouter(prefix="/api/v1")
 
 
+@router.get('/knowledge/preload')
+def preload_documents(request: Request, user=Depends(current_user)):
+    with request.app.state.db() as db:
+        docs = db.scalars(select(Document)).all()
+        items = [{'id': d.id, 'title': d.title, 'body': d.body, 'meta': d.meta, 'sha256': d.sha256}
+                 for d in docs if d.meta.get('permission') == 'public_display' and d.meta.get('catalog_visible', True)]
+        for row in db.scalars(select(Record).where(Record.owner == user.id, Record.kind == 'private_jd')):
+            items.append({'id': row.id, 'title': row.data['title'], 'body': row.data['body'], 'sha256': row.data['sha256'],
+                          'meta': {'kind': 'jd', 'permission': 'private', 'source_type': 'user_uploaded', 'quality_status': 'user_provided', 'source_author': '我的上传'}, 'private': True})
+        return {'items': items}
+
+
 @router.get("/knowledge/documents")
 def documents(request: Request, kind: str = "", role: str = "", industry: str = "", q: str = "", offset: int = 0, limit: int = 30):
     user = current_user(request) if request.headers.get('authorization') else None

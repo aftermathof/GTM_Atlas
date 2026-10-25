@@ -4,7 +4,7 @@ import vm from 'node:vm'
 import { test } from 'node:test'
 import ts from 'typescript'
 
-function loader({count=7, failure=false, stop=false, records=[], chats=[]}={}) {
+function loader({count=7, failure=false, stop=false, records=[], chats=[],chatWait}={}) {
   const state={user:{id:'alice'},token:'alice-token'}
   const calls=[], pages=[]
   let active=0, peak=0
@@ -15,7 +15,7 @@ function loader({count=7, failure=false, stop=false, records=[], chats=[]}={}) {
     if(id==='d0')throw new Error('temporary failure')
   }
   const context=vm.createContext({exports:{},Promise,require:name=> name==='./state'?{
-    state,historyRecords:async()=>records,api:async path=>path==='/ai/conversations'?chats:warm('history:'+path),peekHistory:()=>undefined,peekKnowledge:()=>undefined,knowledgeDocument:warm,knowledgeDocuments:async query=>{
+    state,preloadHistory:async()=>records,preloadDocuments:async()=>{if(failure)throw new Error('unavailable');await warm('bulk-documents')},api:async path=>{if(path==='/ai/conversations'){await chatWait;return chats}return warm('history:'+path)},peekHistory:()=>undefined,peekKnowledge:()=>undefined,knowledgeDocument:warm,knowledgeDocuments:async query=>{
       if(failure)throw new Error('catalog unavailable')
       const params=new URLSearchParams(query),offset=Number(params.get('offset')||0)
       pages.push(offset)
@@ -27,12 +27,22 @@ function loader({count=7, failure=false, stop=false, records=[], chats=[]}={}) {
   }).outputText,context)
   return {load:context.exports.preloadWorkspace,warm:context.exports.warmDocument,state,calls,pages,get peak(){return peak}}
 }
+
+test('a slow chat list does not block document or note preloading',async()=>{
+  let release
+  const app=loader({chatWait:new Promise(resolve=>{release=resolve})})
+  const pending=app.load()
+  await new Promise(resolve=>setTimeout(resolve,10))
+  assert.ok(app.calls.includes('bulk-documents'))
+  assert.ok(app.calls.includes('n0'))
+  release()
+  await pending
+})
 test('background preloading covers all pages and own notes, shares runs and limits concurrency',async()=>{
   const app=loader({count:105})
   await Promise.all([app.load(),app.load()])
   assert.deepEqual(app.pages,[0,100])
-  assert.equal(new Set(app.calls).size,107)
-  assert.equal(app.calls.length,107)
+  assert.deepEqual([...app.calls].sort(),['bulk-documents','n0','n1'])
   assert.ok(app.peak<=3)
 })
 test('switching accounts stops queued private and public preloads',async()=>{
@@ -69,6 +79,7 @@ test('history metadata warms unique chats, Mock reviews and resume version lists
   const app=loader({count:0,records:[{id:'c',kind:'chat_thread'},{id:'m',kind:'mock'},{id:'r',kind:'career'}],chats:[{id:'c'}]})
   await app.load()
   assert.equal(app.calls.filter(path=>path==='history:/ai/conversations/c').length,1)
-  for(const path of ['/mock/sessions/m','/mock/sessions/m/report','/career/sessions/r','/career/sessions/r/versions']) assert.ok(app.calls.includes('history:'+path))
+  for(const path of ['/career/sessions/r','/career/sessions/r/versions']) assert.ok(app.calls.includes('history:'+path))
+  assert.ok(!app.calls.includes('history:/mock/sessions/m/report'))
   assert.ok(app.peak<=3)
 })
