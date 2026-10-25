@@ -4,6 +4,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, BookOpen, BriefcaseBusiness, MessageSquare, Search, Lock, BookA, Compass } from 'lucide-vue-next'
 import { knowledgeDocuments, peekKnowledge, refreshKnowledge, state } from '../state'
+import { warmDocument } from '../preload'
 import ContextPicker from './ContextPicker.vue'
 import GtmGlossaryPreview from './GtmGlossaryPreview.vue'
 import GtmOverview from './GtmOverview.vue'
@@ -32,6 +33,7 @@ function choose(kind:string){router.replace({query:{...route.query,kind}})}
 function count(kind:string){return filtered.value.filter(d=>d.kind===kind).length}
 function cards(kind:string){return filtered.value.filter(d=>d.kind===kind)}
 function url(d:any){return (d.kind==='interview'?'/interviews/':'/learn/')+d.id}
+function warm(id:string){void warmDocument(id,true)}
 function badge(d:any){return d.private?'我的上传':d.kind==='jd'?'岗位 JD':d.kind==='interview'?'面经':d.meta.source_type==='original_research_note'?'研究笔记':'在职经验'}
 watch(()=>[state.context.role,state.context.industry,state.user?.id],load);onMounted(load)
 </script>
@@ -46,7 +48,7 @@ watch(()=>[state.context.role,state.context.industry,state.user?.id],load);onMou
   <LoadingState v-if="busy" label="正在加载资料…"/><p v-else-if="error" class="error" role="alert">{{error}}</p>
   <div v-else class="gallery-columns single-collection">
     <section v-for="kind in columns" :key="kind.id" class="gallery-collection"><div class="collection-heading"><component :is="kind.icon" :size="20"/><h3>{{kind.name}}</h3><span>{{count(kind.id)}}</span></div><p class="collection-description">{{kind.description}}</p>
-      <div class="gallery-cards expanded"><RouterLink v-for="item in cards(kind.id)" :key="item.id" :to="url(item)" class="resource-card"><div class="resource-cover"><span class="eyebrow">{{kind.en}}</span><component :is="kind.icon" :size="30" stroke-width="1"/><span class="cover-id">{{item.meta.source_note_id|| (item.private?'MY JD':'ATLAS')}}</span></div><div class="resource-card-body"><span class="resource-type"><Lock v-if="item.private" :size="11"/>{{badge(item)}}</span><h3>{{item.title}}<ArrowUpRight :size="15"/></h3><p>{{item.excerpt}}</p><div class="resource-tags"><span v-for="tag in (item.meta.tags||[]).slice(0,3)" :key="tag">{{tag}}</span></div><div class="resource-footer"><span>{{item.meta.source_author||'GTM Atlas'}}</span></div></div></RouterLink></div>
+      <div class="gallery-cards expanded"><RouterLink v-for="item in cards(kind.id)" :key="item.id" :to="url(item)" class="resource-card" @mouseenter="warm(item.id)" @focus="warm(item.id)"><div class="resource-cover"><span class="eyebrow">{{kind.en}}</span><component :is="kind.icon" :size="30" stroke-width="1"/><span class="cover-id">{{item.meta.source_note_id|| (item.private?'MY JD':'ATLAS')}}</span></div><div class="resource-card-body"><span class="resource-type"><Lock v-if="item.private" :size="11"/>{{badge(item)}}</span><h3>{{item.title}}<ArrowUpRight :size="15"/></h3><p>{{item.excerpt}}</p><div class="resource-tags"><span v-for="tag in (item.meta.tags||[]).slice(0,3)" :key="tag">{{tag}}</span></div><div class="resource-footer"><span>{{item.meta.source_author||'GTM Atlas'}}</span></div></div></RouterLink></div>
       <div v-if="!count(kind.id)" class="collection-empty"><component :is="kind.icon" :size="28" stroke-width="1"/><h3>这个栏目还在积累。</h3><p>{{kind.id==='jd'?'岗位 JD 将陆续补充。':'没有符合条件的资料，试试调整岗位或关键词。'}}</p></div>
     </section>
   </div>

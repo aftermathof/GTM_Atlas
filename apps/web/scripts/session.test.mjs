@@ -12,6 +12,19 @@ function compileState(apiOrigin = '') {
 }
 const compiled = compileState()
 
+test('preloading a large catalog keeps its first article available for instant opening',async()=>{
+  let requests=0
+  const app=load(storage({'atlas-token':'alice'}),storage(),async url=>{
+    requests++;return new Response(JSON.stringify({id:url.split('/').pop(),body:'完整正文'}))
+  })
+  await Promise.all(Array.from({length:150},(_,i)=>app.knowledgeDocument('d'+i)))
+  assert.equal(app.peekKnowledge('/knowledge/documents/d0').body,'完整正文')
+  await app.knowledgeDocument('d0')
+  assert.equal(requests,150)
+  app.clearSession()
+  assert.equal(app.peekKnowledge('/knowledge/documents/d0'),undefined)
+})
+
 function storage(initial = {}) {
   const values = new Map(Object.entries(initial))
   return {

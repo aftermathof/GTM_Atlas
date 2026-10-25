@@ -3,13 +3,17 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { Search, ArrowUpRight, X, Menu, Sparkles, Maximize2, Minimize2 } from 'lucide-vue-next'
 import { state, initialize } from './state'
+import { preloadWorkspace } from './preload'
 import ChatPanel from './components/ChatPanel.vue'
 import LoadingState from './components/LoadingState.vue'
 const route = useRoute(), menu = ref(false), assistantMounted = ref(false), assistantExpanded = ref(false), drawer = ref<HTMLElement>()
 const workspaceVisible = computed(() => state.user && route.path !== '/auth/confirmed')
 const assistantChat = ref<InstanceType<typeof ChatPanel>>()
 onMounted(initialize)
-watch(() => state.user, user => { if (!user) { menu.value = false; state.assistant = false; state.assistantRequest = null } })
+watch(() => [state.user?.id, state.token], () => {
+  if (!state.user) { menu.value = false; state.assistant = false; state.assistantRequest = null }
+  else void preloadWorkspace().catch(() => {})
+}, { immediate:true })
 watch(() => route.path, () => { menu.value = false; state.documentId = ''; state.careerId = ''; state.scope = 'global' })
 watch(() => state.assistant, async value => { if (value) { assistantMounted.value = true; await nextTick(); drawer.value?.focus() } else assistantExpanded.value = false })
 watch(() => state.assistantRequest, async request => {
@@ -42,8 +46,9 @@ function trap(e: KeyboardEvent) {
   <div v-if="workspaceVisible && assistantMounted" v-show="state.assistant" class="drawer-backdrop" @click.self="state.assistant = false"><aside ref="drawer" class="assistant-drawer" :class="{expanded:assistantExpanded}" role="dialog" aria-modal="true" aria-label="全局 AI Assistant" tabindex="-1" @keydown="trap"><div class="drawer-header"><span class="eyebrow">ATLAS ASSISTANT</span><div class="drawer-actions"><button class="icon-button" @click="assistantExpanded = !assistantExpanded" :aria-pressed="assistantExpanded" :aria-label="assistantExpanded ? '收起为侧边助手' : '放大全屏'" :title="assistantExpanded ? '收起为侧边助手' : '放大全屏'"><Minimize2 v-if="assistantExpanded" :size="20"/><Maximize2 v-else :size="20"/></button><button class="icon-button" @click="state.assistant = false" aria-label="关闭助手"><X :size="22" /></button></div></div><ChatPanel ref="assistantChat" scope="global" docked /></aside></div>
 </template>
 <style scoped>
-.header-inner{gap:28px}.desktop-nav{margin-left:10px;gap:22px}
-@media(min-width:1101px) and (max-width:1280px){.header-inner{gap:18px}.desktop-nav{gap:16px;margin-left:0}.header-actions{gap:12px}.assistant-toggle span{display:none}}
+.header-inner{gap:28px}.desktop-nav{margin-left:14px;gap:36px}.desktop-nav a{padding:0 8px;transition:color .18s,background .18s,transform .18s}.desktop-nav a:hover{color:var(--blue);background:#002fa707;transform:translateY(-2px)}.desktop-nav a.active:after{transition:background .18s}.desktop-nav a:focus-visible{background:#002fa707}
+@media(prefers-reduced-motion:reduce){.desktop-nav a{transition:none}.desktop-nav a:hover{transform:none}}
+@media(min-width:1101px) and (max-width:1280px){.header-inner{gap:18px}.desktop-nav{gap:22px;margin-left:0}.desktop-nav a{padding-inline:5px}.header-actions{gap:12px}.assistant-toggle span{display:none}}
 .brand{display:inline-flex;align-items:center;gap:10px;letter-spacing:normal}
 .brand-mark{width:30px;height:30px;flex-shrink:0;color:var(--blue)}
 .brand .brand-wordmark{font-weight:600}

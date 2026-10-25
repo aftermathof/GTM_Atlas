@@ -111,7 +111,7 @@ async function cachedList(path: string, ttl: number, cache = listCache) {
   const key = state.token + '\n' + path
   const saved = cache.get(key)
   if (saved && saved.expires > Date.now()) return saved.pending
-  if (cache.size >= (cache === knowledgeCache ? 128 : 32)) cache.delete(cache.keys().next().value!)
+  if (cache !== knowledgeCache && cache.size >= 32) cache.delete(cache.keys().next().value!)
   const pending = api(path)
   const entry: CachedResult = { expires: Date.now() + ttl, pending }
   cache.set(key, entry)
