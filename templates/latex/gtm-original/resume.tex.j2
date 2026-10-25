@@ -1,29 +1,19 @@
+{% from 'sections.tex.j2' import entry_rows, section_content with context %}
 {{ preamble }}
 \begin{document}
-\begin{minipage}[t]{0.78\textwidth}
+\begin{minipage}[t]{ {% if has_photo %}0.78{% else %}1.0{% endif %}\textwidth}
 \resumesection{\faAddressCard}{个人信息}
-\begin{minipage}[t]{0.53\linewidth}
-{% for fact in sections.personal %}{% if loop.index0 % 2 == 0 %}{{ fact.text }}\par\vspace{0.3em}
+{% for item in layout.personal %}{{ item }}{% if loop.index % 2 and not loop.last %}\hfill{}{% else %}\par\vspace{0.2em}
 {% endif %}{% endfor %}
-\end{minipage}%
-\begin{minipage}[t]{0.46\linewidth}
-{% for fact in sections.personal %}{% if loop.index0 % 2 == 1 %}{{ fact.text }}\par\vspace{0.3em}
-{% endif %}{% endfor %}
-{% if target_role %}\textbf{求职意向}：{{ target_role }}\par{% endif %}
-\end{minipage}
-{% if sections.education %}
-\resumesection{\faGraduationCap}{教育背景}
-{% for fact in sections.education %}{{ fact.text }}\par\vspace{0.25em}
-{% endfor %}{% endif %}
-\end{minipage}\hfill
-\begin{minipage}[t]{0.19\textwidth}\vspace{1.6em}\end{minipage}
+{% if target_role and not has_target_role %}求职意向：{{ target_role }}\par{% endif %}
+{% if layout.education %}\resumesection{\faGraduationCap}{教育背景}
+{{ entry_rows(layout.education) }}{% endif %}
+\end{minipage}{% if has_photo %}\hfill
+\begin{minipage}[t]{0.18\textwidth}\vspace{1.4em}
+\includegraphics[width=\linewidth,height=3.4cm,keepaspectratio]{photo.png}
+\end{minipage}{% endif %}
 {% for key, icon, title in [('projects','faProjectDiagram','项目经历'),('experience','faBriefcase','实习与工作经历'),('skills','faTools','技能特长'),('summary','faCompass','自我评价'),('other','faCompass','其他经历')] %}
-{% if sections[key] %}
-\resumesection{\{{ icon }}}{ {{ title }} }
-\begin{itemize}
-{% for fact in sections[key] %}\item {{ fact.text }}
-{% endfor %}
-\end{itemize}
-{% endif %}
+{% if layout[key] %}\resumesection{\{{ icon }}}{ {{- title -}} }
+{{ section_content(key) }}{% endif %}
 {% endfor %}
 \end{document}

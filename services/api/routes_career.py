@@ -18,12 +18,41 @@ from packages.document_renderer.jobs import enqueue, refresh
 from services.api.suggestions import SuggestRewrite, suggest
 from services.api.resume_blocks import BlockDialogue, apply_block_patches, group_blocks, discuss_block
 from packages.career import approvals
-from packages.career.structure import extract_structure, refresh_structure
+from packages.career.structure import extract_structure, refresh_structure, editable_facts
+from packages.career.photo import extract_photo
 from packages.career.retrieval import career_evidence
 from packages.agent_core.registry import catalog
 
 router = APIRouter(prefix="/api/v1/career")
 logger = logging.getLogger(__name__)
+
+
+def prepare_editing(row):
+    facts = editable_facts(row.data['facts'], row.data.get('structure'))
+    if facts != row.data['facts']:
+        data = {**row.data, 'facts': facts, 'structure': refresh_structure(facts, row.data.get('structure'))}
+        data.pop('editing_blocks', None)
+        row.data = data
+
+
+def resume_photo(resume, content=None):
+    directory = data_dir() / 'uploads' / resume.owner
+    path = directory / (resume.id + '.photo.png')
+    key = f'{resume.owner}/uploads/{resume.id}.photo.png'
+    if resume.data.get('photo_checked'):
+        if not resume.data.get('has_photo'):
+            return None
+        return storage.get_private(key) if storage.enabled() else path.read_bytes()
+    if content is None:
+        content = storage.get_private(f'{resume.owner}/uploads/{resume.id}') if storage.enabled() else (directory / resume.id).read_bytes()
+    photo = extract_photo(content, resume.data['filename'])
+    if photo:
+        storage.put_private(key, photo, 'image/png')
+        if not storage.enabled():
+            directory.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(photo)
+    resume.data = {**resume.data, 'photo_checked': True, 'has_photo': bool(photo)}
+    return photo
 
 
 @router.post('/job-descriptions')
@@ -68,6 +97,7 @@ async def upload(request: Request, file: UploadFile = File(...), user=Depends(cu
     parsed = parse_resume(content, filename)
     with request.app.state.db() as db:
         row = save(db, user.id, "resume", {"filename": filename, "sha256": hashlib.sha256(content).hexdigest(), **parsed})
+        resume_photo(row, content)
         storage.put_private(f'{user.id}/uploads/{row.id}', content)
         if not storage.enabled():
             directory = data_dir() / "uploads" / user.id
@@ -87,6 +117,9 @@ def create(body: CareerSetup, request: Request, user=Depends(current_user)):
             if not body.jd.strip(): body.jd = job.data['body']
         evidence = career_evidence(db, body.model_dump(), body.jd,owner_id=user.id)
         structure = extract_structure(facts) if facts else None
+        if facts:
+            facts = editable_facts(facts, structure)
+            structure = refresh_structure(facts, structure)
         thread_id = uid()
         row = save(db, user.id, "career", {"context": body.model_dump(), "facts": facts, "structure":structure, "confirmed": False, "status": "awaiting_confirmation", "approval_thread_id": thread_id, "active_version_id": None, "diagnosis": diagnose(facts, body.jd, body.role, evidence) if facts else None, "parse_warning": resume.data["warning"]})
         trace(db, user.id, "career_resume_graph", row.id, [{"node": "parse", "method": resume.data["method"]}, {"node": "await_fact_confirmation"}])
@@ -98,7 +131,11 @@ def create(body: CareerSetup, request: Request, user=Depends(current_user)):
 @router.get("/sessions/{sid}")
 def get(sid: str, request: Request, user=Depends(current_user)):
     with request.app.state.db() as db:
-        return expose(owned(db, sid, user.id, "career"))
+        row = owned(db, sid, user.id, "career")
+        if row.data['facts']:
+            prepare_editing(row)
+            db.commit()
+        return expose(row)
 
 
 @router.get("/sessions/{sid}/diagnosis")
@@ -112,7 +149,7 @@ def confirm(sid: str, body: ConfirmFacts, request: Request, user=Depends(current
         raise HTTPException(422, "事实ID必须唯一")
     with request.app.state.mutation_lock, request.app.state.db() as db:
         row = owned(db, sid, user.id, "career", lock=True)
-        facts = [f.model_dump(exclude_none=True) for f in body.facts]
+        facts = editable_facts([f.model_dump(exclude_none=True) for f in body.facts])
         state = copy.deepcopy(row.data)
         state.pop("editing_blocks", None)
         was_confirmed = state["confirmed"]
@@ -137,11 +174,13 @@ def rewrite(sid: str, body: Rewrite, request: Request, user=Depends(current_user
         row = owned(db, sid, user.id, "career", lock=True)
         if not row.data["confirmed"]:
             raise HTTPException(409, "请先确认解析事实")
+        prepare_editing(row)
         base = row.data["facts"]
         if body.base_version_id:
             version = owned(db, body.base_version_id, user.id, "resume_version")
             if version.parent_id != sid:
                 raise HTTPException(422, "版本不属于当前简历")
+            prepare_editing(version)
             base = version.data["facts"]
         if bool(body.patches) == bool(body.blocks):
             raise HTTPException(422, '请选择一种改写方式并提供修改内容')
@@ -149,6 +188,7 @@ def rewrite(sid: str, body: Rewrite, request: Request, user=Depends(current_user
             mapping = (version.data if body.base_version_id else row.data).get('structure', {}).get('assignments', {})
             base = [{**f, 'section': f.get('section') or mapping.get(f['id'])} for f in base]
         facts = apply_block_patches(base, body.blocks, body.approved_fact_ids) if body.blocks else apply_patches(base, body.patches, body.approved_fact_ids)
+        facts = editable_facts(facts, version.data.get('structure') if body.base_version_id else row.data.get('structure'))
         structure = refresh_structure(facts, version.data.get('structure') if body.base_version_id else row.data.get('structure'))
         # Each generated version has its own durable human approval checkpoint.
         approval_id = uid()
@@ -156,7 +196,9 @@ def rewrite(sid: str, body: Rewrite, request: Request, user=Depends(current_user
         version = save(db, user.id, "resume_version", {"facts": facts, "patches": [p.model_dump() for p in body.patches], "blocks": [b.model_dump() for b in body.blocks], "approved_fact_ids": body.approved_fact_ids, "approval_thread_id": approval_id, "base_version_id": body.base_version_id, "template": body.template, "status": "pending", "notice": "人工确认改写草稿；新增语义无法仅靠规则完全验证，请逐段复核。"}, sid)
         version.data = {**version.data, 'structure':structure}
         role = row.data['context'].get('role_raw') or next((r['name'] for r in catalog()['roles'] if r['id']==row.data['context']['role']), '')
-        tex = render_tex(version.id, facts, body.template, structure, role)
+        resume = owned(db, row.data['context']['resume_id'], user.id, 'resume')
+        photo = resume_photo(resume)
+        tex = render_tex(version.id, facts, body.template, structure, role, photo=photo)
         storage.put_private(f'{user.id}/artifacts/{version.id}/resume.tex', tex.encode('utf-8'), 'application/x-tex')
         job = save(db, user.id, "render_job", {"status": "queued", "version_id": version.id, "message": "等待隔离 PDF Worker；可先下载 .tex。启动 Worker 后刷新状态。"}, sid)
         enqueue(version.id, facts)
@@ -198,9 +240,10 @@ def editing_blocks(sid: str, request: Request, base_version_id: str | None = Non
             base = owned(db, base_version_id, user.id, 'resume_version', lock=True)
             if base.parent_id != sid:
                 raise HTTPException(422, '版本不属于当前简历')
-        if 'editing_blocks' not in base.data or base.data.get('editing_blocks_version') != 2:
+        prepare_editing(base)
+        if 'editing_blocks' not in base.data or base.data.get('editing_blocks_version') != 4:
             blocks = group_blocks(base.data['facts'], base.data.get('structure') or {})
-            base.data = {**base.data, 'editing_blocks': blocks, 'editing_blocks_version': 2}
+            base.data = {**base.data, 'editing_blocks': blocks, 'editing_blocks_version': 4}
             db.commit()
         return {'blocks': base.data['editing_blocks']}
 
@@ -217,6 +260,7 @@ def block_dialogue(sid: str, body: BlockDialogue, request: Request, user=Depends
             if base.parent_id != sid:
                 raise HTTPException(422, '版本不属于当前简历')
         context = row.data['context']
+        prepare_editing(base)
         mapping = base.data.get('structure', {}).get('assignments', {})
         facts = [{**f, 'section': f.get('section') or mapping.get(f['id'])} for f in base.data['facts']]
         stage, started = 'retrieval', time.monotonic()
@@ -242,7 +286,11 @@ def feedback(sid: str, body: Feedback, request: Request, user=Depends(current_us
 def versions(sid: str, request: Request, user=Depends(current_user)):
     with request.app.state.db() as db:
         owned(db, sid, user.id, "career")
-        return [expose(v) for v in db.scalars(select(Record).where(Record.owner == user.id, Record.kind == "resume_version", Record.parent_id == sid).order_by(Record.created_at.desc()))]
+        rows = db.scalars(select(Record).where(Record.owner == user.id, Record.kind == "resume_version", Record.parent_id == sid).order_by(Record.created_at.desc())).all()
+        for version in rows:
+            prepare_editing(version)
+        db.commit()
+        return [expose(v) for v in rows]
 
 
 @router.post("/sessions/{sid}/rollback")
@@ -322,7 +370,9 @@ def remove(sid: str, request: Request, user=Depends(current_user)):
             upload = db.get(Record, rid)
             if upload and upload.owner == user.id:
                 storage.delete_private(f'{user.id}/uploads/{rid}')
+                storage.delete_private(f'{user.id}/uploads/{rid}.photo.png')
                 (data_dir() / "uploads" / user.id / rid).unlink(missing_ok=True)
+                (data_dir() / "uploads" / user.id / (rid + '.photo.png')).unlink(missing_ok=True)
                 db.delete(upload)
         db.commit()
         for thread_id in filter(None, thread_ids):

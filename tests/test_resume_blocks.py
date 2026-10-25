@@ -160,7 +160,7 @@ def test_block_routes_cache_groups_enforce_privacy_and_generate_only_on_confirma
     monkeypatch.setattr(LLMProvider,'complete',complete)
     first=client.get(f'/api/v1/career/sessions/{sid}/editing-blocks',headers=owner)
     assert first.status_code==200,first.text
-    assert len(first.json()['blocks'])==3
+    assert len(first.json()['blocks'])==5
     assert client.get(f'/api/v1/career/sessions/{sid}/editing-blocks',headers=owner).status_code==200
     assert len(calls)==0
     assert client.get(f'/api/v1/career/sessions/{sid}/editing-blocks',headers=other).status_code==404
@@ -224,7 +224,8 @@ def test_block_route_services_with_sqlite_preserve_private_sources_and_version_b
     request=SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(db=factory,mutation_lock=threading.RLock())))
     user=SimpleNamespace(id='owner')
     with factory() as db:
-        record=save(db,user.id,'career',{'facts':FACTS,'confirmed':True,'context':{'jd':'目标岗位调研','role':'overseas_channel_sales'},'structure':{'assignments':{f['id']:f['section'] for f in FACTS}},'editing_blocks':[]})
+        resume=save(db,user.id,'resume',{'filename':'resume.txt','photo_checked':True,'has_photo':False})
+        record=save(db,user.id,'career',{'facts':FACTS,'confirmed':True,'context':{'jd':'目标岗位调研','role':'overseas_channel_sales','resume_id':resume.id},'structure':{'assignments':{f['id']:f['section'] for f in FACTS}},'editing_blocks':[]})
         sid=record.id
         db.commit()
     calls=[]
@@ -235,8 +236,8 @@ def test_block_route_services_with_sqlite_preserve_private_sources_and_version_b
         return json.dumps({'text':'甲公司 2025 实习，调研 20 家客户。','analysis':'对应岗位调研要求','questions':'','source_chunk_ids':['jd:0']})
     monkeypatch.setattr(LLMProvider,'complete',complete)
     monkeypatch.setattr('services.api.routes_career.career_evidence',lambda *args,**kwargs:[{'chunk_id':'jd:0','text':'岗位需要调研能力'}])
-    assert len(editing_blocks(sid,request,user=user)['blocks'])==3
-    assert len(editing_blocks(sid,request,user=user)['blocks'])==3
+    assert len(editing_blocks(sid,request,user=user)['blocks'])==5
+    assert len(editing_blocks(sid,request,user=user)['blocks'])==5
     assert len(calls)==0
     with pytest.raises(HTTPException) as denied:
         editing_blocks(sid,request,user=SimpleNamespace(id='other'))
@@ -246,12 +247,12 @@ def test_block_route_services_with_sqlite_preserve_private_sources_and_version_b
     assert response['citations'][0]['chunk_id']=='jd:0'
     with factory() as db:
         assert not list(db.scalars(select(Record).where(Record.kind=='resume_version')))
-        assert owned(db,sid,user.id,'career').data['facts']==FACTS
+        assert [f for f in owned(db,sid,user.id,'career').data['facts'] if f['text']]==FACTS
     saved=rewrite(sid,Rewrite(blocks=[BlockPatch(fact_ids=['f1','f2'],text=response['text'])],approved_fact_ids=['f1','f2']),request,user=user)
     assert saved['facts'][1]['text']==response['text']
     assert saved['facts'][0]['locked'] is True
     with factory() as db:
-        assert owned(db,sid,user.id,'career').data['facts']==FACTS
+        assert [f for f in owned(db,sid,user.id,'career').data['facts'] if f['text']]==FACTS
         assert len(list(db.scalars(select(Record).where(Record.kind=='resume_version'))))==1
     # Selecting someone else's version and a version from another resume must fail.
     with factory() as db:

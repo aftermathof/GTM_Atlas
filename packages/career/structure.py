@@ -91,3 +91,20 @@ def refresh_structure(facts, previous=None):
     if previous:
         value['assignments'].update({f['id']:previous['assignments'][f['id']] for f in facts if f['id'] in previous.get('assignments', {})})
     return validate_structure(value, facts)
+
+
+def editable_facts(facts, structure=None):
+    """Keep absent optional sections as actual empty fields, never invented resume text."""
+    assignments = (structure or local_structure(facts))['assignments']
+    result = [{**f, 'section': f.get('section') or assignments[f['id']]} for f in facts]
+    from packages.career.text import clean_resume_text
+    for fact in result:
+        if fact['section'] in {'projects', 'summary'} and re.fullmatch(r'(?:项目经历|项目经验|自我评价|个人总结|Projects|Summary)\s*[:：]?', clean_resume_text(fact['text']), re.I):
+            fact['text'] = ''
+            fact['locked'] = False
+    next_id = max((int(f['id'][1:]) for f in result), default=-1) + 1
+    for section in ('projects', 'summary'):
+        if not any(f['section'] == section for f in result):
+            result.append({'id': f'f{next_id}', 'text': '', 'section': section, 'locked': False, 'confidence': 1, 'page': 1})
+            next_id += 1
+    return result

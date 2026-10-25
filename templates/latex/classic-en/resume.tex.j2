@@ -1,12 +1,22 @@
+{% from 'sections.tex.j2' import section_content with context %}
 \documentclass[10pt,a4paper]{article}
 \usepackage[UTF8,fontset=fandol]{ctex}
 \usepackage[margin=20mm]{geometry}
+\usepackage{enumitem,graphicx,xcolor}
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{1em}
+\clubpenalty=10000\widowpenalty=10000
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.15em,topsep=0.3em,parsep=0pt}
+\newcommand{\resumeentry}[3]{\noindent\textbf{ #1}\if\relax\detokenize{ #2}\relax\else\enspace\textbar\enspace#2\fi\hfill\mbox{ #3}\par\nopagebreak}
 \begin{document}
-{% for fact in facts %}
-{% if loop.first %}{\centering\Large\sffamily {{ fact.text }}\par}\medskip\hrule\medskip
-{% else %}{{ fact.text }}\par\smallskip
-{% endif %}
+{% if has_photo %}\begin{minipage}[t]{0.78\textwidth}{% endif %}
+{% for item in layout.personal %}{{ item }}\par
+{% endfor %}
+{% if target_role and not has_target_role %}求职意向：{{ target_role }}\par{% endif %}
+{% if has_photo %}\end{minipage}\hfill\begin{minipage}[t]{0.18\textwidth}\vspace{0pt}\includegraphics[width=\linewidth,height=3cm,keepaspectratio]{photo.png}\end{minipage}{% endif %}
+{% for key, title in [('education','教育背景'),('projects','项目经历'),('experience','实习与工作经历'),('skills','技能特长'),('summary','自我评价'),('other','其他经历')] %}
+{% if layout[key] %}\section*{ {{- title -}} }
+{{ section_content(key) }}{% endif %}
 {% endfor %}
 \end{document}

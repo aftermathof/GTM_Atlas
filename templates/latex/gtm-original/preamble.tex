@@ -6,9 +6,11 @@
 \usepackage{xeCJK}
 \usepackage{xcolor}
 \usepackage{graphicx}
-\IfFileExists{fontawesome5.sty}{\usepackage{fontawesome5}}{\newcommand{\faAddressCard}{I}\newcommand{\faGraduationCap}{E}\newcommand{\faProjectDiagram}{P}\newcommand{\faBriefcase}{W}\newcommand{\faTools}{S}\newcommand{\faCompass}{C}}
+\usepackage{fontawesome5}
 \usepackage{titlesec}
 \usepackage{enumitem}
+\usepackage{etoolbox}
+\AtBeginEnvironment{itemize}{\small}
 \usepackage{hyperref}
 
 % 可修改的视觉配置
@@ -35,19 +37,21 @@
 \pagestyle{empty}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{1em}
+\clubpenalty=10000\widowpenalty=10000
 \linespread{1.12}
 \setlist[itemize]{leftmargin=1.55em,topsep=0.22em,itemsep=0.22em,parsep=0pt,partopsep=0pt}
 
 % 可复用组件（后续简历生成程序只需填充正文）
 \newlength{\resumeiconwidth}
 \setlength{\resumeiconwidth}{1.5em}
-\titleformat{\section}{\large\bfseries\raggedright}{}{0pt}{}[\color{primary}\titlerule]
+\titleformat{\section}{\large\bfseries}{}{0pt}{}[\color{primary}\titlerule]
 \titlespacing*{\section}{0pt}{0.9em}{0.45em}
 \newcommand{\resumesection}[2]{%
   \section{\makebox[\resumeiconwidth][c]{\color{primary}#1}\hspace{0.35em}#2}%
 }
 \newcommand{\resumeentry}[3]{%
-  \textbf{#1}\enspace\textbar\enspace#2\hfill{#3}\par
+  \noindent\textbf{#1}\if\relax\detokenize{#2}\relax\else\enspace\textbar\enspace#2\fi\hfill\mbox{#3}\par\nopagebreak
 }
 \newcommand{\resumeeducation}[4]{%
   \textbf{#1}\enspace#2\hfill{#3}\par

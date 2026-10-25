@@ -1,0 +1,19 @@
+{% macro entry_rows(entries) %}
+{% for entry in entries %}
+{% if entry.organization or entry.role or entry.date %}\resumeentry{ {{- entry.organization -}} }{ {{- entry.role -}} }{ {{- entry.date -}} }
+{% endif %}
+{% if entry['items'] %}\begin{itemize}
+{% for item in entry['items'] %}\item {{ item }}
+{% endfor %}\end{itemize}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+{% macro section_content(key) %}
+{% if key in ['education','projects','experience'] %}{{ entry_rows(layout[key]) }}
+{% elif key == 'summary' %}{% for item in layout[key] %}{{ item }}\par
+{% endfor %}
+{% else %}\begin{itemize}
+{% for item in layout[key] %}\item {{ item }}
+{% endfor %}\end{itemize}
+{% endif %}
+{% endmacro %}

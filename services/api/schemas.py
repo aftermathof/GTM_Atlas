@@ -62,7 +62,7 @@ class CareerSetup(Context):
 
 class Fact(BaseModel):
     id: str = Field(pattern=r"^f\d+$")
-    text: str = Field(min_length=1, max_length=16000)
+    text: str = Field(max_length=16000)
     locked: bool = False
     confidence: float = Field(default=1.0, ge=0, le=1)
     page: int = Field(default=1, ge=1)

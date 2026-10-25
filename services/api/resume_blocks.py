@@ -73,6 +73,7 @@ def group_blocks(facts, structure):
     blocks = []
     company = re.compile(r'(?:公司|集团|工作室|实验室|研究院|Company|Corp|Inc\b|Ltd\b)', re.I)
     dates = re.compile(r'^(?:20\d{2}[./年-]\d{1,2}.*(?:至|到|[-–—~～]).*(?:20\d{2}|至今|现在))')
+    role_header = re.compile(r'(?:[|｜]|\s+)\s*\S*(?:实习生|经理|专员|助理|负责人|Intern\b|Manager\b)', re.I)
     for fact in facts:
         section = fact.get('section') or assignments[fact['id']]
         locked = bool(fact.get('locked'))
@@ -80,8 +81,8 @@ def group_blocks(facts, structure):
         same = bool(blocks and blocks[-1]['section']==section and (section not in {'experience','projects'} or blocks[-1]['locked']==locked))
         heading = text.split('\n',1)[0]
         # Only explicit company/date headings start another experience, not achievement bullets.
-        entry = section in {'experience','projects'} and len(heading)<180 and not re.match(r'^[•●▪·\-]|^(?:负责|参与|协助|完成|通过|实现|提升|累计|推动|主导|与|为|向|对|针对|基于|面向|围绕|输出|策划|搭建|构建|建立|组织|撰写|支持)', heading) and (bool(company.search(heading)) or bool(dates.search(heading)) or bool(re.match(r'^(?:项目名称|项目[一二三四五六七八九十0-9]+[：:、])', heading)))
-        previous_header = same and bool(dates.search(heading)) and not company.search(heading) and company.search(blocks[-1]['last_text']) and not re.search(r'20\d{2}',blocks[-1]['last_text'])
+        entry = section in {'experience','projects'} and len(heading)<180 and not re.match(r'^[•●▪·\-]|^(?:负责|参与|协助|完成|通过|实现|提升|累计|推动|主导|与|为|向|对|针对|基于|面向|围绕|输出|策划|搭建|构建|建立|组织|撰写|支持)', heading) and ((not re.search(r'[:：。；;]', heading) and (bool(company.search(heading)) or bool(dates.search(heading)) or bool(role_header.search(heading)))) or bool(re.match(r'^(?:项目名称|项目[一二三四五六七八九十0-9]+[：:、])', heading)))
+        previous_header = same and bool(dates.search(heading)) and not company.search(heading) and (company.search(blocks[-1]['last_text']) or role_header.search(blocks[-1]['last_text'])) and not re.search(r'20\d{2}',blocks[-1]['last_text'])
         if not same or (entry and not previous_header and blocks[-1]['has_entry']):
             blocks.append({'id':fact['id'],'title':names.get(section,'其他经历'),'fact_ids':[],'section':section,'locked':locked,'has_entry':False,'last_text':''})
         blocks[-1]['fact_ids'].append(fact['id'])
@@ -115,6 +116,7 @@ def discuss_block(facts, body, jd, evidence, context):
         '不要复述用户要求、照抄草稿或只给“建议如何修改”；text 只写修改后的简历正文，不加开场白、解释、图标或分点符号。'
         '精简、调整结构、突出重点、改变语气等表达要求应立即落实到 text；不必为单纯表达修改索要额外事实。'
         '保留未要求修改的必要信息，不能只返回修改片段；修改原因只放 analysis，简短指出具体改动。'
+        '正文不重复 section 标题。经历块首行写公司或项目、岗位、起止年月，随后每项工作内容单独换行；技能按办公工具、语言能力、AI工具等实际类别分别换行。保留必要信息并精简冗余，尽量避免只有几个字的孤立换行，不为凑满一行增加内容。'
         '使用当前草稿和本轮要求，结合历史逐轮调整。用户 JD 优先，知识库岗位职能与要求用于解释能力关联。'
         '这是供用户选择和编辑的候选草稿，原文不是内容上限。把本轮需求与历史补充直接落实为岗位相关的职责、方法、交付物与表达。'
         '用户要求补充 DTC、Kickstarter 或其他岗位场景时，先给出可编辑的完整候选写法；新增或推演的部分只在 analysis 简短提示核对，不以缺少原文依据为由拒绝、只追问或返回空正文。'
