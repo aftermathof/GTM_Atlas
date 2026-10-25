@@ -1,6 +1,6 @@
 {
   "name": "gtm-atlas-web", "private": true, "version": "0.1.0", "type": "module",
-  "scripts": {"dev": "vite --host 127.0.0.1", "build": "vue-tsc --noEmit && vite build && node scripts/handbook.mjs && vitepress build handbook", "preview": "vite preview --host 127.0.0.1", "handbook": "vitepress dev handbook --port 5174"},
+  "scripts": {"dev": "vite --host 127.0.0.1", "build": "vue-tsc --noEmit && vite build && node scripts/handbook.mjs && vitepress build handbook", "preview": "vite preview --host 127.0.0.1", "handbook": "node scripts/handbook.mjs && vitepress dev handbook --port 5174"},
   "dependencies": {"vue": "3.5.13", "vue-router": "4.5.0", "marked": "15.0.6", "dompurify": "3.2.4", "lucide-vue-next": "0.468.0", "mermaid": "11.4.1"},
   "devDependencies": {"vite": "6.0.7", "@vitejs/plugin-vue": "5.2.1", "typescript": "5.7.3", "vue-tsc": "2.2.0", "vitepress": "1.6.3", "@types/node": "22.10.5"}
 }

@@ -40,35 +40,33 @@ npm run build
 ## 模板与关键字段
 
 - `templates/latex/gtm-original/source.tex`：用户原件，SHA256 `f621d00d5a943f05384b5394d1754ce777250e55a539ef2e478ee547a8889faf`。
-- `preamble.tex`：保留原字体回退、紫色、页边距与组件命令；仅增加缺少fontawesome5包时的图标回退。
-- `resume.tex.j2`：受控正文映射；个人信息与教育分栏、项目、实习/工作、技能、自我评价及其他经历。未识别内容保留，不补全空字段。
+- `preamble.tex`：保留原字体回退、紫色、页边距与组件命令；使用真正的 Font Awesome 图标，不以字母替代。
+- `resume.tex.j2`：受控正文映射；个人信息与教育分栏、项目、实习/工作、技能、自我评价及其他经历。缺少项目经历、自我评价时保留空白编辑块，留空不导出空标题。
 - `metadata.json`：模板标识、版本与原件哈希。
+- `templates/latex/sections.tex.j2`：四套模板共用的经历抬头与正文分点。
+- `packages/document_renderer/layout.py`：清理重复标题、合并识别续行、拆分技能类别，将正文映射到模板字段。
+- `packages/career/photo.py`：从原件保留独立照片；照片随私有版本送入隔离编译目录。
+- `infra/renderer-fonts/`：模板必需的 Font Awesome 字体与支持文件，包含来源和许可证，不是临时缓存。
 
 Live模式调用文本模型提取姓名、邮箱、电话、求职意向及每条事实的栏目。提取值必须逐字对应给定事实，每个事实必须有且仅有一个归属；漏项、未知来源或新造值会被拦截。未配置模型时明确报错，不返回模拟归类。用户可校对关键字段与段落归属后确认。正文按来源事实完整填入相应栏目，不让模型直接改写TeX。
 
 改写采用岗位导向的共同编辑：结合用户需求、目标 JD、当前草稿与历史对话，直接生成完整候选稿，可补充职责方向、方法、工具与交付物。原文不是内容上限；用户在对话中补充的内容与数字可直接采用，不再受原文数字集合限制。推演的新增方向在分析中简短提示核对，用户确认替换后再生成版本；锁定段落、修改范围和账号隔离检查保留。
 
-## 本轮验证
+## 模板维护与验证
 
-- 60份笔记导入数、幂等、正文与哈希核对。
-- 原件TeX哈希一致；合成简历生成的用户模板通过桌面编译器实际编译。
-- 字段完整映射、未知/虚构提取拒绝、用户JD隔离与RAG证据测试。
-- 浏览器实测：卡片打开全文；登录、JD上传、简历上传、字段与段落校对、选择项目/实习、生成建议、授权生成用户模板版本。
-- 当前23项后端测试通过；前端类型、Vite与VitePress构建通过，最新运行结果以终端为准。
-
-尚未配置真实LLM/STT/Vision/Embedding密钥，真实模型效果需配置后复测。合成样例的模板已实编译，不等于Docker隔离PDF Worker集成已验收；网页PDF按钮仍在Worker完成QA后才可用。
-
-若继续使用当前本机SQLite API，Docker启动后可仅运行隔离Renderer，沿用已有版本与任务：
+修改模板正文后重新构建 API；修改字体、编译依赖或 Worker 代码后同步构建 renderer：
 
 ```powershell
-docker compose -f infra/compose.renderer-local.yaml up --build
+docker compose -f infra/compose.production.yaml up -d --build api renderer
 ```
 
-该配置只挂载本项目 `.data/artifacts` 与 `.data/render-queue`，不切换数据库、不挂载原始上传目录。它仍需要Docker并待实际集成验证。完整PostgreSQL栈另用 `infra/compose.yaml`，两者请选择一种Renderer运行方式，避免同时消费同一任务队列。
+实际下载并查看 PDF，核对照片、图标、学校和经历抬头、工作分点与技能分类。验证空白模块不会导出空标题，段落不会被物理换行拆成碎片。测试入口及完整验收场景见 [功能验收](ACCEPTANCE.md)。
+
+仅在本机 Python API 开发模式下使用 `infra/compose.renderer-local.yaml`。它挂载 `.data/artifacts` 与 `.data/render-queue`；不能和另一 Worker 同时消费同一队列。生产 Supabase 模式使用 `infra/compose.production.yaml`，部署方式见 [部署指南](DEPLOYMENT.md)。
 
 ## GTM 名词库与概览
 
-知识中心 `/learn` 默认打开「GTM 概览」，依次提供岗位JD、面经、在职经验和「GTM 专有名词库」。可直接访问 `/learn?kind=glossary`、`/learn?kind=overview`。
+知识中心 `/learn` 默认打开「GTM 概览」，依次提供岗位JD、在职经验和「GTM 专有名词库」。可直接访问 `/learn?kind=glossary`、`/learn?kind=overview`。
 
 - 名词库为名词/解释两列，首批 18 项。编辑唯一数据源 `knowledge/glossary/gtm-glossary.json` 追加条目，每项包含 `term`、`fullName`、`explanation`、`example`；`apps/web/src/content/gtm-glossary.ts` 仅导出该数据，页面与 AI 共用原始内容。
 - 概览使用用户提供的 `GTM_HTML学习资料/index.html`，连同四个章节维护于 `knowledge/site/gtm-overview/`，复制校验见 `docs/archive/import-reports/gtm-overview.json`。保留原内容、版式、章节与返回目录链接，不依赖用户电脑的绝对路径。

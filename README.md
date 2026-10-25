@@ -19,13 +19,13 @@ GTM Atlas 将 GTM（Go-to-Market）知识学习、岗位理解、模拟面试和
 | 模型、检索、Mock、简历业务逻辑 | `packages/` 与 `services/api/` |
 | Docker 部署 / 数据库初始化 / 简历模板 | `infra/` / `supabase/` / `templates/latex/` |
 
-GTM 概览已从前端的 `public` 目录移到知识资料区；网页地址仍为 `/gtm-overview/index.html`。计划与旧验收记录在 `docs/archive/`，不作为当前状态说明。
+GTM 概览已从前端的 `public` 目录移到知识资料区；网页地址仍为 `/gtm-overview/index.html`。资料导入来源记录在 `docs/archive/import-reports/`。
 
 ## 当前阶段与使用入口
 
 项目已具备知识学习、AI 问答、Mock 和简历工作台的主要代码与部署结构。日常维护以内容更新、问题修复和部署验收为主；各环境的在线状态应以当前实际检查结果为准。
 
-历史实施计划和部署检查快照已移至 `docs/archive/`。功能验收项目见 [验收清单](docs/ACCEPTANCE.md)，运行方法见下方步骤，不把旧记录作为当前环境的状态说明。
+功能验收项目见 [验收清单](docs/ACCEPTANCE.md)，运行方法见下方步骤。`docs/archive/import-reports/` 仅保留资料来源校验记录。
 
 支持两种对外运行方式：
 
@@ -143,10 +143,10 @@ GTM desk/
 ├─ tests/                    # 后端测试、合成夹具、回归评测
 ├─ docs/                     # 当前维护文档；先看 docs/README.md
 │  ├─ collector-skills/      # BOSS / 小红书采集技能
-│  └─ archive/               # 历史计划、验收快照与来源校验记录
+│  └─ archive/import-reports/ # 知识资料来源与导入校验记录
 ├─ .env                      # 本机私有配置，不提交 Git
 ├─ .data/                    # 本地运行数据与临时产物，不提交 Git
-│  └─ development-archive/   # 历史调试产物分类归档；本机 README 说明数据用途
+│  └─ maintenance/          # 本机清理记录与文件完整性校验
 ├─ .venv/                    # 本机 Python 环境，不提交 Git
 ├─ pyproject.toml            # Python 项目与依赖声明
 ├─ requirements.lock         # Python 依赖锁定版本
@@ -499,14 +499,14 @@ npm --prefix apps/web run build
 5. Worker 编译、PDF 检查、私有存储同步和下载。
 6. 真实模型的引用、事实保真、语音质量、费用与错误处理。
 
-近期离线回归记录：Skill 扩充后全套 34 项测试通过；密码限制调整后，新增短/长密码与空密码用例，并与认证相关测试合计 10 项通过；前端构建通过。这些是各次修改的历史记录，并非本次文档更新重新运行了全量测试，也不等于真实模型能力已验收。
+用户已于 2026-10-25 确认当前版本全流程测试通过。后续改动按 [验收清单](docs/ACCEPTANCE.md) 复测，不在 README 保留会过期的测试数量和服务状态快照。
 
-详见 [验收清单](docs/ACCEPTANCE.md)、[历史部署检查](docs/archive/DEPLOYMENT_CHECKS_2026-10-23.md)。历史检查报告仅代表当时状态，不代表当前环境已经验收。
+完整复测步骤见 [验收清单](docs/ACCEPTANCE.md)。在线状态以本次实际检查为准。
 
 ## 后续优先事项
 
-将耗时知识入库从 API 启动过程拆出并补充进度日志；将 Skill 关键词路由改为显式任务参数；落实一页与留白的实际排版检查；完成真实云端双账号及 PDF 全流程验收。以上是改进方向，不代表当前已经实现。
+可继续改进知识入库启动耗时、任务路由和模型反馈延迟。简历照片、真实图标、经历抬头、分项技能与空白模块已接入模板；后续修改模板仍需查看实际 PDF，避免仅凭接口成功判断排版。
 
 当前未实现完整流式回答、通用会话导出、收藏/阅读进度、共享队列和企业身份体系。文档或单元测试不能替代真实部署中的隔离、备份和模型全流程验收。
 
-更多资料：[历史实施规划](docs/archive/plans/IMPLEMENTATION_PLAN.md) · [架构说明](docs/ARCHITECTURE.md) · [部署指南](docs/DEPLOYMENT.md) · [内容维护](docs/CONTENT_GUIDE.md)。
+更多资料：[架构说明](docs/ARCHITECTURE.md) · [部署指南](docs/DEPLOYMENT.md) · [内容维护](docs/CONTENT_GUIDE.md)。

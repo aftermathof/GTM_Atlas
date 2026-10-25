@@ -16,3 +16,5 @@
 GTM 概览原件在 [../../knowledge/site/gtm-overview/](../../knowledge/site/gtm-overview/)，名词库在 [../../knowledge/glossary/](../../knowledge/glossary/)。Markdown 正文也统一在根目录 `knowledge/`，不要编辑 `dist/` 或自动生成的手册文章。
 
 `node_modules/` 是安装依赖；`dist/` 是构建结果。页面部署与后端启动见 [部署指南](../../docs/DEPLOYMENT.md)。
+
+`dist/`、`handbook/articles/`、`handbook/.generated.json` 与 VitePress 缓存都是生成产物，可重新构建。`npm run handbook` 会先从知识库生成文章，再启动手册开发服务。

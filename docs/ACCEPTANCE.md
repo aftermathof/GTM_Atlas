@@ -1,42 +1,50 @@
-# V5.1 验收映射
+# 功能验收与回归
 
-自动化执行 `python -m pytest -q`；真实外部能力需要按下列步骤人工复测。
+用户于 2026-10-25 确认当前版本全流程测试通过。后续修改按受影响模块复测；在线可用性以当次检查为准，测试数量不在本文维护第二份快照。
 
-|plan.md 场景|自动化/人工覆盖|当前状态|
-|---|---|---|
-|1 学习页比较渠道与KOL|test_knowledge_permissions_and_citations；浏览器实际问答点击来源|本地已验证|
-|2 KOL消费电子5题/3维度/种子|test_mock_seed_idempotency_and_ownership|已验证固定题池|
-|3 简历真实AI运营追问|test_unauthorized_resume_context_and_artifacts|合成事实测试通过；真实模型未配置|
-|4 扫描PDF与低置信字段|test_scan_requires_ocr_or_manual_confirmation；配置Vision上传扫描件核对page/confidence|退化已测，真实OCR待测|
-|5 只诊断不生成|test_resume_confirmation_authorization_and_versions、test_ai_suggestion_does_not_create_version|已验证|
-|6 授权段落、锁定教育、PDF|test_locked_education_cannot_be_rewritten、test_version_rollback_and_artifacts_remain_private|授权与TeX已测；隔离PDF待Docker|
-|7 回滚只保留技能修改|版本测试检查教育保留、旧版保留、活动指针回滚；编辑器选择基础版只授权技能栏生成|API已验证，人工组合按此步骤复核|
-|8 非法许可/用户隔离|test_forbidden_and_deleted_documents_never_searchable、私有API与下载隔离测试|已验证首版保守许可|
-|9 重启恢复/幂等|test_restart_restores_session_and_duplicate_response|已验证SQLite文件持久化|
-|10 缺少证据不编引用|知识不足与test_forged_citation_is_blocked|已验证|
-|11 四类输入录音→转写→确认|学习/全局、面经、Mock、简历均复用Composer|组件已接入；真实STT/麦克风待测|
-|12 校对后评分/修改|后端只接收已提交文字；建议不生成版本测试；确认与审批interrupt|文字边界已测，真实语音待测|
+## 自动化检查
 
-## 语音人工测试（配置STT后）
+在项目根目录执行：
 
-分别在 `/learn/ask`、文章问答、全局抽屉、Mock每题、简历问答与改写建议输入执行：
+```powershell
+.venv/Scripts/python.exe -m pytest -q
+.venv/Scripts/python.exe scripts/validate_knowledge.py
+node --test apps/web/scripts/interaction.test.mjs apps/web/scripts/session.test.mjs
+npm --prefix apps/web run build
+```
 
-1. 保留已有草稿，点击麦克风直接开始录音，不再显示站内勾选确认。首次使用仍需浏览器麦克风授权；拒绝授权时不录音。
-2. 同意后允许浏览器麦克风，录制中文、英文、中英混合各一段。停止后等待转写，文字追加到原草稿。
-3. 校对错字，不点击发送时不能出现回答、评价或新版本。确认提交后才执行文字API。
-4. 重复录音并取消，原文字不变；拒绝权限显示可理解提示，键盘仍可使用。
-5. 临时停用STT或模拟超时，错误不会清空草稿；重新启用后可重试。
-6. 录制至120秒自动停止；超过8MB拒绝处理。检查 `.data` 中无原始音频文件。
-7. 简历改写建议生成后仍须明确点击「确认授权并生成新版」，否则版本数量不变。
+单元测试使用合成资料及测试配置，不访问真实账号和私有简历。真实模型效果、浏览器权限和外部服务连通性需要人工检查。
 
-## PDF人工测试（Docker后）
+## 主要检查场景
 
-启动Compose，配置生产PG并迁移。上传合成中文简历，确认事实，授权两段并锁定教育，生成版本。刷新编译状态后预览并下载PDF和TeX。比对姓名、教育、时间、技能和授权段落；页数不超过2页。使用另一账号访问文件应404。
+| 模块 | 检查内容 |
+| --- | --- |
+| 账号与隔离 | 登录恢复、主动退出、另一账号不能读取私有记录或下载文件 |
+| 知识资料 | JD、面经、在职经验分类正确，编号排序、目录、搜索、缓存和引用可用 |
+| 概览与名词库 | HTML 概览、名词搜索及 AI 对两类参考内容的引用 |
+| AI 助手 | 多轮对话、历史选择、全屏、清空当前上下文、失败后保留输入 |
+| Mock | 自定义 1–20 题、题目去重、回答与反馈、中途退出、返回面经入口 |
+| Mock 历史 | 未作答练习不展示；记录呈现问题、回答和建议；问问 AI 自动分行并发送 |
+| 简历识别 | 可读 PDF/TXT、扫描件、图标清理、字段与 section 校对 |
+| 简历改写 | 完整经历分块、多轮建议、明确确认替换、锁定与授权、版本保存 |
+| 空白模块 | 缺少项目经历、自我评价时保留空白编辑块；留空不输出空标题 |
+| 简历 PDF | 原件照片、真实图标、标题不重复、教育与经历抬头同行、工作与技能分项 |
+| 持久化 | 刷新、重新登录、重启服务后仍能恢复保存记录 |
 
-停止Worker再生成一版，网页应显示等待且不提供PDF下载；恢复Worker后任务可继续。超长简历导致QA失败时，不允许下载该PDF，旧版仍可读取。检查renderer `NetworkMode=none`、非root、只读根文件系统、内存/CPU限制与禁用shell-escape。
+## PDF 与隔离编译
 
-## 当前验证记录
+使用含照片、两段教育、两段实习和多类技能的简历生成新版，查看 PDF 页面并下载 PDF/TeX。核对原文、日期、照片、图标和条目；不能只检查接口成功。
 
-本地自动化23项通过（后续以最新pytest输出为准）。Vue类型检查、Vite与VitePress生产构建通过。浏览器已实际验证资料展览室与全文、带引用问答、JD/简历上传、字段校对、项目经历选择和用户模板版本生成。用户模板的合成样例已实际编译成功；Docker PDF Worker仍待验证。响应式检查以1440px桌面和390px手机进行。
+分别检查四套模板。空白模块不导出，长内容允许正常换行，不截断正文或靠增加无意义文字填满行宽。检查 PDF 内容 QA 和页数；编译或 QA 失败时不得提供失败文件下载。
 
-依赖会输出PyMuPDF、Starlette/AnyIO与LangGraph的弃用提示，不影响当前测试通过；升级依赖应重跑全部测试。未把这些提示隐瞒为零警告。
+停止 Worker 后新任务应等待，恢复后继续。确认 renderer 无网络、非 root、根目录只读、禁用 shell escape，且有内存和 CPU 限制。运行方式见 [部署指南](DEPLOYMENT.md)。
+
+## 语音输入
+
+在全局、文章、Mock、简历场景分别录制中文、英文及混合语音。点击麦克风直接开始，首次仍由浏览器获取麦克风权限。转写追加到草稿，校对并发送后才进入模型流程。
+
+检查拒绝权限、取消录音和转写失败不会清空输入；120 秒停止，超过 8 MB 拒绝处理；不在 `.data/` 留存原始音频。
+
+## 在线检查
+
+依次核对本机 `/api/v1/health`、当前隧道健康接口、前端 API 地址与实际数据请求。数据库、隧道和模型接口分别排查，不能将所有 `Failed to fetch` 归为同一原因。操作步骤见 [本机服务维护](LOCAL_OPERATIONS.md)。

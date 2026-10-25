@@ -22,6 +22,8 @@
 | 模型与 Agent | [../packages/agent_core/](../packages/agent_core/) | 模型适配、领域规则加载与状态检查点 |
 | 知识索引与检索 | [../packages/rag/](../packages/rag/) | Markdown 与 HTML/JSON 入库、分块、检索 |
 | 业务流程 | [../packages/career/](../packages/career/)、[../packages/mock/](../packages/mock/)、[../packages/learning/](../packages/learning/) | 简历、Mock、知识问答 |
+| 简历照片与分块 | [../packages/career/photo.py](../packages/career/photo.py)、[../services/api/resume_blocks.py](../services/api/resume_blocks.py) | 照片保留、完整经历与空白编辑块 |
+| 模板字段与字体 | [../packages/document_renderer/layout.py](../packages/document_renderer/layout.py)、[../infra/renderer-fonts/](../infra/renderer-fonts/) | 标题、经历抬头、正文和技能分项；真实图标与许可证 |
 | 简历模板与编译 | [../templates/latex/](../templates/latex/)、[../packages/document_renderer/](../packages/document_renderer/) | TeX 模板、排版、PDF 任务 |
 | 部署与数据库 | [../infra/](../infra/)、[../supabase/](../supabase/) | Docker、隔离 Worker、迁移、初始化 SQL |
 
@@ -46,18 +48,20 @@
 
 内容维护后：前端发布重新运行 Vercel 构建；后端知识索引在 API 启动时增量检查。仅整理路径不需要重跑 SQL。
 
-## 历史资料放在哪里
+## 资料来源记录
 
-- `archive/plans/`：开发实施计划、模板接入计划、早期部署计划。
-- `archive/DEPLOYMENT_CHECKS_2026-10-23.md`：当天的部署检查快照，不能代表当前在线状态。
-- `archive/import-reports/`：概览原始文件哈希与研究笔记导入来源记录。
+`archive/import-reports/` 保留概览原始文件哈希与研究笔记导入记录，用于核对资料来源。已完成的开发计划、过期部署快照和一次性调试归档已清理；当前维护以本页列出的文档为入口。
 
-归档文件保留当时的数字、路径和待办，查询开发历史时才阅读；运行与维护以当前文档为入口。
-
-已移除的生成快照：过时的 `openapi.json`、手工上传清单和旧缓存清理报告。当前 API 结构看运行中的 `/docs` 或 `/openapi.json`；Git 提交范围看 `git status --short`、`git ls-files`，无需维护第二份清单。
+当前 API 结构看运行中的 `/docs` 或 `/openapi.json`；Git 变更看 `git status --short`，无需另存手工清单。
 
 ## 本地数据不要当作废文件删除
 
 `.env` 是私有配置，`.data/` 可能包含上传原件、生成版本与运行数据库；Docker 数据卷也可能保存私有文件。`.venv/`、`node_modules/` 是本机依赖。它们不提交 Git，但不属于本次可以随意删除的内容。
 
-本机 `.data/README.md` 说明数据用途；散落的开发产物已分类放入 `.data/development-archive/`，移动清单记录 SHA256。归档脚本保留旧路径，仅供历史追溯。数据库、上传目录、原始采集证据、测试配置使用的数据路径及隧道日志保留原位。
+本机 `.data/README.md` 说明数据用途；`.data/maintenance/` 保存清理记录与文件完整性校验。数据库、上传目录、采集原始证据及隧道日志保留原位。
+
+## 可以重新生成的文件
+
+前端 `dist/`、`handbook/articles/`、`handbook/.generated.json`、VitePress 缓存，后端 `__pycache__/`、`.pytest_cache/` 和 `.data/pytest-*` 都是生成产物。清理后运行构建或测试即可重建；不必在主目录长期堆积多轮输出。
+
+`.data/maintenance/` 保存本机清理清单与保护文件的哈希校验，随 `.data/` 一起被 Git 忽略。正式业务源码、字体支持文件、采集证据、依赖环境和用户上传不属于缓存。
