@@ -13,6 +13,34 @@ function compile(source) {
   }).outputText
 }
 
+function glossarySearch() {
+  const {descriptor}=parse(readFileSync(new URL('../src/components/GtmGlossary.vue',import.meta.url),'utf8'))
+  const entries=JSON.parse(readFileSync(new URL('../../../knowledge/glossary/gtm-glossary.json',import.meta.url),'utf8'))
+  const context=vm.createContext({exports:{},require:name=>{
+    if(name==='vue') return vue
+    if(name==='../content/gtm-glossary') return {gtmGlossary:entries}
+    return {}
+  }})
+  vm.runInContext(compile(compileScript(descriptor,{id:'glossary-search-test'}).content),context)
+  return {component:context.exports.default.setup({},{expose(){}}),entries}
+}
+
+test('glossary search matches terms full names explanations and examples without case sensitivity',()=>{
+  const {component}=glossarySearch()
+  for(const [query,expected] of [['  cac  ',['CAC','LTV']],['customer acquisition',['CAC']],['关键意见领袖',['KOL']],['东南亚',['GTM']]]) {
+    component.query.value=query
+    assert.deepEqual(Array.from(component.filteredGlossary.value,item=>item.term),expected)
+  }
+})
+
+test('clearing glossary search restores all entries and unmatched text gives no results',()=>{
+  const {component,entries}=glossarySearch()
+  component.query.value='no-such-term-xyz'
+  assert.equal(component.filteredGlossary.value.length,0)
+  component.query.value='   '
+  assert.equal(component.filteredGlossary.value.length,entries.length)
+})
+
 function scrolling() {
   let config
   const context = vm.createContext({ exports: {}, require: name => {
