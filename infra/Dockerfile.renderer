@@ -1,7 +1,7 @@
 FROM python:3.11-slim
 RUN sed -i 's|http://deb.debian.org|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources \
     && apt-get -o Acquire::Retries=3 -o Acquire::https::Timeout=30 update \
-    && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::https::Timeout=30 install -y --no-install-recommends texlive-xetex texlive-lang-chinese fonts-noto-cjk \
+    && DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retries=3 -o Acquire::https::Timeout=30 install -y --no-install-recommends texlive-xetex texlive-lang-chinese texlive-fonts-recommended fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY pyproject.toml ./

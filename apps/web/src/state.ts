@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 
-export const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+export const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/$/, '')
 type CachedResult = { expires: number; pending: Promise<any>; value?: any }
 const listCache = new Map<string, CachedResult>()
 const knowledgeCache = new Map<string, CachedResult>()

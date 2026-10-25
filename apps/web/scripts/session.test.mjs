@@ -5,9 +5,12 @@ import vm from 'node:vm'
 import ts from 'typescript'
 
 const source = readFileSync(new URL('../src/state.ts', import.meta.url), 'utf8')
-const compiled = ts.transpileModule(source.replace('import.meta.env.VITE_API_BASE_URL', "''"), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
-}).outputText
+function compileState(apiOrigin = '') {
+  return ts.transpileModule(source.replace('import.meta.env.VITE_API_BASE_URL', JSON.stringify(apiOrigin)), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
+  }).outputText
+}
+const compiled = compileState()
 
 function storage(initial = {}) {
   const values = new Map(Object.entries(initial))
@@ -20,7 +23,7 @@ function storage(initial = {}) {
 
 function load(localStorage = storage(), sessionStorage = storage(), fetch = async () => {
   throw new Error('Unexpected network request')
-}, clock = Date) {
+}, clock = Date, apiOrigin = '') {
   const listeners = new Map()
   const context = vm.createContext({
     exports: {}, localStorage, sessionStorage, fetch, Headers, FormData, Date: clock,
@@ -30,9 +33,19 @@ function load(localStorage = storage(), sessionStorage = storage(), fetch = asyn
       return { reactive: value => value }
     }
   })
-  vm.runInContext(compiled, context)
+  vm.runInContext(apiOrigin ? compileState(apiOrigin) : compiled, context)
   return { ...context.exports, localStorage, sessionStorage, listeners }
 }
+
+test('API origin strips pasted whitespace before building request URLs', async()=>{
+  for(const value of ['  https://example.test   ', '\nhttps://example.test/ \r\n']) {
+    const urls=[]
+    const app=load(storage(),storage(),async url=>{urls.push(url);return new Response(JSON.stringify({status:'ok'}))},Date,value)
+    await app.api('/health')
+    assert.equal(app.API_ORIGIN,'https://example.test')
+    assert.deepEqual(urls,['https://example.test/api/v1/health'])
+  }
+})
 
 test('rewrite network interruption is explained without retrying the POST or clearing login', async()=>{
   let calls=0
