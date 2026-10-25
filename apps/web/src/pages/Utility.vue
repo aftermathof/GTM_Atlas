@@ -67,8 +67,7 @@ async function auth(){
     }
     saveSession(r);state.user=r.user || await api('/auth/me');Object.assign(state.context,state.user.preferences)
     void historyRecords().catch(()=>{})
-    const next=String(route.query.next||'/')
-    await router.push(next.startsWith('/')&&!next.startsWith('//')?next:'/')
+    await router.push('/')
   }catch(e:any){error.value=e.message}finally{busy.value=false}
 }
 async function logout(){try{await post('/auth/logout',{});success.value='已退出登录'}catch(e:any){error.value='已退出此浏览器，服务端会话撤销失败：'+e.message}finally{clearSession();history.value=[]}}

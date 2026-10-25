@@ -9,12 +9,12 @@ import * as vue from 'vue'
 function recovery(options={}) {
   const requests=[], navigations=[], state={user:null,context:{}}
   let cleared=0
-  const route={params:{page:'login'},query:{},hash:options.hash||''}
+  const route={params:{page:'login'},query:options.query||{},hash:options.hash||''}
   const {descriptor}=parse(readFileSync(new URL('../src/pages/Utility.vue',import.meta.url),'utf8'))
   const context=vm.createContext({exports:{},URLSearchParams,require(name){
     if(name==='vue')return {...vue,onMounted(){},watch(){}}
-    if(name==='vue-router')return {useRoute:()=>route,useRouter:()=>({replace:async target=>{navigations.push(target);route.hash=target.hash||''}})}
-    if(name==='../state')return {state,clearSession(){cleared++},post:async(path,body)=>{requests.push({path,body});return options.post?options.post(path,body):{message:'操作成功'}},saveSession(){throw new Error('recovery must not automatically sign in')}}
+    if(name==='vue-router')return {useRoute:()=>route,useRouter:()=>({push:async target=>navigations.push(target),replace:async target=>{navigations.push(target);route.hash=target.hash||''}})}
+    if(name==='../state')return {state,clearSession(){cleared++},historyRecords:async()=>[],post:async(path,body)=>{requests.push({path,body});return options.post?options.post(path,body):{message:'操作成功'}},saveSession(){if(!options.login)throw new Error('recovery must not automatically sign in')}}
     return {}
   }})
   const source=compileScript(descriptor,{id:'password-recovery-test'}).content
@@ -33,6 +33,13 @@ test('forgot password opens email-only recovery and sends no existing password',
   assert.equal(app.requests[0].path,'/auth/request-password-reset')
   assert.equal(JSON.stringify(app.requests[0].body),'{"email":"user@example.test"}')
   assert.equal(c.success.value,'操作成功')
+})
+
+test('successful login always opens home even when redirected from settings',async()=>{
+  const app=recovery({login:true,query:{next:'/settings'},post:async()=>({token:'access',user:{id:'user',preferences:{}}})})
+  await app.component.auth()
+  assert.equal(app.component.error.value,'')
+  assert.equal(app.navigations[0],'/')
 })
 
 test('recovery callback keeps its token only in the form and removes the URL fragment',async()=>{

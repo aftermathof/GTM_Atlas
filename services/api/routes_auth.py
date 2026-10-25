@@ -31,7 +31,7 @@ def request_password_reset(body: RecoveryEmail, request: Request):
         raise HTTPException(403, '重置链接的返回地址不受信任')
     redirect = quote(origin + '/login?reset=1', safe='')
     supabase.call('POST', '/auth/v1/recover?redirect_to=' + redirect, payload={'email': body.email.strip().lower()})
-    return {'message': '如果该邮箱已注册，重置链接已发送，请检查收件箱和垃圾邮件。'}
+    return {'message': '重置链接已发送，请检查收件箱和垃圾邮件。'}
 
 
 @router.post('/reset-password')

@@ -61,3 +61,20 @@ test('Supabase recovery landing links reach login without losing the recovery fr
   assert.equal(result.hash,hash)
   assert.equal(result.query.next,undefined)
 })
+
+test('signup callbacks open the standalone confirmation page even when landing on login',async()=>{
+  const app=gate()
+  const hash='#access_token=signup-token&type=signup'
+  for(const path of ['/', '/login']) {
+    const result=await app.navigate(path+hash)
+    assert.equal(result.path,'/auth/confirmed')
+    assert.equal(result.hash,hash)
+  }
+  assert.equal(await app.navigate('/auth/confirmed'),true)
+})
+
+test('failed verification callbacks reach confirmation without exposing tokens in next',async()=>{
+  const result=await gate().navigate('/#error=access_denied&error_code=otp_expired')
+  assert.equal(result.path,'/auth/confirmed')
+  assert.equal(result.query.next,undefined)
+})

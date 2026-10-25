@@ -35,6 +35,21 @@ def call(method, path, *, token=None, service=False, payload=None, content=None,
     except httpx.HTTPError:
         raise HTTPException(503, 'Supabase 暂时无法连接，请稍后重试')
     if response.is_error:
+        if path.startswith('/auth/') and not service and response.status_code in {400, 401, 403, 422, 429}:
+            try:
+                details = response.json()
+            except ValueError:
+                details = {}
+            code = (details.get('error_code') or details.get('code')) if isinstance(details, dict) else None
+            messages = {
+                'invalid_credentials': '邮箱或密码不正确，请检查后重试。',
+                'email_not_confirmed': '邮箱尚未验证，请先点击注册邮件中的验证链接，再返回登录。',
+                'weak_password': '密码不符合安全要求，请更换密码',
+                'same_password': '新密码不能与原密码相同，请更换新密码。',
+                'over_email_send_rate_limit': '邮件发送已达到服务限额，请稍后重试或检查 SMTP 发送额度。',
+            }
+            if isinstance(code, str) and code in messages:
+                raise HTTPException(429 if response.status_code == 429 else 400, messages[code])
         if response.status_code in {401, 403}:
             raise HTTPException(401 if not service else 503, '登录凭证无效或已过期' if not service else '私有存储鉴权失败')
         if response.status_code == 404:
@@ -42,11 +57,7 @@ def call(method, path, *, token=None, service=False, payload=None, content=None,
         if response.status_code == 429:
             raise HTTPException(429, '请求过于频繁，请稍后重试')
         if path.startswith('/auth/') and response.status_code in {400, 422}:
-            code = response.json().get('error_code', '')
-            message = '邮箱或密码不正确，或邮箱尚未验证'
-            if code == 'weak_password':
-                message = '密码不符合安全要求，请更换密码'
-            raise HTTPException(400, message)
+            raise HTTPException(400, '账号操作未完成，请稍后重试。')
         raise HTTPException(503, 'Supabase 操作失败，请检查服务配置')
     return response
 
