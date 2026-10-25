@@ -48,7 +48,6 @@ def create_app(url=None):
     app.state.db = factory
     app.state.mutation_lock = threading.RLock()
     app.add_middleware(GZipMiddleware, minimum_size=1000)
-    app.add_middleware(CORSMiddleware, allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(","), allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Authorization", "Content-Type"])
     rate = defaultdict(deque)
     rate_lock = threading.Lock()
 
@@ -58,7 +57,7 @@ def create_app(url=None):
         if int(request.headers.get("content-length", "0") or "0") > 11_000_000:
             return JSONResponse({"detail": "请求超过11MB限制", "code": "payload_too_large"}, status_code=413)
         identity = (request.client.host if request.client else "local") + ("auth" if "/auth/" in request.url.path else "api")
-        if request.method != "GET":
+        if request.method not in {"GET", "HEAD", "OPTIONS"}:
             with rate_lock:
                 queue = rate[identity]
                 clock = time.monotonic()
@@ -73,6 +72,9 @@ def create_app(url=None):
         response.headers["Referrer-Policy"] = "same-origin"
         response.headers["Cache-Control"] = "no-store"
         return response
+
+    # CORS must wrap limits so browsers can read early 413/429 responses.
+    app.add_middleware(CORSMiddleware, allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(","), allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["Authorization", "Content-Type"])
 
     @app.exception_handler(HTTPException)
     async def error(request, exc):
