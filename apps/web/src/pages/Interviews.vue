@@ -3,7 +3,7 @@ import LoadingState from '../components/LoadingState.vue'
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, ArrowLeft, Sparkles, LogOut } from 'lucide-vue-next'
-import { api, post, state, historyRecords, knowledgeDocument, peekKnowledge } from '../state'
+import { api, post, state, historyRecords, knowledgeDocument, peekKnowledge, peekHistory } from '../state'
 import ContextPicker from '../components/ContextPicker.vue'
 import ChatPanel from '../components/ChatPanel.vue'
 import Composer from '../components/Composer.vue'
@@ -24,7 +24,10 @@ async function load() {
     if (isMock.value) {
       const id = path.value.split('/')[1]
       const review=path.value.endsWith('/report')
-      const row=await api('/mock/sessions/'+id+(review?'/report':''))
+      const endpoint='/mock/sessions/'+id+(review?'/report':'')
+      const cached=peekHistory(endpoint)
+      if(cached)loading.value=false
+      const row=cached || await api(endpoint)
       if(current!==loadGeneration)return
       session.value=row;if(review)report.value=row
     }

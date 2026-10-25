@@ -40,9 +40,9 @@ watch(()=>[state.context.role,state.context.industry,state.user?.id],load);onMou
 <template><section class="resource-gallery">
   <div class="gallery-heading"><div><p class="eyebrow">YOUR GTM READING ROOM</p><h2>{{fixedKind?'把每一次面试，变成下一次的准备。':'岗位、经验与知识，放在一起。'}}</h2></div></div>
   <div v-if="!fixedKind" class="gallery-tabs" aria-label="资料分类"><button :class="{active:selected==='overview'}" @click="choose('overview')"><Compass :size="15"/>GTM 概览</button><button v-for="kind in visibleKinds" :key="kind.id" :class="{active:selected===kind.id}" @click="choose(kind.id)"><component :is="kind.icon" :size="15"/>{{kind.name}}<span>{{count(kind.id)}}</span></button><button :class="{active:selected==='glossary'}" @click="choose('glossary')"><BookA :size="15"/>GTM 专有名词库</button></div>
-  <GtmGlossaryPreview v-if="selected==='glossary'"/>
-  <GtmOverview v-else-if="selected==='overview'"/>
-  <template v-else>
+  <GtmGlossaryPreview v-if="!fixedKind" v-show="selected==='glossary'"/>
+  <GtmOverview v-if="!fixedKind" v-show="selected==='overview'"/>
+  <template v-if="selected!=='glossary' && selected!=='overview'">
   <div class="list-toolbar"><form class="search-field" @submit.prevent="load"><Search :size="17"/><input v-model="query" aria-label="搜索资料" placeholder="搜索主题、企业或关键词"><button>搜索</button></form><ContextPicker/></div>
   <div class="gallery-meta"><button class="text-link" :disabled="busy" @click="refresh">刷新资料</button><span class="meta">{{total}} 份资料 · 点击卡片阅读全文</span></div>
   <LoadingState v-if="busy" label="正在加载资料…"/><p v-else-if="error" class="error" role="alert">{{error}}</p>

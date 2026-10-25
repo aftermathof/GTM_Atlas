@@ -4,6 +4,7 @@ export const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL || '').trim().repla
 type CachedResult = { expires: number; pending: Promise<any>; value?: any }
 const listCache = new Map<string, CachedResult>()
 const knowledgeCache = new Map<string, CachedResult>()
+const privateHistoryCache = new Map<string, CachedResult>()
 
 if (!localStorage.getItem('atlas-token') && sessionStorage.getItem('atlas-token')) {
   for (const key of ['atlas-token', 'atlas-refresh']) {
@@ -23,7 +24,7 @@ export const state = reactive({
 })
 
 export function saveSession(value: any) {
-  listCache.clear(); knowledgeCache.clear()
+  listCache.clear(); knowledgeCache.clear(); privateHistoryCache.clear()
   state.token = value.token
   localStorage.setItem('atlas-token', value.token)
   if (value.refresh_token) localStorage.setItem('atlas-refresh', value.refresh_token)
@@ -31,7 +32,7 @@ export function saveSession(value: any) {
 }
 
 export function clearSession() {
-  listCache.clear(); knowledgeCache.clear()
+  listCache.clear(); knowledgeCache.clear(); privateHistoryCache.clear()
   state.user = null; state.token = ''
   localStorage.removeItem('atlas-token'); localStorage.removeItem('atlas-refresh')
   sessionStorage.removeItem('atlas-token'); sessionStorage.removeItem('atlas-refresh')
@@ -39,7 +40,7 @@ export function clearSession() {
 
 window.addEventListener('storage', event => {
   if (event.storageArea !== localStorage || (event.key !== 'atlas-token' && event.key !== null)) return
-  listCache.clear(); knowledgeCache.clear()
+  listCache.clear(); knowledgeCache.clear(); privateHistoryCache.clear()
   state.token = event.key === null ? '' : event.newValue || ''
   if (!state.token) state.user = null
 })
@@ -72,7 +73,27 @@ export async function authorizedFetch(path: string, options: RequestInit = {}): 
   return r
 }
 
-export async function api(path: string, options: RequestInit = {}): Promise<any> {
+function historyPath(path: string) {
+  return path === '/history' || /^\/ai\/conversations(?:\/[^/?]+)?$/.test(path) ||
+    /^\/mock\/sessions\/[^/?]+(?:\/report)?$/.test(path) ||
+    /^\/career\/sessions\/[^/?]+(?:\/versions|\/editing-blocks(?:\?[^#]*)?)?$/.test(path)
+}
+export function peekHistory(path: string) { return privateHistoryCache.get(state.token + '\n' + path)?.value }
+export function api(path: string, options: RequestInit = {}): Promise<any> {
+  return (options.method || 'GET').toUpperCase() === 'GET' && historyPath(path)
+    ? cachedList(path, Infinity, privateHistoryCache) : requestApi(path, options)
+}
+function invalidateHistory(path: string) {
+  const chat = path.startsWith('/ai/chat') || path.startsWith('/ai/conversations')
+  const mock = path.startsWith('/mock/'), career = path.startsWith('/career/')
+  for (const key of privateHistoryCache.keys()) {
+    const cachedPath = key.slice(key.indexOf('\n') + 1)
+    if (((chat || mock || career) && cachedPath === '/history') ||
+        (chat && cachedPath.startsWith('/ai/conversations')) ||
+        (mock && cachedPath.startsWith('/mock/')) || (career && cachedPath.startsWith('/career/'))) privateHistoryCache.delete(key)
+  }
+}
+async function requestApi(path: string, options: RequestInit = {}): Promise<any> {
   const rewriting = path.endsWith('/block-dialogue')
   let r: Response
   try { r = await authorizedFetch('/api/v1' + path, options) }
@@ -97,7 +118,7 @@ export async function api(path: string, options: RequestInit = {}): Promise<any>
     throw new Error(`请求失败 (${r.status})，请检查输入`)
   }
   if ((options.method || 'GET').toUpperCase() !== 'GET') {
-    listCache.clear()
+    listCache.clear(); invalidateHistory(path)
     if (path.startsWith('/career/job-descriptions') || path.startsWith('/knowledge/')) knowledgeCache.clear()
   }
   try { return await r.json() }
@@ -111,8 +132,8 @@ async function cachedList(path: string, ttl: number, cache = listCache) {
   const key = state.token + '\n' + path
   const saved = cache.get(key)
   if (saved && saved.expires > Date.now()) return saved.pending
-  if (cache !== knowledgeCache && cache.size >= 32) cache.delete(cache.keys().next().value!)
-  const pending = api(path)
+  if (cache === listCache && cache.size >= 32) cache.delete(cache.keys().next().value!)
+  const pending = requestApi(path)
   const entry: CachedResult = { expires: Date.now() + ttl, pending }
   cache.set(key, entry)
   try {
@@ -129,8 +150,12 @@ export function knowledgeDocuments(query: string) { return cachedList('/knowledg
 export function knowledgeDocument(id: string) { return cachedList('/knowledge/documents/' + encodeURIComponent(id), Infinity, knowledgeCache) }
 export function peekKnowledge(path: string) { return knowledgeCache.get(state.token + '\n' + path)?.value }
 export function refreshKnowledge() { knowledgeCache.clear() }
-export async function historyRecords() {
-  const rows = await cachedList('/history', 30_000)
+export async function historyRecords() { return decorateHistory(await api('/history')) }
+export function peekHistoryRecords() {
+  const rows = peekHistory('/history')
+  return rows ? decorateHistory(rows) : undefined
+}
+function decorateHistory(rows: any[]) {
   const counters = new Map<string, number>(), names = new Map<string, string>()
   const dateFormat = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' })
   const resumes = rows.filter((r: any) => r.kind === 'career').sort((a: any, b: any) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id.localeCompare(b.id))

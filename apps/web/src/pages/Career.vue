@@ -4,7 +4,7 @@ import LoadingState from '../components/LoadingState.vue'
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, ArrowLeft, Upload, Lock, Check, FileText } from 'lucide-vue-next'
-import { api, post, state, download, authorizedFetch } from '../state'
+import { api, post, state, download, authorizedFetch, peekHistory } from '../state'
 import ContextPicker from '../components/ContextPicker.vue'
 import ChatPanel from '../components/ChatPanel.vue'
 import BlockRewriteDialog from '../components/BlockRewriteDialog.vue'
@@ -85,12 +85,14 @@ async function load() {
   resetBlocks()
   error.value = ''; session.value = null; selectedVersion.value=null; artifacts.value=null; versions.value=[]; approved.value=[]
   if (!sessionId.value) {if(route.query.jd_id && state.user){try{const r=await api('/knowledge/documents/'+route.query.jd_id);jd.value=r.body;targetJdId.value=r.id;jdFilename.value=r.title}catch(e:any){error.value=e.message}}return}
-  sessionLoading.value=true
+  const endpoint='/career/sessions/' + sessionId.value
+  const cached=peekHistory(endpoint), cachedVersions=peekHistory(endpoint+'/versions')
+  sessionLoading.value=!(cached && cachedVersions)
   try {
-    session.value = await api('/career/sessions/' + sessionId.value)
+    session.value = cached || await api(endpoint)
     state.careerId = sessionId.value; state.scope = 'career'
     facts.value = cloneFacts(session.value.facts).map(f=>({...f,section:f.section||session.value.structure?.assignments[f.id]||'other'})); draftFacts.value = cloneFacts(facts.value)
-    versions.value = await api(`/career/sessions/${sessionId.value}/versions`)
+    versions.value = cachedVersions || await api(endpoint+'/versions')
     const active = versions.value.find(v => v.id === session.value.active_version_id)
     if (active) await selectVersion(active)
     tab.value = parts.value[0] === 'editor' ? 'editor' : 'diagnosis'

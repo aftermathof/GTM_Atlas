@@ -2,7 +2,7 @@
 import LoadingState from './LoadingState.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api, post, state } from '../state'
+import { api, post, state, peekHistory } from '../state'
 import Composer from './Composer.vue'
 import Markdown from './Markdown.vue'
 const props = defineProps<{ scope?: string; documentId?: string; sessionId?: string; conversationId?: string; docked?: boolean }>()
@@ -20,7 +20,7 @@ function shortTitle(title: string) {
 let generation=0
 async function list() {
   const current=generation
-  const rows=state.user ? await api('/ai/conversations') : []
+  const rows=state.user ? (peekHistory('/ai/conversations') || await api('/ai/conversations')) : []
   if(current===generation) threads.value=rows.filter((t:any) => t.scope === scope.value && (t.document_id || '') === documentId.value && (t.session_id || '') === sessionId.value)
 }
 function resetView() {
@@ -34,10 +34,11 @@ async function newChat() {
 }
 async function restore(id:string) {
   if (!id) return newChat()
-  busy.value=true; restoring.value=true; error.value=''
+  const cached=peekHistory('/ai/conversations/'+id)
+  busy.value=!cached; restoring.value=!cached; error.value=''
   const current=generation
   try {
-    const row=await api('/ai/conversations/'+id)
+    const row=cached || await api('/ai/conversations/'+id)
     if(current!==generation) return
     conversation.value=row.id; scope.value=row.scope; documentId.value=row.document_id || ''; sessionId.value=row.session_id || ''
     showPrevious.value=false; contextAfter.value=row.context_after || 0; legacy.value=!!row.legacy

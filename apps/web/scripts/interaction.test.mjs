@@ -118,7 +118,7 @@ function mockInterview(confirmExit = true, options = {}) {
   const context = vm.createContext({ exports: {}, crypto: webcrypto, window: { confirm: message => { confirmations.push(message); return confirmExit } }, require: name => {
     if (name === 'vue') return { ...vue, onMounted() {}, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ path: '/interviews/mock/test', params: { pathMatch: options.pathMatch || ['mock', 'test'] } }), useRouter: () => ({ push: path => navigations.push(path) }) }
-    if (name === '../state') return { state, api: options.api, post: options.post, historyRecords: options.historyRecords || (() => options.api('/history')) }
+    if (name === '../state') return { state, peekHistory: options.peekHistory || (()=>undefined), api: options.api, post: options.post, historyRecords: options.historyRecords || (() => options.api('/history')) }
     return {}
   } })
   vm.runInContext(compile(compileScript(descriptor, { id: 'interview-test' }).content), context)
@@ -230,7 +230,7 @@ function careerEditor(options = {}) {
   const context = vm.createContext({ exports: {}, require: name => {
     if (name === 'vue') return { ...vue, onMounted() {}, onBeforeUnmount() {}, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ params: { pathMatch: ['review', 'test'] }, query: {} }), useRouter: () => ({}) }
-    if (name === '../state') return { state: { user: { id: 'test' }, context: {} }, post: options.post, api: options.api }
+    if (name === '../state') return { state: { user: { id: 'test' }, context: {} }, peekHistory: options.peekHistory || (()=>undefined), post: options.post, api: options.api }
     if (name === '../resumeText') {
       const helper = { exports: {} }
       vm.runInNewContext(compile(readFileSync(new URL('../src/resumeText.ts', import.meta.url), 'utf8')), helper)
@@ -352,17 +352,26 @@ test('artifact loading failure does not turn a saved version into a generation f
   assert.equal(editor.approved.value.length,0)
 })
 
-function chatPanel(api = async () => [], post = async () => ({ context_after: 2 })) {
+function chatPanel(api = async () => [], post = async () => ({ context_after: 2 }), cached = () => undefined) {
   const { descriptor } = parse(readFileSync(new URL('../src/components/ChatPanel.vue', import.meta.url), 'utf8'))
   const context = vm.createContext({ exports: {}, require: name => {
     if (name === 'vue') return { ...vue, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ query: {} }), useRouter: () => ({}) }
-    if (name === '../state') return { state: { user: { id: 'test' } }, api, post }
+    if (name === '../state') return { state: { user: { id: 'test' } }, api, post, peekHistory:cached }
     return {}
   } })
   vm.runInContext(compile(compileScript(descriptor, { id: 'chat-test' }).content), context)
   return context.exports.default.setup({}, { expose() {} })
 }
+
+test('cached chat history is restored immediately without a loading state or request',async()=>{
+  const row={id:'saved',scope:'global',messages:[{message:'历史问题',turn:1,response:{answer:'历史回答'}}]}
+  const chat=chatPanel(()=>{throw new Error('Unexpected fetch')},undefined,path=>path.endsWith('/saved')?row:[])
+  const pending=chat.restore('saved')
+  assert.equal(chat.restoring.value,false)
+  assert.equal(chat.messages.value[0].answer,'历史回答')
+  await pending
+})
 
 test('chat history labels collapse newlines and truncate without splitting Unicode characters', () => {
   const chat = chatPanel()

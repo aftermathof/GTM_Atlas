@@ -4,7 +4,7 @@ import vm from 'node:vm'
 import { test } from 'node:test'
 import ts from 'typescript'
 
-function loader({count=7, failure=false, stop=false}={}) {
+function loader({count=7, failure=false, stop=false, records=[], chats=[]}={}) {
   const state={user:{id:'alice'},token:'alice-token'}
   const calls=[], pages=[]
   let active=0, peak=0
@@ -15,13 +15,13 @@ function loader({count=7, failure=false, stop=false}={}) {
     if(id==='d0')throw new Error('temporary failure')
   }
   const context=vm.createContext({exports:{},Promise,require:name=> name==='./state'?{
-    state,peekKnowledge:()=>undefined,knowledgeDocument:warm,knowledgeDocuments:async query=>{
+    state,historyRecords:async()=>records,api:async path=>path==='/ai/conversations'?chats:warm('history:'+path),peekHistory:()=>undefined,peekKnowledge:()=>undefined,knowledgeDocument:warm,knowledgeDocuments:async query=>{
       if(failure)throw new Error('catalog unavailable')
       const params=new URLSearchParams(query),offset=Number(params.get('offset')||0)
       pages.push(offset)
       return {total:count,items:Array.from({length:Math.min(100,count-offset)},(_,i)=>({id:'d'+(offset+i)}))}
     }
-  }:{cachedNotes:()=>undefined,cachedNote:()=>undefined,fetchNotes:async()=>[{id:'n0'},{id:'n1'}],fetchNote:warm}})
+  }:name==='./notesStore'?{cachedNotes:()=>undefined,cachedNote:()=>undefined,fetchNotes:async()=>[{id:'n0'},{id:'n1'}],fetchNote:warm}:{warmOverview:async()=>{}}})
   vm.runInContext(ts.transpileModule(readFileSync(new URL('../src/preload.ts',import.meta.url),'utf8'),{
     compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
   }).outputText,context)
@@ -63,4 +63,12 @@ test('hovered cards move ahead of background jobs still waiting for a slot',asyn
   const queued=app.warm('background'), hovered=app.warm('hover',true)
   await Promise.all([...first,queued,hovered])
   assert.equal(app.calls[3],'hover')
+})
+
+test('history metadata warms unique chats, Mock reviews and resume version lists',async()=>{
+  const app=loader({count:0,records:[{id:'c',kind:'chat_thread'},{id:'m',kind:'mock'},{id:'r',kind:'career'}],chats:[{id:'c'}]})
+  await app.load()
+  assert.equal(app.calls.filter(path=>path==='history:/ai/conversations/c').length,1)
+  for(const path of ['/mock/sessions/m','/mock/sessions/m/report','/career/sessions/r','/career/sessions/r/versions']) assert.ok(app.calls.includes('history:'+path))
+  assert.ok(app.peak<=3)
 })

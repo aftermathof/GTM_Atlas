@@ -3,7 +3,7 @@ import LoadingState from '../components/LoadingState.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, ArrowLeft, Search, LogOut, Trash2 } from 'lucide-vue-next'
-import { api, post, state, saveSession, clearSession, historyRecords } from '../state'
+import { api, post, state, saveSession, clearSession, historyRecords, peekHistoryRecords } from '../state'
 import ContextPicker from '../components/ContextPicker.vue'
 const route=useRoute(),router=useRouter(), email=ref(''), password=ref(''),register=ref(false), error=ref(''),success=ref(''),busy=ref(false),history=ref<any[]>([]),query=ref(String(route.query.q || '')), results=ref<any[]>([])
 const recovering=ref(false), resetting=ref(false), recoveryToken=ref(''), confirmPassword=ref('')
@@ -19,6 +19,8 @@ async function load() {
   error.value=''; historyLoading.value=false
   if (!state.user) { history.value=[]; return }
   if (page.value!=='history') return
+  const cached=peekHistoryRecords()
+  if(cached){history.value=cached;return}
   historyLoading.value=true
   try {
     const rows=await historyRecords()

@@ -126,3 +126,14 @@ test('live preview preserves source offsets after reference definitions and reso
     assert.equal(blocks[0].from,source.lastIndexOf(word))
   }
 })
+
+test('delete confirmation keeps keyboard focus inside while its buttons are disabled',()=>{
+  const component=readFileSync(new URL('../src/pages/Notes.vue',import.meta.url),'utf8')
+  const fn=component.slice(component.indexOf('function trapDelete('),component.indexOf('async function deleteCard('))
+  let focused=0,prevented=0
+  const context=vm.createContext({exports:{},deleteDialog:{value:{focus(){focused++}}}})
+  vm.runInContext(ts.transpileModule(fn+'\nexports.trapDelete=trapDelete',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,context)
+  context.exports.trapDelete({key:'Tab',currentTarget:{querySelectorAll:()=>[]},preventDefault(){prevented++}})
+  assert.equal(focused,1)
+  assert.equal(prevented,1)
+})

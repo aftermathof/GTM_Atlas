@@ -227,7 +227,7 @@ test('catalog cache lasts across navigation until explicitly refreshed', async (
   assert.equal(calls, 2)
 })
 
-test('history visits share a request and reuse results for thirty seconds', async () => {
+test('history visits share a request and reuse results until a relevant mutation', async () => {
   let calls = 0, now = 0
   const app = load(storage({ 'atlas-token': 'user' }), storage(), async () => {
     calls++; return new Response('[{"id":"saved"}]')
@@ -237,7 +237,36 @@ test('history visits share a request and reuse results for thirty seconds', asyn
   assert.equal(calls, 1)
   now = 30_001
   await app.historyRecords()
-  assert.equal(calls, 2)
+  assert.equal(calls, 1)
+})
+
+test('conversation records share preloads and invalidate after context resets',async()=>{
+  let calls=0
+  const app=load(storage({'atlas-token':'alice'}),storage(),async()=>{
+    calls++;return new Response('{"id":"thread","messages":[]}')
+  })
+  await Promise.all([app.api('/ai/conversations/thread'),app.api('/ai/conversations/thread')])
+  assert.equal(calls,1)
+  assert.equal(app.peekHistory('/ai/conversations/thread').id,'thread')
+  await app.post('/ai/conversations/thread/reset',{})
+  assert.equal(app.peekHistory('/ai/conversations/thread'),undefined)
+  await app.api('/ai/conversations/thread')
+  assert.equal(calls,3)
+  app.clearSession()
+  assert.equal(app.peekHistory('/ai/conversations/thread'),undefined)
+})
+test('unrelated note writes keep chat history warm and live artifact polling stays fresh',async()=>{
+  let calls=0
+  const app=load(storage({'atlas-token':'alice'}),storage(),async()=>{
+    calls++;return new Response('{}')
+  })
+  await app.api('/ai/conversations/thread')
+  await app.post('/notes',{})
+  await app.api('/ai/conversations/thread')
+  assert.equal(calls,2)
+  await app.api('/career/versions/version/artifacts')
+  await app.api('/career/versions/version/artifacts')
+  assert.equal(calls,4)
 })
 
 test('history is refreshed after mutations and cannot survive account changes', async () => {
