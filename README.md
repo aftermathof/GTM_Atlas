@@ -36,7 +36,7 @@ GTM 概览已从前端的 `public` 目录移到知识资料区；网页地址仍
 
 网站应用页面统一要求登录。未登录只开放登录／注册页；登录成功后进入目标页面，退出后返回登录页。
 
-常用入口：前端主页 `/`、资料 `/learn`、问答 `/learn/ask`、面经与 Mock `/interviews`、简历 `/career`、历史 `/history`、设置 `/settings`、名词完整页 `/glossary`。后端 API 文档为 `/docs`，健康接口为 `/api/v1/health`。
+常用入口：前端主页 `/`、资料 `/learn`、问答 `/learn/ask`、面经与 Mock `/interviews`、简历 `/career`、学习笔记 `/notes`、历史 `/history`、设置 `/settings`、名词完整页 `/glossary`。后端 API 文档为 `/docs`，健康接口为 `/api/v1/health`。
 
 阅读顺序：了解功能 → 目录与 Skill → 环境变量 → Docker 启动 → 选择公网访问方式 → Vercel → 功能验收。下文示例域名和 Key 都是占位符，不含真实凭证，也不记录会过期的临时隧道地址。
 
@@ -56,6 +56,16 @@ GTM 概览已从前端的 `public` 目录移到知识资料区；网页地址仍
 面经统一在 `/interviews` 的「面经与 Mock」中展示。JD、面经、在职经验共用文章目录和正文阅读布局；资料卡片不展示预计阅读时长。
 
 目前正式 Markdown 知识库包含 **10 份岗位 JD、30 篇面经研究笔记和 30 篇学习/在职经验笔记**。三类资料均使用 `research-notes/research-jNN.md`、`research-iNN.md`、`research-lNN.md` 单篇结构；JD 直接匹配与相关职能扩展的边界保留在各单篇中。研究笔记不等于原帖逐字全文，也不代表企业官方结论。合成资料仅保留在 `tests/fixtures/`，不进入正式知识库。
+
+### 学习笔记
+
+顶部第四个入口为 `/notes`，按标题和最后修改时间展示私人笔记卡片。支持新建、编辑、删除，以及 Markdown 编辑、实时预览、阅读三种视图。常用格式按钮和 Ctrl / ⌘ + S 可辅助写作；标题、列表、任务清单、表格、引用、代码块和链接即时渲染。离开未保存内容会提醒，多页面编辑同一篇笔记时通过版本号阻止覆盖。当前为个人编辑与预览联动，不提供多人实时协作。
+
+笔记通过登录后的 `/api/v1/notes` 接口保存至 `business_records`（`kind=learning_note`），每条记录绑定当前账号。沿用现有 Supabase 表和 RLS，无需新增建表 SQL，不写入公共 Markdown 目录或公共向量索引。
+
+全站助手、学习问答会检索当前账号已保存笔记，也可在笔记下方展开“与 AI 讨论这篇笔记”。笔记引用可跳回原文；修改或删除立即影响后续检索。当前采用私有关键词与中文词组检索，不额外调用 Embedding；每次最多提供 6 个相关片段，长笔记宜按章节提问，不保证全文总结。相关片段会随当前请求发送至配置的 LLM。删除笔记不删除既有聊天中已经保存的引用快照。
+
+维护入口：前端 `apps/web/src/pages/Notes.vue`，接口 `services/api/routes_notes.py`，私有检索 `packages/rag/notes.py`，测试 `tests/test_notes.py`。发布此功能需重新部署 Vercel 前端并重建 Docker API，PDF renderer 无需重建。
 
 ### AI 问答与语音输入
 

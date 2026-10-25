@@ -59,7 +59,7 @@ def knowledge_search(body: Search, request: Request):
 
 @router.post("/ai/chat")
 def chat(body: Chat, request: Request):
-    user = current_user(request) if body.scope == "career" or request.headers.get("authorization") else None
+    user = current_user(request) if body.scope in {"career", "notes"} or request.headers.get("authorization") else None
     if body.conversation_id and not user:
         raise HTTPException(401, '请先登录后恢复会话')
     with request.app.state.mutation_lock, request.app.state.db() as db:
@@ -82,6 +82,10 @@ def chat(body: Chat, request: Request):
                 raise HTTPException(422, "当前简历范围需要明确选择会话")
             row = owned(db, body.session_id, user.id, "career")
             private = {"facts": row.data["facts"], "role": row.data["context"]["role"], "status": row.data["status"], 'career_context':row.data['context'],'jd':row.data['context'].get('jd',''),'owner_id':user.id}
+        if body.scope == 'notes' and body.document_id:
+            owned(db, body.document_id, user.id, 'learning_note')
+        if user:
+            private = {**(private or {}), 'owner_id': user.id}
         result = answer_question(db, body, private, history=history)
         result["request_id"] = uid()
         if user:

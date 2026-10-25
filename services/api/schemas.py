@@ -21,7 +21,7 @@ class Context(BaseModel):
 
 class Chat(Context):
     message: str = Field(min_length=1, max_length=16000)
-    scope: Literal["learning", "interview", "career", "global", "article"] = "global"
+    scope: Literal["learning", "interview", "career", "global", "article", "notes"] = "global"
     document_id: str | None = None
     session_id: str | None = None
     conversation_id: str | None = Field(default=None, max_length=36)
