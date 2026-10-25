@@ -5,6 +5,8 @@ type CachedResult = { expires: number; pending: Promise<any>; value?: any }
 const listCache = new Map<string, CachedResult>()
 const knowledgeCache = new Map<string, CachedResult>()
 const privateHistoryCache = new Map<string, CachedResult>()
+const deletedHistory = new Set<string>()
+export function isHistoryDeleted(id: string) { return deletedHistory.has(state.token+'\n'+id) }
 
 if (!localStorage.getItem('atlas-token') && sessionStorage.getItem('atlas-token')) {
   for (const key of ['atlas-token', 'atlas-refresh']) {
@@ -20,10 +22,11 @@ export const state = reactive({
   context: { role: '', role_raw: '', industry: '', language: 'zh-CN', region: '', seniority: 'intern', business_model: 'unknown' },
   roles: [] as any[], industries: [] as any[], health: null as any,
   assistant: false, assistantBusy: false, assistantRequest: null as { question: string } | null,
-  scope: 'global', documentId: '', careerId: '', notice: ''
+  scope: 'global', documentId: '', careerId: '', notice: '', historyRevision: 0
 })
 
 export function saveSession(value: any) {
+  deletedHistory.clear()
   listCache.clear(); knowledgeCache.clear(); privateHistoryCache.clear()
   state.token = value.token
   localStorage.setItem('atlas-token', value.token)
@@ -32,6 +35,7 @@ export function saveSession(value: any) {
 }
 
 export function clearSession() {
+  deletedHistory.clear()
   listCache.clear(); knowledgeCache.clear(); privateHistoryCache.clear()
   state.user = null; state.token = ''
   localStorage.removeItem('atlas-token'); localStorage.removeItem('atlas-refresh')
@@ -40,6 +44,7 @@ export function clearSession() {
 
 window.addEventListener('storage', event => {
   if (event.storageArea !== localStorage || (event.key !== 'atlas-token' && event.key !== null)) return
+  deletedHistory.clear()
   listCache.clear(); knowledgeCache.clear(); privateHistoryCache.clear()
   state.token = event.key === null ? '' : event.newValue || ''
   if (!state.token) state.user = null
@@ -127,7 +132,8 @@ async function requestApi(path: string, options: RequestInit = {}): Promise<any>
     if (path.startsWith('/career/job-descriptions') || path.startsWith('/knowledge/')) knowledgeCache.clear()
   }
   try {
-    const value=await r.json()
+    let value=await r.json()
+    if(!mutation && historyPath(path) && Array.isArray(value)) value=value.filter(row=>!isHistoryDeleted(row.id))
     if(mutation && ownerToken===state.token && path.startsWith('/mock/sessions')) {
       const id=value.id || path.match(/^\/mock\/sessions\/([^/?]+)/)?.[1]
       if(value.id && Array.isArray(value.answers)) {
@@ -149,6 +155,41 @@ async function requestApi(path: string, options: RequestInit = {}): Promise<any>
   catch (error) {
     if (rewriting) throw new Error('改写结果读取失败，连接可能中断；当前输入已保留，请重试。')
     throw error
+  }
+}
+
+export async function deleteHistoryRecord(item: {id:string;kind:string}) {
+  const token=state.token, marker=token+'\n'+item.id
+  const snapshots=new Map([...privateHistoryCache].filter(([key])=>key.startsWith(token+'\n')))
+  deletedHistory.add(marker)
+  for(const [key,entry] of snapshots) {
+    const path=key.slice(key.indexOf('\n')+1)
+    if(Array.isArray(entry.value)) prime(privateHistoryCache,path,entry.value.filter(row=>row.id!==item.id))
+    else if(path.split(/[/?]/).includes(item.id)) privateHistoryCache.delete(key)
+  }
+  state.historyRevision++
+  const base=item.kind==='career'?'/career/sessions/':item.kind==='mock'?'/mock/sessions/':'/ai/conversations/'
+  try { await api(base+encodeURIComponent(item.id),{method:'DELETE'}) }
+  catch(error) {
+    if(token===state.token) {
+      deletedHistory.delete(marker)
+      for(const [key,entry] of snapshots) {
+        const path=key.slice(key.indexOf('\n')+1), current=privateHistoryCache.get(key)
+        if(!current) privateHistoryCache.set(key,entry)
+        else if(Array.isArray(current.value) && Array.isArray(entry.value)) {
+          const removed=entry.value.find(row=>row.id===item.id)
+          if(removed && !current.value.some(row=>row.id===item.id)) prime(privateHistoryCache,path,[...current.value,removed])
+        }
+      }
+      state.historyRevision++
+    }
+    throw error
+  }
+  if(token===state.token){
+    for(const [key,entry] of snapshots) if(!privateHistoryCache.has(key) && Array.isArray(entry.value)) {
+      prime(privateHistoryCache,key.slice(key.indexOf('\n')+1),entry.value.filter(row=>!isHistoryDeleted(row.id)))
+    }
+    state.historyRevision++
   }
 }
 
@@ -197,10 +238,10 @@ export function knowledgeDocuments(query: string) { return cachedList('/knowledg
 export function knowledgeDocument(id: string) { return cachedList('/knowledge/documents/' + encodeURIComponent(id), Infinity, knowledgeCache) }
 export function peekKnowledge(path: string) { return knowledgeCache.get(state.token + '\n' + path)?.value }
 export function refreshKnowledge() { knowledgeCache.clear() }
-export async function historyRecords() { return decorateHistory(await api('/history')) }
+export async function historyRecords() { return decorateHistory((await api('/history')).filter((row:any)=>!isHistoryDeleted(row.id))) }
 export function peekHistoryRecords() {
   const rows = peekHistory('/history')
-  return rows ? decorateHistory(rows) : undefined
+  return rows ? decorateHistory(rows.filter((row:any)=>!isHistoryDeleted(row.id))) : undefined
 }
 function decorateHistory(rows: any[]) {
   const counters = new Map<string, number>(), names = new Map<string, string>()

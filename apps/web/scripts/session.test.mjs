@@ -12,6 +12,42 @@ function compileState(apiOrigin = '') {
 }
 const compiled = compileState()
 
+test('deleting history hides it from all caches immediately while DELETE is pending',async()=>{
+  let finish
+  const app=load(storage({'atlas-token':'alice'}),storage(),async(url,options)=>{
+    if(options.method==='DELETE')return new Promise(resolve=>{finish=()=>resolve(new Response('{}'))})
+    return new Response('[{"id":"gone","kind":"chat_thread","title":"你好"},{"id":"keep"}]')
+  })
+  await app.api('/ai/conversations');await app.historyRecords()
+  const deletion=app.deleteHistoryRecord({id:'gone',kind:'chat_thread'})
+  assert.equal(app.peekHistory('/ai/conversations').some(row=>row.id==='gone'),false)
+  assert.equal(app.peekHistoryRecords().some(row=>row.id==='gone'),false)
+  assert.equal(app.isHistoryDeleted('gone'),true)
+  finish();await deletion
+})
+
+test('failed optimistic deletion restores the row and clears its tombstone',async()=>{
+  const app=load(storage({'atlas-token':'alice'}),storage(),async(url,options)=>options.method==='DELETE'
+    ?new Response('{"detail":"暂时失败"}',{status:503}):new Response('[{"id":"saved","kind":"mock"}]'))
+  await app.historyRecords()
+  await assert.rejects(app.deleteHistoryRecord({id:'saved',kind:'mock'}),/暂时失败/)
+  assert.equal(app.isHistoryDeleted('saved'),false)
+  assert.equal(app.peekHistoryRecords()[0].id,'saved')
+})
+
+test('an older in-flight chat list cannot resurrect a deleted conversation',async()=>{
+  let finish
+  const app=load(storage({'atlas-token':'alice'}),storage(),async(url,options)=>{
+    if(options.method==='DELETE')return new Response('{}')
+    if(url.endsWith('/ai/conversations'))return new Promise(resolve=>{finish=()=>resolve(new Response('[{"id":"gone"}]'))})
+    return new Response('[]')
+  })
+  const pending=app.api('/ai/conversations')
+  await app.deleteHistoryRecord({id:'gone',kind:'chat_thread'})
+  finish()
+  assert.equal((await pending).length,0)
+})
+
 test('saving a Mock answer keeps other reports and updates its own visible snapshot',async()=>{
   const app=load(storage({'atlas-token':'alice'}),storage(),async url=>new Response(JSON.stringify(
     url.endsWith('/answers')?{id:'m1',answers:[{answer:'saved'}],status:'in_progress'}:

@@ -3,7 +3,8 @@ import LoadingState from '../components/LoadingState.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, ArrowLeft, Search, LogOut, Trash2 } from 'lucide-vue-next'
-import { api, post, state, saveSession, clearSession, historyRecords, peekHistoryRecords } from '../state'
+import { api, post, state, saveSession, clearSession, historyRecords, peekHistoryRecords, deleteHistoryRecord, isHistoryDeleted } from '../state'
+import ConfirmDelete from '../components/ConfirmDelete.vue'
 import ContextPicker from '../components/ContextPicker.vue'
 const route=useRoute(),router=useRouter(), email=ref(''), password=ref(''),register=ref(false), error=ref(''),success=ref(''),busy=ref(false),history=ref<any[]>([]),query=ref(String(route.query.q || '')), results=ref<any[]>([])
 const recovering=ref(false), resetting=ref(false), recoveryToken=ref(''), confirmPassword=ref('')
@@ -13,6 +14,7 @@ const resumeHistory=computed(()=>route.query.kind==='career')
 const mockHistory=computed(()=>route.query.kind==='mock')
 const visibleHistory=computed(()=>(resumeHistory.value||mockHistory.value)?history.value.filter(item=>item.kind===route.query.kind):history.value)
 const historyLoading=ref(false)
+const pendingDelete=ref<any>(null)
 let historyRequest=0
 async function load() {
   const request=++historyRequest, userId=state.user?.id
@@ -75,11 +77,26 @@ async function auth(){
 async function logout(){try{await post('/auth/logout',{});success.value='已退出登录'}catch(e:any){error.value='已退出此浏览器，服务端会话撤销失败：'+e.message}finally{clearSession();history.value=[]}}
 async function save(){try{await api('/preferences',{method:'PUT',body:JSON.stringify(state.context)});success.value='偏好已保存，可随时修改'}catch(e:any){error.value=e.message}}
 async function search(){busy.value=true;error.value='';try{results.value=(await post('/knowledge/search',{query:query.value})).items}catch(e:any){error.value=e.message}finally{busy.value=false}}
-async function remove(item:any){const message=item.kind==='career'?'删除此简历会话、私有原件（若无其他会话引用）及其版本？':item.kind==='mock'?'删除此 Mock 的题目、回答与复盘？':'删除此聊天的所有问答与引用？';if(!window.confirm(message))return;const path=item.kind==='career'?'/career/sessions/':item.kind==='mock'?'/mock/sessions/':'/ai/conversations/';try{await api(path+item.id,{method:'DELETE'});await load()}catch(e:any){error.value=e.message}}
+function remove(item:any){pendingDelete.value=item}
+async function confirmRemove(){
+  const item=pendingDelete.value
+  if(!item)return
+  const account=state.user?.id, index=history.value.findIndex(row=>row.id===item.id)
+  pendingDelete.value=null;error.value='';historyRequest++;historyLoading.value=false
+  history.value=history.value.filter(row=>row.id!==item.id)
+  try{await deleteHistoryRecord(item)}catch(e:any){
+    if(account!==state.user?.id)return
+    if(!history.value.some(row=>row.id===item.id))history.value.splice(Math.max(0,index),0,item)
+    error.value='删除未完成，记录已恢复：'+e.message
+  }
+}
 watch(()=>[route.path,state.user],load);onMounted(load)
+watch(()=>state.historyRevision,()=>{if(page.value==='history')history.value=peekHistoryRecords() || history.value.filter(row=>!isHistoryDeleted(row.id))})
+watch(()=>state.user?.id,()=>{pendingDelete.value=null})
 watch(()=>route.hash,readRecoveryLink);onMounted(readRecoveryLink)
 </script>
 <template><div class="container utility-page">
+  <ConfirmDelete v-if="pendingDelete" :title="pendingDelete.kind==='career'?'删除这份简历记录？':pendingDelete.kind==='mock'?'删除这次 Mock 记录？':'删除这个聊天记录？'" :name="pendingDelete.display_name || pendingDelete.message || '我的练习'" :description="pendingDelete.kind==='career'?'删除后无法恢复。会一并删除会话、版本及不再被其他会话引用的私有原件。':pendingDelete.kind==='mock'?'删除后无法恢复。会一并删除本次题目、回答与复盘。':'删除后无法恢复。会一并删除此会话的问答与引用。'" @cancel="pendingDelete=null" @confirm="confirmRemove"/>
   <template v-if="page==='login'"><div class="auth-layout"><div><p class="eyebrow">YOUR PRIVATE WORKSPACE</p><h1 class="h-xl">让每一步，<br>都有<span class="blue">积累。</span></h1><p class="lead">保存练习、回看反馈，继续打磨你的下一步。</p></div><Transition name="auth-switch" mode="out-in"><form :key="authStep" class="auth-form" :aria-busy="busy" @submit.prevent="resetting ? resetPassword() : recovering ? requestRecovery() : auth()">
     <p class="eyebrow">{{resetting?'SET A NEW PASSWORD':recovering?'RESET YOUR PASSWORD':register?'CREATE YOUR ACCOUNT':'WELCOME BACK'}}</p>
     <h2>{{resetting?'设置新密码':recovering?'找回密码':register?'创建你的空间':'登录 GTM Atlas'}}</h2>

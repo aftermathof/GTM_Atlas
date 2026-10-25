@@ -142,7 +142,7 @@ function keydown(event: KeyboardEvent) {
       <p v-if="error" class="error" role="alert">{{ error }}</p>
       <p v-if="loading" class="note-message" role="status">正在打开笔记…</p>
       <template v-else-if="!error || note || id === 'new'">
-        <label class="sr-only" for="note-title">笔记标题</label><input id="note-title" v-model="title" class="note-title" placeholder="给这篇笔记一个标题" maxlength="160" :disabled="saving"/>
+        <label class="sr-only" for="note-title">笔记标题</label><input id="note-title" v-model="title" autocomplete="off" class="note-title" placeholder="给这篇笔记一个标题" maxlength="160" :disabled="saving"/>
         <div class="editor-caption"><span>PRIVATE NOTE / MARKDOWN</span><span>{{ words.toLocaleString() }} 字</span></div>
         <div class="writing-tools"><div class="format-tools" v-show="mode !== 'preview'" @mousedown.prevent>
           <button title="标题" aria-label="插入标题" @click="insert('\n## ', '', '标题')"><Heading2 :size="17"/></button><button title="粗体 Ctrl+B" aria-label="插入粗体" @click="insert('**', '**')"><Bold :size="16"/></button><button title="斜体 Ctrl+I" aria-label="插入斜体" @click="insert('*', '*')"><Italic :size="16"/></button><button title="列表" aria-label="插入列表" @click="insert('\n- ', '', '列表项')"><List :size="18"/></button><button title="引用" aria-label="插入引用" @click="insert('\n> ', '', '引用内容')"><Quote :size="16"/></button><button title="代码块" aria-label="插入代码块" @click="insert('\n```text\n', '\n```\n', '代码')"><Code2 :size="17"/></button><button title="链接" aria-label="插入链接" @click="insert('[', '](https://)', '链接文字')"><Link :size="16"/></button>

@@ -1,5 +1,23 @@
 # 文件夹与维护入口
 
+## 根目录怎么分
+
+| 路径 | 保存内容 |
+| --- | --- |
+| `apps/web/` | Vue 前端、前端测试脚本与构建配置 |
+| `services/api/` | FastAPI 接口、账号、数据存储与业务路由 |
+| `packages/` | AI、RAG、Mock、简历处理和 PDF 排版逻辑 |
+| `knowledge/` | 网站与 AI 使用的 JD、面经、在职经验、概览和术语资料 |
+| `profiles/`、`skills/` | 岗位配置、评分标准与运行时 Skill |
+| `templates/` | 简历 TeX 原件与模板 |
+| `infra/`、`supabase/` | Docker、PDF Worker、数据库迁移与 SQL |
+| `scripts/`、`tests/` | 本地启动、资料校验与自动化回归测试 |
+| `docs/` | 维护指南；旧截图与来源记录放在 `archive/` |
+| `.data/` | 本机业务数据、上传、隧道日志和维护记录；不提交 Git |
+| `.venv/`、`apps/web/node_modules/` | 已安装的 Python / 前端依赖；保留供本机使用 |
+
+根目录保留项目入口、依赖清单、环境配置及部署配置，维持现有构建与 Docker 路径。
+
 ## 要改什么，打开哪里
 
 | 内容 | 文件或目录 | 作用 |
@@ -16,6 +34,8 @@
 | 多轮简历改写 | [../apps/web/src/components/BlockRewriteDialog.vue](../apps/web/src/components/BlockRewriteDialog.vue) | 单块经历的改写对话 |
 | 历史、登录与偏好 | [../apps/web/src/pages/Utility.vue](../apps/web/src/pages/Utility.vue) | 我的空间与账号界面 |
 | 聊天、语音输入 | [../apps/web/src/components/ChatPanel.vue](../apps/web/src/components/ChatPanel.vue)、[../apps/web/src/components/Composer.vue](../apps/web/src/components/Composer.vue) | 会话、上下文、输入与转写 |
+| 学习笔记 | [../apps/web/src/pages/Notes.vue](../apps/web/src/pages/Notes.vue)、[../apps/web/src/components/NoteEditor.vue](../apps/web/src/components/NoteEditor.vue) | 笔记卡片、标题与 Markdown 编辑器 |
+| 删除确认弹窗 | [../apps/web/src/components/ConfirmDelete.vue](../apps/web/src/components/ConfirmDelete.vue) | 历史记录和聊天共用的站内删除确认 |
 | 颜色、字体、间距 | [../apps/web/src/tokens.css](../apps/web/src/tokens.css)、[../apps/web/src/style.css](../apps/web/src/style.css) | 全站样式；组件专有样式在对应 Vue 文件里 |
 | API 请求与前端登录状态 | [../apps/web/src/state.ts](../apps/web/src/state.ts) | 请求、登录、列表缓存与共享状态 |
 | API 接口 | [../services/api/](../services/api/) | `routes_career.py` 简历；`routes_mock.py` Mock；`routes_knowledge.py` 资料和问答 |
@@ -50,6 +70,8 @@
 
 ## 资料来源记录
 
+`screenshots/` 保留近期界面效果图；旧版笔记界面截图已归到 [archive/screenshots/](archive/screenshots/)，保留文件原名供历史对照。
+
 `archive/import-reports/` 保留概览原始文件哈希与研究笔记导入记录，用于核对资料来源。已完成的开发计划、过期部署快照和一次性调试归档已清理；当前维护以本页列出的文档为入口。
 
 当前 API 结构看运行中的 `/docs` 或 `/openapi.json`；Git 变更看 `git status --short`，无需另存手工清单。
@@ -59,6 +81,8 @@
 `.env` 是私有配置，`.data/` 可能包含上传原件、生成版本与运行数据库；Docker 数据卷也可能保存私有文件。`.venv/`、`node_modules/` 是本机依赖。它们不提交 Git，但不属于本次可以随意删除的内容。
 
 本机 `.data/README.md` 说明数据用途；`.data/maintenance/` 保存清理记录与文件完整性校验。数据库、上传目录、采集原始证据及隧道日志保留原位。
+
+2026-10-26 整理时清除了独立验收脚本、验收数据库、测试临时目录和 Python 缓存。Docker 临时补丁保存在 `.data/maintenance/docker-hotfixes/`，正式部署文件仍在 `infra/`。现有前端 `dist/` 保留，供本机预览；此轮整理没有重建或重启服务。
 
 ## 可以重新生成的文件
 

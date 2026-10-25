@@ -2,7 +2,8 @@
 import LoadingState from './LoadingState.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api, post, state, peekHistory } from '../state'
+import { api, post, state, peekHistory, deleteHistoryRecord, isHistoryDeleted } from '../state'
+import ConfirmDelete from './ConfirmDelete.vue'
 import Composer from './Composer.vue'
 import Markdown from './Markdown.vue'
 const props = defineProps<{ scope?: string; documentId?: string; sessionId?: string; conversationId?: string; docked?: boolean }>()
@@ -12,6 +13,7 @@ const conversation = ref(''), threads = ref<any[]>([]), contextAfter = ref(0), l
 const scope = ref(props.scope || 'global'), documentId = ref(props.documentId || ''), sessionId = ref(props.sessionId || '')
 const messageList = ref<HTMLElement>()
 const restoring = ref(false), showPrevious = ref(false)
+const pendingDelete=ref(false)
 const visibleMessages = computed(() => showPrevious.value ? messages.value : messages.value.filter(m => !m.turn || m.turn > contextAfter.value))
 function shortTitle(title: string) {
   const characters = Array.from(title.replace(/\s+/g, ' ').trim())
@@ -21,9 +23,10 @@ let generation=0
 async function list() {
   const current=generation
   const rows=state.user ? (peekHistory('/ai/conversations') || await api('/ai/conversations')) : []
-  if(current===generation) threads.value=rows.filter((t:any) => t.scope === scope.value && (t.document_id || '') === documentId.value && (t.session_id || '') === sessionId.value)
+  if(current===generation) threads.value=rows.filter((t:any) => !isHistoryDeleted(t.id) && t.scope === scope.value && (t.document_id || '') === documentId.value && (t.session_id || '') === sessionId.value)
 }
 function resetView() {
+  pendingDelete.value=false
   generation++; busy.value=false; restoring.value=false
   conversation.value=''; messages.value=[]; draft.value=''; contextAfter.value=0; legacy.value=false; showPrevious.value=false
   scope.value=props.scope || 'global'; documentId.value=props.documentId || ''; sessionId.value=props.sessionId || ''
@@ -56,11 +59,17 @@ async function clearContext() {
   } catch(e:any) {if(current===generation) error.value=e.message} finally {if(current===generation) busy.value=false}
 }
 async function remove() {
-  if (!conversation.value || !window.confirm('删除此会话的所有问答和引用？此操作无法恢复。')) return
-  busy.value=true; error.value=''
-  try {await api('/ai/conversations/'+conversation.value,{method:'DELETE'}); threads.value=threads.value.filter(t=>t.id!==conversation.value); await newChat()}
-  catch(e:any) {error.value=e.message} finally {busy.value=false}
+  if(!conversation.value)return
+  const id=conversation.value,account=state.user?.id
+  pendingDelete.value=false;error.value=''
+  try {await deleteHistoryRecord({id,kind:'chat_thread'})}
+  catch(e:any) {if(account===state.user?.id)error.value='删除未完成，记录已恢复：'+e.message}
 }
+watch(()=>state.historyRevision,()=>{
+  threads.value=threads.value.filter(thread=>!isHistoryDeleted(thread.id))
+  if(conversation.value && isHistoryDeleted(conversation.value))void newChat()
+  else void list().catch(()=>{})
+})
 async function ask() {
   if (!draft.value.trim() || busy.value || legacy.value) return
   busy.value = true; error.value = ''
@@ -103,7 +112,7 @@ watch(()=>[messages.value.length,error.value,busy.value], async()=>{
         <option value="">选择历史会话</option><option v-for="thread in threads" :key="thread.id" :value="thread.id" :title="thread.title">{{shortTitle(thread.title)}}</option>
       </select>
       <button v-if="conversation && !legacy" class="text-link" :disabled="busy" @click="clearContext">清空上下文</button>
-      <button v-if="conversation" class="text-link" :disabled="busy" @click="remove">删除会话</button>
+      <button v-if="conversation" class="text-link" :disabled="busy" @click="pendingDelete=true">删除会话</button>
     </div>
     <div ref="messageList" class="chat-messages" role="region" aria-label="对话记录" tabindex="0">
     <p v-if="!state.user" class="meta">登录后可保存并恢复问答。访客问答仅在当前页面可见。</p>
@@ -119,6 +128,7 @@ watch(()=>[messages.value.length,error.value,busy.value], async()=>{
     <p v-if="error" class="error" role="alert">{{ error }}</p>
     </div>
     <Composer v-if="!legacy" :key="state.user?.id || 'guest'" v-model="draft" :busy="busy" @submit="ask" />
+    <ConfirmDelete v-if="pendingDelete" title="删除这个聊天记录？" :name="threads.find(t=>t.id===conversation)?.title" description="删除后无法恢复。会一并删除此会话的问答与引用。" @cancel="pendingDelete=false" @confirm="remove"/>
   </div>
 </template>
 <style scoped>

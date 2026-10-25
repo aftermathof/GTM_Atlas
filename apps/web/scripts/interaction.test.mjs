@@ -357,7 +357,7 @@ function chatPanel(api = async () => [], post = async () => ({ context_after: 2 
   const context = vm.createContext({ exports: {}, require: name => {
     if (name === 'vue') return { ...vue, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ query: {} }), useRouter: () => ({}) }
-    if (name === '../state') return { state: { user: { id: 'test' } }, api, post, peekHistory:cached }
+    if (name === '../state') return { state: { user: { id: 'test' } }, api, post, peekHistory:cached, isHistoryDeleted:()=>false }
     return {}
   } })
   vm.runInContext(compile(compileScript(descriptor, { id: 'chat-test' }).content), context)
