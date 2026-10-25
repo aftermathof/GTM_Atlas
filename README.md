@@ -34,6 +34,8 @@ GTM 概览已从前端的 `public` 目录移到知识资料区；网页地址仍
 | 本机联调 | Vercel | 自己电脑上的 Docker，通过 Cloudflare 临时隧道访问 | 当前无服务器，先测试完整连接 |
 | 持续部署 | Vercel | 持续在线的 Docker 主机，通过 HTTPS 域名访问 | 后续正式对外使用 |
 
+网站应用页面统一要求登录。未登录只开放登录／注册页；登录成功后进入目标页面，退出后返回登录页。
+
 常用入口：前端主页 `/`、资料 `/learn`、问答 `/learn/ask`、面经与 Mock `/interviews`、简历 `/career`、历史 `/history`、设置 `/settings`、名词完整页 `/glossary`。后端 API 文档为 `/docs`，健康接口为 `/api/v1/health`。
 
 阅读顺序：了解功能 → 目录与 Skill → 环境变量 → Docker 启动 → 选择公网访问方式 → Vercel → 功能验收。下文示例域名和 Key 都是占位符，不含真实凭证，也不记录会过期的临时隧道地址。

@@ -318,3 +318,29 @@ test('private article caches cannot survive logout and switching accounts',async
   await app.knowledgeDocument('private')
   assert.equal(calls,2)
 })
+
+
+test('profile restoration is shared and does not wait for catalog availability',async()=>{
+  let finish, calls=0
+  const app=load(storage({'atlas-token':'saved'}),storage(),async url=>{
+    assert.equal(url,'/api/v1/auth/me')
+    calls++
+    return new Promise(resolve=>{finish=()=>resolve(new Response('{"id":"user","preferences":{}}'))})
+  })
+  const first=app.restoreSession(), second=app.restoreSession()
+  assert.equal(calls,1)
+  finish();await Promise.all([first,second])
+  assert.equal(app.state.user.id,'user')
+  await app.restoreSession()
+  assert.equal(calls,1)
+})
+
+test('an expired profile cannot grant access and anonymous restoration needs no request',async()=>{
+  const anonymous=load()
+  await anonymous.restoreSession()
+  assert.equal(anonymous.state.user,null)
+  const expired=load(storage({'atlas-token':'expired'}),storage(),async()=>new Response('{"detail":"请重新登录"}',{status:401}))
+  await expired.restoreSession()
+  assert.equal(expired.state.user,null)
+  assert.equal(expired.state.token,'')
+})

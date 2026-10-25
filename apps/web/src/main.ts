@@ -7,6 +7,7 @@ import Interviews from './pages/Interviews.vue'
 import Career from './pages/Career.vue'
 import Utility from './pages/Utility.vue'
 import Glossary from './pages/Glossary.vue'
+import { installAuthGuard } from './authNavigation'
 import './style.css'
 
 const router = createRouter({ history: createWebHistory(), scrollBehavior: (to, from, savedPosition) => {
@@ -25,4 +26,5 @@ const router = createRouter({ history: createWebHistory(), scrollBehavior: (to, 
   { path: '/:page(history|settings|login|search)', component: Utility },
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ] })
+installAuthGuard(router)
 createApp(App).use(router).mount('#app')

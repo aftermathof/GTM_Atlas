@@ -112,3 +112,11 @@ Worker 无网络、不含 Supabase/数据库密钥，只挂载 artifacts 和队�
 - 开启真实模型后核验引用、事实保真和真实多轮语义；离线 mock 测试不代表真实模型已验收。
 
 当前交付未连接用户的 Supabase/Vercel/GitHub，也未持有云端密钥；初始化 SQL、线上邮件、Docker LaTeX、Supabase Storage/RLS 和公网 HTTPS 必须在部署环境完成上述验收。
+
+## 邮件找回密码
+
+登录页右下角「忘记密码」使用 Supabase Auth 邮件重置流程，无需将服务端 Key 暴露给前端。在 Supabase 的 Authentication / URL Configuration 中，将 Site URL 设置为当前前端域名，并在 Redirect URLs 允许该域名下的 `/login?reset=1`（或对应的受控通配规则）。更换前端域名时同步更新。
+
+邮件链接返回后，新密码表单仅在当前页面内使用恢复令牌，读取后移除 URL fragment；更新成功后返回登录。找回邮件沿用 Supabase 的邮件配置与发送限额。上线后用自己的测试账号检查真实收件和失效链接；自动化测试不会发送邮件。
+
+此功能增加了 API 接口，发布前端的同时需更新 API；不涉及数据库 SQL 或 renderer。

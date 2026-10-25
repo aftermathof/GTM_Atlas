@@ -9,7 +9,7 @@
 ```powershell
 .venv/Scripts/python.exe -m pytest -q
 .venv/Scripts/python.exe scripts/validate_knowledge.py
-node --test apps/web/scripts/interaction.test.mjs apps/web/scripts/session.test.mjs
+node --test apps/web/scripts/*.test.mjs
 npm --prefix apps/web run build
 ```
 
@@ -19,7 +19,7 @@ npm --prefix apps/web run build
 
 | 模块 | 检查内容 |
 | --- | --- |
-| 账号与隔离 | 登录恢复、主动退出、另一账号不能读取私有记录或下载文件 |
+| 账号与隔离 | 未登录仅开放登录／注册页，导航与 AI 入口隐藏；登录恢复、主动退出后跳转、另一账号不能读取私有记录或下载文件 |
 | 知识资料 | JD、面经、在职经验分类正确，编号排序、目录、搜索、缓存和引用可用 |
 | 概览与名词库 | HTML 概览、名词搜索及 AI 对两类参考内容的引用 |
 | AI 助手 | 多轮对话、历史选择、全屏、清空当前上下文、失败后保留输入 |
@@ -30,6 +30,10 @@ npm --prefix apps/web run build
 | 空白模块 | 缺少项目经历、自我评价时保留空白编辑块；留空不输出空标题 |
 | 简历 PDF | 原件照片、真实图标、标题不重复、教育与经历抬头同行、工作与技能分项 |
 | 持久化 | 刷新、重新登录、重启服务后仍能恢复保存记录 |
+
+## 找回密码
+
+登录页右下角「忘记密码」与左侧创建账号并排。检查填写邮箱、发送提示、从邮件返回、设置新密码、两次密码不一致、链接失效及发送失败后重试。令牌不持久化，不在 URL 中保留；更新后使用新密码重新登录。真实邮件使用测试账号人工检查，自动化测试只模拟提供方响应。
 
 ## PDF 与隔离编译
 

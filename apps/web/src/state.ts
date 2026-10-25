@@ -145,16 +145,25 @@ export async function historyRecords() {
 }
 
 export function post(path: string, body: any) { return api(path, { method: 'POST', body: JSON.stringify(body) }) }
+let restoringProfile: Promise<void> | null = null
+export async function restoreSession() {
+  if (state.user || !state.token) return
+  if (!restoringProfile) restoringProfile = (async () => {
+    try {
+      const user = await api('/auth/me')
+      if (state.token) {
+        state.user = user
+        Object.assign(state.context, user.preferences)
+      }
+    } catch (e: any) { state.notice = e.message }
+  })().finally(() => { restoringProfile = null })
+  await restoringProfile
+}
 export async function initialize() {
   try {
     if (state.token) void historyRecords().catch(() => {})
-    const profile = state.token ? api('/auth/me').catch((e: any) => { state.notice = e.message; return null }) : Promise.resolve(null)
-    const [health, roles, industries, user] = await Promise.all([api('/health'), api('/catalog/roles'), api('/catalog/industries'), profile])
+    const [health, roles, industries] = await Promise.all([api('/health'), api('/catalog/roles'), api('/catalog/industries'), restoreSession()])
     Object.assign(state, { health, roles, industries })
-    if (user) {
-      state.user = user
-      Object.assign(state.context, state.user.preferences)
-    }
   } catch (e: any) { state.notice = e.message }
 }
 

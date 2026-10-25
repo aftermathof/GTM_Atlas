@@ -46,6 +46,7 @@ function scrolling() {
   const context = vm.createContext({ exports: {}, require: name => {
     if (name === 'vue') return { createApp: () => ({ use() { return this }, mount() {} }) }
     if (name === 'vue-router') return { createWebHistory() {}, createRouter: value => { config = value; return {} } }
+    if (name === './authNavigation') return { installAuthGuard() {} }
     return {}
   } })
   vm.runInContext(compile(readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')), context)
