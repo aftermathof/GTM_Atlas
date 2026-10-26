@@ -166,7 +166,17 @@ def create_app(url=None):
             rows = db.scalars(select(Record).where(Record.owner == user.id, Record.kind.in_(["mock", "career", "conversation", "chat_thread"])).order_by(Record.created_at.desc())).all()
             rows = [r for r in rows if (r.kind != 'conversation' or not r.data.get('conversation_id')) and (r.kind != 'mock' or r.data.get('answers'))][:100]
             from services.api.routes_mock import report_snapshot
-            return [{"id": r.id, "kind": r.kind, "created_at": r.created_at.isoformat(), "status": r.data.get("status"), "context": r.data.get("context"), "message": r.data.get('title') or r.data.get("message"), **({'snapshot': report_snapshot(expose(r))} if prefetch and r.kind == 'mock' else {})} for r in rows]
+            from services.api.routes_career import editing_snapshot
+            snapshots = {}
+            if prefetch:
+                career_ids = [r.id for r in rows if r.kind == 'career']
+                versions = db.scalars(select(Record).where(Record.owner == user.id, Record.kind == 'resume_version', Record.parent_id.in_(career_ids)).order_by(Record.created_at.desc())).all() if career_ids else []
+                for r in rows:
+                    if r.kind == 'mock':
+                        snapshots[r.id] = {'snapshot': report_snapshot(expose(r))}
+                    elif r.kind == 'career':
+                        snapshots[r.id] = {'snapshot': editing_snapshot(r), 'versions': [editing_snapshot(v) for v in versions if v.parent_id == r.id]}
+            return [{"id": r.id, "kind": r.kind, "created_at": r.created_at.isoformat(), "status": r.data.get("status"), "context": r.data.get("context"), "message": r.data.get('title') or r.data.get("message"), **snapshots.get(r.id, {})} for r in rows]
 
     @app.get("/api/v1/jobs/{jid}")
     def job(jid: str, user=Depends(current_user)):

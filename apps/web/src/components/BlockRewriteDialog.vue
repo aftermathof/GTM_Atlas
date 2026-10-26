@@ -4,6 +4,7 @@ import { ArrowLeft, Check } from 'lucide-vue-next'
 import { post } from '../state'
 import Composer from './Composer.vue'
 import Markdown from './Markdown.vue'
+import { cleanAIText } from '../aiText'
 const props = defineProps<{ block: any; sessionId: string; baseVersionId?: string; dialogue: { turns: any[]; draft: string; original: string } }>()
 const emit = defineEmits<{ close: []; accept: [text: string, original: string] }>()
 const busy = ref(false), error = ref(''), content = ref<HTMLElement>(), dialog = ref<HTMLElement>()
@@ -32,7 +33,7 @@ async function ask() {
       message, history: turns.slice(-12).map(t => ({ message:t.message, text:t.text, analysis:t.analysis, questions:t.questions }))
     })
     if (!active) return
-    turns.push({ message, ...result }); props.dialogue.draft = ''
+    turns.push({ message, ...result, text: cleanAIText(result.text) }); props.dialogue.draft = ''
     await nextTick(); if (content.value) content.value.scrollTop = content.value.scrollHeight
   } catch(e:any) { if (active) error.value = e.message } finally { if (active) busy.value = false }
 }
@@ -45,9 +46,9 @@ async function ask() {
       <p v-if="!dialogue.turns.length" class="notice">{{ dialogue.original ? '说说想突出、补充或调整什么。AI 会结合目标岗位、JD 与知识库直接给出完整候选稿，按你的反馈继续修改。' : '告诉 AI 想写的方向或目标岗位，先生成可编辑的候选稿，再一起补充完善。' }}</p>
       <article v-for="(turn,index) in dialogue.turns" :key="index" class="rewrite-turn">
         <p class="question">{{ turn.message }}</p>
-        <template v-if="turn.text"><h3>修改建议</h3><p class="block-text">{{ turn.text }}</p></template>
-        <template v-if="turn.analysis"><h3>分析</h3><Markdown :source="turn.analysis"/></template>
-        <Markdown v-if="turn.questions" :source="turn.questions"/>
+        <template v-if="turn.text"><h3>修改建议</h3><p class="block-text">{{ cleanAIText(turn.text) }}</p></template>
+        <template v-if="turn.analysis"><h3>分析</h3><Markdown ai :source="turn.analysis"/></template>
+        <Markdown ai v-if="turn.questions" :source="turn.questions"/>
         <div v-if="turn.citations?.length" class="citations"><span class="eyebrow">岗位与知识参考</span><RouterLink v-for="c in turn.citations" :key="c.chunk_id" :to="c.url+'?heading='+encodeURIComponent(c.heading_path)" target="_blank">{{ c.title }} · {{ c.heading_path }} ↗</RouterLink></div>
         <div v-if="index===dialogue.turns.length-1 && turn.text" class="dialog-actions"><button class="text-link" :disabled="busy" @click="emit('close')">忽略</button><button class="primary" :disabled="busy" @click="emit('accept',turn.text,dialogue.original)"><Check :size="16"/>确认替换</button></div>
       </article>

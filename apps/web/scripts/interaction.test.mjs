@@ -428,10 +428,13 @@ test('clearing context hides previous turns without deleting saved messages', as
 
 function blockDialog(post) {
   const events=[]
+  const aiText={exports:{}}
+  vm.runInNewContext(compile(readFileSync(new URL('../src/aiText.ts',import.meta.url),'utf8')),aiText)
   const { descriptor } = parse(readFileSync(new URL('../src/components/BlockRewriteDialog.vue', import.meta.url), 'utf8'))
   const context = vm.createContext({ exports:{}, document:{body:{style:{overflow:''}}}, require:name=>{
     if(name==='vue') return {...vue,onMounted(){},onBeforeUnmount(){}}
     if(name==='../state') return {post}
+    if(name==='../aiText') return aiText.exports
     return {}
   } })
   vm.runInContext(compile(compileScript(descriptor,{id:'block-dialog-test'}).content),context)

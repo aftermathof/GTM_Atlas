@@ -35,6 +35,19 @@ def prepare_editing(row):
         row.data = data
 
 
+def editing_snapshot(row):
+    """Build the editor's read-only preload without model or per-record HTTP calls."""
+    result = expose(row)
+    if not result['facts']:
+        return {**result, 'editing_blocks': []}
+    facts = editable_facts(result['facts'], result.get('structure'))
+    structure = result.get('structure') if facts == result['facts'] else None
+    structure = structure or refresh_structure(facts, result.get('structure'))
+    blocks = result.get('editing_blocks') if facts == result['facts'] and result.get('editing_blocks_version') == 4 else None
+    return {**result, 'facts': facts, 'structure': structure,
+            'editing_blocks': blocks if blocks is not None else group_blocks(facts, structure)}
+
+
 def resume_photo(resume, content=None):
     directory = data_dir() / 'uploads' / resume.owner
     path = directory / (resume.id + '.photo.png')
@@ -56,10 +69,10 @@ def resume_photo(resume, content=None):
 
 
 @router.post('/job-descriptions')
-async def upload_jd(request: Request, file: UploadFile = File(...), user=Depends(current_user)):
+def upload_jd(request: Request, file: UploadFile = File(...), user=Depends(current_user)):
     filename = Path((file.filename or 'jd').replace('\\','/')).name
-    content = await file.read(2_000_001)
-    await file.close()
+    content = file.file.read(2_000_001)
+    file.file.close()
     if not content or len(content)>2_000_000:
         raise HTTPException(413,'JD不得为空或超过2MB')
     suffix = filename.rsplit('.',1)[-1].lower()
@@ -88,10 +101,10 @@ async def upload_jd(request: Request, file: UploadFile = File(...), user=Depends
 
 
 @router.post("/resumes")
-async def upload(request: Request, file: UploadFile = File(...), user=Depends(current_user)):
+def upload(request: Request, file: UploadFile = File(...), user=Depends(current_user)):
     filename = Path((file.filename or "resume").replace("\\", "/")).name
-    content = await file.read(10_000_001)
-    await file.close()
+    content = file.file.read(10_000_001)
+    file.file.close()
     if not content or len(content) > 10_000_000:
         raise HTTPException(413, "简历不得为空或超过10MB")
     parsed = parse_resume(content, filename)
@@ -155,9 +168,14 @@ def confirm(sid: str, body: ConfirmFacts, request: Request, user=Depends(current
         was_confirmed = state["confirmed"]
         if was_confirmed:
             state["approval_thread_id"] = uid()
-        evidence = career_evidence(db,state['context'],state['context'].get('jd',''),owner_id=user.id)
-        structure = extract_structure(facts)
-        state.update({"facts": facts, "structure":structure, "confirmed": True, "status": "diagnosed", "active_version_id": None, "diagnosis": diagnose(facts, state["context"].get("jd", ""), state["context"]["role"], evidence)})
+        unchanged = facts == editable_facts(state['facts'], state.get('structure'))
+        if unchanged and state.get('structure') and state.get('diagnosis'):
+            structure, analysis = state['structure'], state['diagnosis']
+        else:
+            evidence = career_evidence(db,state['context'],state['context'].get('jd',''),owner_id=user.id)
+            structure = extract_structure(facts)
+            analysis = diagnose(facts, state["context"].get("jd", ""), state["context"]["role"], evidence)
+        state.update({"facts": facts, "structure":structure, "confirmed": True, "status": "diagnosed", "active_version_id": None, "diagnosis": analysis})
         row.data = state
         trace(db, user.id, "career_resume_graph", sid, [{"node": "confirm_facts", "fact_ids": [f["id"] for f in facts]}, {"node": "await_rewrite_approval"}])
         db.commit()

@@ -1,11 +1,12 @@
 import json
+import os
 import random
 import re
 import unicodedata
 from typing import TypedDict
 from fastapi import HTTPException
 from langgraph.graph import StateGraph, END
-from packages.agent_core.providers import LLMProvider
+from packages.agent_core.providers import LLMProvider, EmbeddingProvider
 from packages.agent_core.registry import catalog
 from packages.rag.knowledge import search
 
@@ -49,6 +50,12 @@ def plan_interview(db, setup, resume=None, excluded_questions=None):
         indexes.extend(rng.sample(range(len(ZH)), len(ZH)))
     questions = []
     references = {}
+    embedding_cache = {}
+    if EmbeddingProvider().enabled:
+        queries = list(dict.fromkeys(ZH[i][1] for i in indexes[:setup.count]))
+        vectors = EmbeddingProvider().embed(queries)
+        model = os.getenv('EMBEDDING_MODEL', 'text-embedding-3-small')
+        embedding_cache.update({(model, query): vector for query, vector in zip(queries, vectors)})
     scenarios = [('新品上市', 'a product launch'), ('渠道伙伴评估', 'channel partner evaluation'), ('内容本地化', 'content localization'), ('客户线索转化', 'lead conversion'), ('用户留存', 'user retention'), ('销售与市场协作', 'sales and marketing collaboration'), ('定价测试', 'pricing tests'), ('市场进入试点', 'a market entry pilot')]
     for i in indexes[:setup.count]:
         dimension, question = ZH[i]
@@ -62,7 +69,7 @@ def plan_interview(db, setup, resume=None, excluded_questions=None):
                     question = candidate
                     break
         if i not in references:
-            references[i] = search(db, ZH[i][1], "interview", setup.role, setup.industry, top_k=1)
+            references[i] = search(db, ZH[i][1], "interview", setup.role, setup.industry, top_k=1, embedding_cache=embedding_cache)
         evidence = references[i]
         questions.append({"text": question, "dimension": dimension, "source_type": "interview_reference" if evidence else "role_profile_generated", "citations": evidence, "rubric_version": profiles["version"]})
     if resume:

@@ -2,9 +2,10 @@
 import { computed, onMounted, onUpdated, ref } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-const props = defineProps<{ source: string; breaks?: boolean }>()
+import { cleanAIText } from '../aiText'
+const props = defineProps<{ source: string; breaks?: boolean; ai?: boolean }>()
 const host = ref<HTMLElement>()
-const html = computed(() => DOMPurify.sanitize(marked.parse(props.source, { async: false, breaks: props.breaks || false }) as string))
+const html = computed(() => DOMPurify.sanitize(marked.parse(props.ai ? cleanAIText(props.source) : props.source, { async: false, breaks: props.breaks || false }) as string))
 async function render() {
   const nodes = host.value?.querySelectorAll('code.language-mermaid')
   if (!nodes?.length) return

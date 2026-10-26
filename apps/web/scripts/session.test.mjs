@@ -536,3 +536,29 @@ test('an expired profile cannot grant access and anonymous restoration needs no 
   assert.equal(expired.state.user,null)
   assert.equal(expired.state.token,'')
 })
+
+test('career dialogue preserves cached blocks and unrelated resume history',async()=>{
+  const app=load(storage({'atlas-token':'saved'}),storage(),async()=>new Response('{"blocks":[]}'))
+  await app.api('/career/sessions/a/editing-blocks')
+  await app.api('/career/sessions/b')
+  await app.post('/career/sessions/a/block-dialogue',{})
+  assert.ok(app.peekHistory('/career/sessions/a/editing-blocks'))
+  assert.ok(app.peekHistory('/career/sessions/b'))
+  await app.post('/career/sessions/a/confirm-facts',{})
+  assert.equal(app.peekHistory('/career/sessions/a/editing-blocks'),undefined)
+  assert.ok(app.peekHistory('/career/sessions/b'))
+})
+
+test('preloaded resume versions and editing blocks open without extra requests',async()=>{
+  let calls=0
+  const rows=[{id:'career-a',kind:'career',snapshot:{id:'career-a',confirmed:true,editing_blocks:[{id:'f0'}]},versions:[{id:'v1',editing_blocks:[{id:'f1'}]}]}]
+  const app=load(storage({'atlas-token':'saved'}),storage(),async()=>{calls++;return new Response(JSON.stringify(rows))})
+  await app.preloadHistory()
+  const base='/career/sessions/career-a'
+  assert.equal((await app.api(base+'/editing-blocks')).blocks[0].id,'f0')
+  assert.equal((await app.api(base+'/editing-blocks?base_version_id=v1')).blocks[0].id,'f1')
+  assert.equal((await app.api(base+'/versions'))[0].id,'v1')
+  assert.equal(calls,1)
+  app.clearSession()
+  assert.equal(app.peekHistory(base+'/editing-blocks'),undefined)
+})

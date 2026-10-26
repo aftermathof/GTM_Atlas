@@ -108,14 +108,16 @@ export function api(path: string, options: RequestInit = {}): Promise<any> {
 }
 function invalidateHistory(path: string) {
   const chat = path.startsWith('/ai/chat') || path.startsWith('/ai/conversations')
-  const mock = path.startsWith('/mock/'), career = path.startsWith('/career/')
+  const mock = path.startsWith('/mock/'), career = path.startsWith('/career/') && !/\/(block-dialogue|suggest-rewrite)$/.test(path)
   const mockId = path.match(/^\/mock\/sessions\/([^/?]+)/)?.[1]
+  const careerId = path.match(/^\/career\/sessions\/([^/?]+)/)?.[1]
   for (const key of privateHistoryCache.keys()) {
     const cachedPath = key.slice(key.indexOf('\n') + 1)
     if (((chat || mock || career) && cachedPath.startsWith('/history')) ||
         (chat && cachedPath.startsWith('/ai/conversations')) ||
         (mock && mockId && cachedPath.startsWith('/mock/sessions/'+mockId+'/')) ||
-        (mock && cachedPath === '/mock/sessions/'+mockId) || (career && cachedPath.startsWith('/career/'))) privateHistoryCache.delete(key)
+        (mock && cachedPath === '/mock/sessions/'+mockId) ||
+        (career && careerId && (cachedPath === '/career/sessions/'+careerId || cachedPath.startsWith('/career/sessions/'+careerId+'/')))) privateHistoryCache.delete(key)
   }
 }
 async function requestApi(path: string, options: RequestInit = {}): Promise<any> {
@@ -152,6 +154,13 @@ async function requestApi(path: string, options: RequestInit = {}): Promise<any>
   }
   try {
     let value=await r.json()
+    if(mutation && ownerToken===state.token && path.startsWith('/career/sessions') && value.id && Array.isArray(value.facts) && !path.endsWith('/approve-rewrite')) {
+      prime(privateHistoryCache,'/career/sessions/'+value.id,value)
+      if(previousHistory) prime(privateHistoryCache,'/history',[
+        {id:value.id,kind:'career',created_at:value.created_at,status:value.status,context:value.context},
+        ...previousHistory.filter((row:any)=>row.id!==value.id),
+      ])
+    }
     if(!mutation && historyPath(path) && Array.isArray(value)) value=value.filter(row=>!isHistoryDeleted(row.id))
     if(mutation && ownerToken===state.token && path.startsWith('/mock/sessions')) {
       const id=value.id || path.match(/^\/mock\/sessions\/([^/?]+)/)?.[1]
@@ -227,10 +236,19 @@ export async function preloadHistory() {
   const pending=api(path), entry=privateHistoryCache.get(key)
   const rows=await pending
   if(privateHistoryCache.get(key)!==entry)return []
-  prime(privateHistoryCache,'/history',rows.map(({snapshot,...row}:any)=>row))
+  prime(privateHistoryCache,'/history',rows.map(({snapshot,versions,...row}:any)=>row))
   for(const row of rows) if(row.kind==='mock' && row.snapshot) {
     prime(privateHistoryCache,'/mock/sessions/'+row.id,row.snapshot)
     prime(privateHistoryCache,'/mock/sessions/'+row.id+'/report',row.snapshot)
+  }
+  for(const row of rows) if(row.kind==='career' && row.snapshot) {
+    const path='/career/sessions/'+row.id
+    prime(privateHistoryCache,path,row.snapshot)
+    prime(privateHistoryCache,path+'/versions',row.versions || [])
+    if(row.snapshot.confirmed && row.snapshot.editing_blocks) prime(privateHistoryCache,path+'/editing-blocks',{blocks:row.snapshot.editing_blocks})
+    for(const version of row.versions || []) if(version.editing_blocks) {
+      prime(privateHistoryCache,path+'/editing-blocks?base_version_id='+version.id,{blocks:version.editing_blocks})
+    }
   }
   return rows
 }
