@@ -73,13 +73,13 @@
   },
   {
     "term": "B2B",
-    "fullName": "Business-to-Business · 企业对企业",
+    "fullName": "Business-to-Business · 企业对企业（To B / To Business）",
     "explanation": "向企业或组织销售产品与服务的业务模式。采购往往涉及使用者、业务负责人、采购和财务等多个角色。",
     "example": "例如：向连锁门店销售库存管理系统。"
   },
   {
     "term": "B2C",
-    "fullName": "Business-to-Consumer · 企业对消费者",
+    "fullName": "Business-to-Consumer · 企业对消费者（To C / To Customer）",
     "explanation": "企业向个人消费者提供产品或服务的业务模式。是否属于 B2C 取决于最终客户，不能只按线上或线下渠道区分。",
     "example": "例如：耳机品牌通过自己的网店向个人用户销售耳机。"
   },
@@ -106,5 +106,545 @@
     "fullName": "Stock Keeping Unit · 库存管理单元",
     "explanation": "用于区分和管理可销售库存的最小品项标识，不一定等同于一个产品型号。不同颜色、容量或套装可能分别管理为不同 SKU。",
     "example": "例如：同一款耳机的黑色版与白色版，通常对应两个 SKU。"
+  },
+  {
+    "term": "4C",
+    "fullName": "Customer / Cost / Convenience / Communication · 顾客、成本、便利、沟通",
+    "explanation": "从顾客需求、购买总成本、购买便利性与双向沟通审视营销组合；截图将便利写作 Convenient。",
+    "example": "例如：从用户角度检查耳机是否满足通勤需求、购买是否方便。"
+  },
+  {
+    "term": "4R",
+    "fullName": "Relevance / Reaction / Relationship / Reward · 关联、反应、关系、回报",
+    "explanation": "强调与客户建立关联、及时响应、维护关系并实现双方回报的营销思路；不同资料的英文表述可能不同。",
+    "example": "例如：依据用户反馈改进售后，并通过会员运营维持关系。"
+  },
+  {
+    "term": "ADCP",
+    "fullName": "Availability Decision Check Point · 可获得性决策评审点",
+    "explanation": "产品开发流程中判断是否具备对外供货或发布条件的决策关口，具体标准由企业定义。",
+    "example": "例如：上市前检查产能、库存和服务准备情况。"
+  },
+  {
+    "term": "BB",
+    "fullName": "Building Block · 构建模块",
+    "explanation": "可用于组合更大产品或系统的基础模块，有助于复用设计与能力。",
+    "example": "例如：多款设备共用同一通信模块。"
+  },
+  {
+    "term": "BLM",
+    "fullName": "Business Leadership Model · 业务领导力模型",
+    "explanation": "连接战略分析、业务设计与执行的管理框架，帮助识别业务差距并明确行动。",
+    "example": "例如：分析耳机业务增长差距，确定细分市场和执行重点。"
+  },
+  {
+    "term": "BM",
+    "fullName": "Brand Man · 品牌经理制",
+    "explanation": "截图中的 BM 指品牌经理制，即由明确负责人统筹品牌经营；该缩写在其他语境中可能有不同含义。",
+    "example": "例如：品牌经理协调产品定位、传播与销售计划。"
+  },
+  {
+    "term": "BOM",
+    "fullName": "Bill of Materials · 物料清单",
+    "explanation": "列出产品组成物料、数量及相关规格的清单，是采购、成本核算与生产管理的基础。",
+    "example": "例如：耳机 BOM 包括芯片、电池、外壳和包装材料。"
+  },
+  {
+    "term": "BP",
+    "fullName": "Business Plan · 业务计划",
+    "explanation": "说明业务目标、市场机会、资源需求、执行安排及财务预期的计划。",
+    "example": "例如：为新市场制定年度销量、费用和渠道建设计划。"
+  },
+  {
+    "term": "C3T",
+    "fullName": "Corporate Business Transformation & IT Management Team · 企业业务变革及 IT 管理团队",
+    "explanation": "企业内统筹业务变革与 IT 管理的团队名称，职责和权限以组织定义为准。",
+    "example": "例如：协调销售流程变革与信息系统建设。"
+  },
+  {
+    "term": "CBB",
+    "fullName": "Common Building Block · 共用基础模块",
+    "explanation": "可在多个产品或项目中复用的通用模块，以减少重复开发并提高一致性。",
+    "example": "例如：不同耳机型号复用经过验证的充电方案。"
+  },
+  {
+    "term": "CDCP",
+    "fullName": "Concept Decision Check Point · 概念决策评审点",
+    "explanation": "判断产品概念及业务机会是否值得进入下一阶段的决策关口。",
+    "example": "例如：评估目标人群、产品价值和初步商业可行性。"
+  },
+  {
+    "term": "CDP",
+    "fullName": "Charter Development Process · 商业计划书开发流程",
+    "explanation": "形成项目任务书或商业计划书的流程，用于明确机会、目标、范围和资源需求。",
+    "example": "例如：将市场机会整理为可供立项评审的项目任务书。"
+  },
+  {
+    "term": "CDT",
+    "fullName": "Charter Development Team · 任务书开发团队",
+    "explanation": "负责形成项目任务书的跨职能团队，通常协同市场、研发与财务等角色。",
+    "example": "例如：共同明确新产品的目标市场、收入预期和研发投入。"
+  },
+  {
+    "term": "CMF",
+    "fullName": "Color / Material / Finish · 颜色、材料、表面处理",
+    "explanation": "描述产品外观与触感设计中的颜色、材料及表面处理方案。",
+    "example": "例如：为耳机选择配色、外壳材质和磨砂工艺。"
+  },
+  {
+    "term": "CRM",
+    "fullName": "Customer Relationship Management · 客户关系管理",
+    "explanation": "管理客户信息、销售互动和服务关系的方法，也常指支持这些工作的软件系统。",
+    "example": "例如：记录经销商需求、商机进展和售后跟进。"
+  },
+  {
+    "term": "DCP",
+    "fullName": "Decision Check Point · 决策评审点",
+    "explanation": "在关键阶段依据商业目标和风险作出继续、调整或终止等决策的关口。",
+    "example": "例如：管理团队依据阶段证据决定是否继续投入产品开发。"
+  },
+  {
+    "term": "DVT",
+    "fullName": "Design Verification Test · 设计验证测试",
+    "explanation": "验证产品设计是否满足既定规格与要求，具体测试内容和阶段划分由项目定义。",
+    "example": "例如：验证耳机的可靠性、续航和结构设计。"
+  },
+  {
+    "term": "EAC",
+    "fullName": "Enterprise Architecture Council · 企业架构委员会",
+    "explanation": "统筹企业架构方向、标准与重要架构决策的治理组织。",
+    "example": "例如：评审不同业务系统之间的数据与接口标准。"
+  },
+  {
+    "term": "EMT",
+    "fullName": "Executive Management Team · 经营管理团队",
+    "explanation": "负责企业或业务单元经营管理与重要决策的管理团队。",
+    "example": "例如：审议年度经营目标与资源分配方案。"
+  },
+  {
+    "term": "EOM",
+    "fullName": "End of Marketing · 停止销售",
+    "explanation": "产品生命周期中停止营销或销售的节点，具体接单和渠道安排以企业公告为准。",
+    "example": "例如：旧型号停止接收新订单，渠道按计划处理库存。"
+  },
+  {
+    "term": "EOP",
+    "fullName": "End of Production · 停止生产",
+    "explanation": "产品不再继续生产的生命周期节点，不必然与停止销售或服务同时发生。",
+    "example": "例如：工厂完成最后一批旧型号生产，现有库存继续销售。"
+  },
+  {
+    "term": "EOS",
+    "fullName": "End of Service & Support · 停止服务和支持",
+    "explanation": "在截图语境中指停止服务与支持的节点；具体覆盖维修、升级或技术支持中的哪些项目应以公告为准。",
+    "example": "例如：公告某旧设备的技术支持结束日期。"
+  },
+  {
+    "term": "ESC",
+    "fullName": "Executive Steering Committee · 高层指导委员会",
+    "explanation": "为重大项目或变革提供方向、资源协调与关键决策支持的高层组织。",
+    "example": "例如：协调跨部门项目的优先级和重大分歧。"
+  },
+  {
+    "term": "ESP",
+    "fullName": "Early Support Program · 早期支持程序",
+    "explanation": "产品发布早期提供重点支持并收集问题的安排，适用客户与服务范围由企业定义。",
+    "example": "例如：为首批客户安排专门的安装与问题跟踪支持。"
+  },
+  {
+    "term": "EVT",
+    "fullName": "Engineering Verification Test · 工程验证测试",
+    "explanation": "验证工程方案与关键功能可行性的测试阶段，具体进入和退出标准由项目定义。",
+    "example": "例如：通过样机验证电路、声学方案和核心功能。"
+  },
+  {
+    "term": "FE",
+    "fullName": "Functional Excellence · 功能优秀／职能卓越",
+    "explanation": "强调某一职能领域在流程、方法和专业能力上的持续提升；截图译为功能优秀。",
+    "example": "例如：销售部门建立统一培训和商机评审方法。"
+  },
+  {
+    "term": "GA",
+    "fullName": "General Availability · 正式商用／普遍可用",
+    "explanation": "产品向预定市场正式开放购买或使用的状态，范围可能受地区与渠道限制。",
+    "example": "例如：产品结束试用后面向目标地区正式销售。"
+  },
+  {
+    "term": "GR",
+    "fullName": "General Review · 市场领域总体评估",
+    "explanation": "截图说明原称 GTM Review，现称 General Review，用于市场领域的总体评估；属于特定流程口径。",
+    "example": "例如：集中检查上市准备、渠道进展及市场风险。"
+  },
+  {
+    "term": "GRAI",
+    "fullName": "Goals / Results / Analysis / Insights · 目标、结果、分析、洞察",
+    "explanation": "按回顾目标、评估结果、分析原因、总结经验的顺序进行复盘。",
+    "example": "例如：对比上市销量目标与实际结果，分析差距并形成改进措施。"
+  },
+  {
+    "term": "GSM",
+    "fullName": "Global System for Mobile Communications · 全球移动通信系统",
+    "explanation": "一种广泛应用于第二代移动通信的标准体系。",
+    "example": "例如：确认设备是否支持目标市场所需的 GSM 频段。"
+  },
+  {
+    "term": "GTA",
+    "fullName": "Go to App Gallery · 应用拓展上架",
+    "explanation": "截图中的业务用语，指推动应用进入应用商店的拓展与上架工作，具体范围依组织流程而定。",
+    "example": "例如：协调开发者准备应用上架资料并完成审核。"
+  },
+  {
+    "term": "HMS",
+    "fullName": "Huawei Mobile Services · 华为移动服务",
+    "explanation": "华为提供的移动应用服务与相关开发能力体系。",
+    "example": "例如：应用根据业务需要集成华为账号或推送服务。"
+  },
+  {
+    "term": "IBM",
+    "fullName": "International Business Machines Corporation · 国际商业机器公司",
+    "explanation": "提供企业技术与咨询等服务的科技公司，中文通常称 IBM 或国际商业机器公司。",
+    "example": "例如：在企业管理变革案例中了解 IBM 的相关实践。"
+  },
+  {
+    "term": "ID",
+    "fullName": "Industrial Design · 工业设计",
+    "explanation": "结合用户体验、外观、结构约束及制造条件开展产品形态设计；此处不指身份标识。",
+    "example": "例如：设计耳机外形、佩戴方式和充电盒开合体验。"
+  },
+  {
+    "term": "IMC",
+    "fullName": "Integrated Marketing Communications · 整合营销传播",
+    "explanation": "协调不同渠道与传播方式，使品牌信息和用户体验保持一致。",
+    "example": "例如：让广告、社交媒体、门店和发布会使用一致的产品主张。"
+  },
+  {
+    "term": "IPD",
+    "fullName": "Integrated Product Development · 集成产品开发",
+    "explanation": "以市场和客户需求为导向，通过跨职能协作与阶段决策管理产品开发。",
+    "example": "例如：市场、研发、制造和服务共同推进新产品从概念到上市。"
+  },
+  {
+    "term": "IPMS",
+    "fullName": "Integrated Product Marketing, Sales & Service · 集成产品营销、销售和服务",
+    "explanation": "在截图语境中，统筹产品营销、销售与服务的流程体系，具体边界由企业定义。",
+    "example": "例如：将产品上市方案、销售准备和售后支持纳入协同计划。"
+  },
+  {
+    "term": "IPMS-MT",
+    "fullName": "IPMS Management Team · IPMS 管理团队",
+    "explanation": "负责 IPMS 体系相关管理与跨职能协调的团队。",
+    "example": "例如：协调营销、销售与服务团队的资源及流程问题。"
+  },
+  {
+    "term": "IPMT",
+    "fullName": "Integrated Portfolio Management Team · 集成组合管理团队",
+    "explanation": "从产品或业务组合层面进行投资取舍、优先级排序和资源配置的团队。",
+    "example": "例如：在多个产品项目间决定投资优先级。"
+  },
+  {
+    "term": "ITR",
+    "fullName": "Issue to Resolution · 问题到解决",
+    "explanation": "覆盖问题受理、定位、处理与闭环确认的端到端流程。",
+    "example": "例如：客户提交故障后，团队跟踪处理直到客户确认解决。"
+  },
+  {
+    "term": "KA",
+    "fullName": "Key Account · 核心客户",
+    "explanation": "对企业经营具有重要价值、需要重点维护的客户，划分标准可包括规模、潜力和战略价值。",
+    "example": "例如：为全国连锁零售商安排专门的客户负责人。"
+  },
+  {
+    "term": "KCP",
+    "fullName": "Key Control Point · 关键控制点",
+    "explanation": "为保证流程质量、风险或合规要求而设置的重要检查环节。",
+    "example": "例如：在渠道返利结算前核验销量和凭证。"
+  },
+  {
+    "term": "KPI",
+    "fullName": "Key Performance Indicator · 关键绩效指标",
+    "explanation": "用于衡量关键目标完成程度的指标，应明确统计口径、时间范围与责任人。",
+    "example": "例如：按季度跟踪有效销售额和重点门店覆盖率。"
+  },
+  {
+    "term": "KSP",
+    "fullName": "Key Selling Points · 关键卖点",
+    "explanation": "面向目标客户提炼、能够支撑购买理由的核心产品优势。",
+    "example": "例如：将轻便佩戴和长续航作为通勤耳机的重点卖点。"
+  },
+  {
+    "term": "KV",
+    "fullName": "Key Vision · 主视觉",
+    "explanation": "截图使用 Key Vision；营销设计中也常称 Key Visual，指活动或品牌传播的核心视觉表达。",
+    "example": "例如：为新品上市确定统一的主画面与配色。"
+  },
+  {
+    "term": "LTC",
+    "fullName": "Lead to Cash · 线索到回款",
+    "explanation": "从发现销售线索，经商机、合同与交付，最终实现回款的端到端业务流程。",
+    "example": "例如：从经销商咨询一路跟进到签约、交货和收款。"
+  },
+  {
+    "term": "MFR",
+    "fullName": "Manufacturing Review · 制造评审",
+    "explanation": "评估制造能力、生产准备与相关风险的评审活动。",
+    "example": "例如：检查产线、工艺、良率及产能是否满足量产计划。"
+  },
+  {
+    "term": "MM",
+    "fullName": "Marketing Management · 市场管理流程",
+    "explanation": "在截图中指分析市场、选择机会并形成市场策略的管理流程。",
+    "example": "例如：定期评估细分市场机会并调整产品组合方向。"
+  },
+  {
+    "term": "MPP",
+    "fullName": "Marketing Plan Process · 营销计划流程",
+    "explanation": "把市场目标转化为营销策略、活动、预算和执行安排的流程。",
+    "example": "例如：制定季度营销活动日历及费用计划。"
+  },
+  {
+    "term": "MPR",
+    "fullName": "Manage Partner Relationships · 合作伙伴关系管理",
+    "explanation": "管理伙伴选择、协作、支持和关系维护的业务活动或流程。",
+    "example": "例如：为经销商制定合作规则、培训及业务复盘机制。"
+  },
+  {
+    "term": "MR",
+    "fullName": "Marketing Review · 市场评审点",
+    "explanation": "围绕市场机会、定位、营销方案或市场准备情况进行评审的节点。",
+    "example": "例如：评审新品的目标客群、价格带和推广方案。"
+  },
+  {
+    "term": "MSS",
+    "fullName": "Marketing, Sales & Service · 市场营销与销售服务部",
+    "explanation": "截图中用于市场营销、销售和服务相关组织的统称或部门名称。",
+    "example": "例如：由相关团队共同协调市场推广、客户成交与服务。"
+  },
+  {
+    "term": "MTL",
+    "fullName": "Market to Lead · 市场到线索",
+    "explanation": "将市场洞察和营销活动转化为可跟进销售线索的端到端流程。",
+    "example": "例如：通过行业活动吸引客户并将有效咨询交给销售团队。"
+  },
+  {
+    "term": "NFC",
+    "fullName": "Near-field Communication · 近距离无线通信",
+    "explanation": "支持短距离设备交互的无线通信技术，常用于支付、识别与设备配对等场景。",
+    "example": "例如：用户将支持 NFC 的设备靠近标签完成信息读取。"
+  },
+  {
+    "term": "OOH",
+    "fullName": "Out of Home · 户外广告",
+    "explanation": "在家庭之外公共空间触达受众的广告形式，包括户外看板和交通场所广告等。",
+    "example": "例如：在地铁站投放新品海报。"
+  },
+  {
+    "term": "OR",
+    "fullName": "Offering Requirement · 包需求／产品包需求",
+    "explanation": "围绕完整产品或解决方案形成的需求，可能涵盖产品、服务、交付和商业安排。",
+    "example": "例如：把硬件功能、安装服务与保修要求共同纳入产品包需求。"
+  },
+  {
+    "term": "PCR",
+    "fullName": "Plan Change Request · 计划变更请求",
+    "explanation": "对已确定计划提出变更并进入评估与审批的正式请求。",
+    "example": "例如：因供应延期申请调整上市时间和相关资源安排。"
+  },
+  {
+    "term": "PCT",
+    "fullName": "Product Commercial Team · 产品商业团队",
+    "explanation": "从商业视角协调产品市场、销售及经营相关工作的团队，分工以组织定义为准。",
+    "example": "例如：协同制定新品价格、渠道策略与销量目标。"
+  },
+  {
+    "term": "PDC",
+    "fullName": "Portfolio Decision Criteria · 组合决策标准",
+    "explanation": "用于比较产品或项目组合、决定投入和优先级的评价标准。",
+    "example": "例如：按战略匹配、收益潜力和风险评估候选项目。"
+  },
+  {
+    "term": "PDCA",
+    "fullName": "Plan / Do / Check / Act · 计划、执行、检查、处理",
+    "explanation": "通过制定计划、执行、检查结果和采取改进措施形成持续改进循环；截图最后一项写作 Action。",
+    "example": "例如：试行门店陈列方案，检查转化效果后改进并推广。"
+  },
+  {
+    "term": "PDT",
+    "fullName": "Product Development Team · 产品开发团队",
+    "explanation": "协同完成产品开发目标的跨职能团队。",
+    "example": "例如：研发、市场、制造和质量人员共同推进新品开发。"
+  },
+  {
+    "term": "PHS",
+    "fullName": "Personal Handy-phone System · 个人手持式电话系统",
+    "explanation": "一种无线通信系统，曾用于俗称“小灵通”的相关业务。",
+    "example": "例如：阅读历史通信产品案例时识别 PHS 的技术背景。"
+  },
+  {
+    "term": "PIRB",
+    "fullName": "Product Investment Review Board · 产品投资评审委员会",
+    "explanation": "对产品投资方案、资源投入与重要调整进行评审和决策的组织。",
+    "example": "例如：评估新产品的商业回报与风险后决定是否投资。"
+  },
+  {
+    "term": "PLC",
+    "fullName": "Product Life Cycle · 产品生命周期",
+    "explanation": "通常指产品从引入、成长、成熟到衰退的生命周期。截图中文为“全社商品开发标准 Process”，与英文不直接对应，可能是特定企业流程口径，需结合原文确认。",
+    "example": "例如：结合产品所处阶段调整推广投入、价格与退市安排。"
+  },
+  {
+    "term": "POR",
+    "fullName": "Procurement Review · 采购评审",
+    "explanation": "检查采购方案、供应保障、成本和采购风险的评审活动。",
+    "example": "例如：评估关键器件供应商和备选采购方案。"
+  },
+  {
+    "term": "POSM",
+    "fullName": "Point of Sales Materials · 销售点物料／辅助销售物料",
+    "explanation": "在销售场所帮助展示产品、传达信息和促进购买的物料。",
+    "example": "例如：为门店制作台卡、展示架和卖点海报。"
+  },
+  {
+    "term": "PR",
+    "fullName": "Public Relations · 公共关系",
+    "explanation": "通过媒体、公众及相关方沟通维护组织声誉与关系的工作。",
+    "example": "例如：围绕新品发布组织媒体沟通并回应公众关注。"
+  },
+  {
+    "term": "PSI",
+    "fullName": "Purchase, Sales and Inventory · 进销存管理",
+    "explanation": "联动管理采购或进货、销售与库存的数据和计划，具体口径随业务而定。",
+    "example": "例如：依据渠道销量和库存安排下月补货。"
+  },
+  {
+    "term": "RDP",
+    "fullName": "Roadmap Planning · 路标规划流程",
+    "explanation": "规划未来产品、技术或能力演进方向与阶段安排的流程。",
+    "example": "例如：制定未来两年耳机产品系列的迭代路线。"
+  },
+  {
+    "term": "RME",
+    "fullName": "Request Management Engineer · 需求管理工程师",
+    "explanation": "截图中的岗位名称，负责需求收集、整理、跟踪及相关协调，职责以企业定义为准。",
+    "example": "例如：维护需求清单并跟踪各项需求的评审状态。"
+  },
+  {
+    "term": "RRP",
+    "fullName": "Recommended Retail Price · 建议零售价",
+    "explanation": "品牌或供应商建议面向消费者销售的价格，实际成交价可能因渠道和促销而不同。",
+    "example": "例如：新品建议零售价为 499 元，活动价由具体销售安排决定。"
+  },
+  {
+    "term": "SDV",
+    "fullName": "System Design Verification · 系统设计验证",
+    "explanation": "从系统层面验证设计是否满足规定需求及各部分协同要求。",
+    "example": "例如：验证设备、软件和连接服务组合后的系统功能。"
+  },
+  {
+    "term": "SE",
+    "fullName": "System Engineer · 系统工程师",
+    "explanation": "从系统整体出发协调需求、架构、接口和验证等工作的工程角色。",
+    "example": "例如：统筹硬件、软件之间的接口与性能要求。"
+  },
+  {
+    "term": "SEM",
+    "fullName": "Search Engine Marketing · 搜索引擎营销",
+    "explanation": "通过搜索引擎触达潜在客户的营销活动，日常业务中常特指付费搜索广告，需明确统计范围。",
+    "example": "例如：投放与降噪耳机相关的搜索关键词广告。"
+  },
+  {
+    "term": "SP",
+    "fullName": "Strategy Plan · 战略规划",
+    "explanation": "明确组织中长期方向、目标、业务选择和资源配置的规划；英文也常表述为 Strategic Plan。",
+    "example": "例如：确定未来三年的重点国家、产品线及能力建设方向。"
+  },
+  {
+    "term": "SPDT",
+    "fullName": "Super Product Development Team · 超级产品开发团队",
+    "explanation": "截图中的组织名称，通常用于统筹更大产品范围或多个相关开发任务，具体层级由企业定义。",
+    "example": "例如：协调同一产品家族多个项目的开发安排。"
+  },
+  {
+    "term": "SP&O",
+    "fullName": "Sales Planning and Operation · 销售规划与运营",
+    "explanation": "围绕销售目标、计划、执行跟踪和经营协调开展的工作或组织职能。",
+    "example": "例如：将年度销售目标拆解到区域并定期跟踪完成情况。"
+  },
+  {
+    "term": "SR",
+    "fullName": "Service Review · 服务评审",
+    "explanation": "检查产品服务方案、支持能力及服务准备情况的评审。",
+    "example": "例如：上市前核对维修网点、备件和客服培训是否就绪。"
+  },
+  {
+    "term": "SWOT",
+    "fullName": "Strengths / Weaknesses / Opportunities / Threats · 优势、劣势、机会、威胁分析",
+    "explanation": "从内部优势与劣势、外部机会与威胁四个方面梳理业务处境，以支持策略选择。",
+    "example": "例如：结合品牌知名度、渠道短板、市场增长与竞争压力制定方案。"
+  },
+  {
+    "term": "TA",
+    "fullName": "Target Audience · 目标受众",
+    "explanation": "传播或营销活动希望重点触达的人群，不一定等同于最终购买者。",
+    "example": "例如：将关注通勤体验的年轻用户作为一轮广告的目标受众。"
+  },
+  {
+    "term": "TCO",
+    "fullName": "Total Channel Offering · 全渠道解决方案",
+    "explanation": "在截图中指全渠道解决方案；其他常见语境中的 TCO 是 Total Cost of Ownership（总拥有成本），两者应按上下文区分。",
+    "example": "例如：在渠道方案中统一考虑产品供给、销售支持和服务安排。"
+  },
+  {
+    "term": "TR",
+    "fullName": "Technical Review · 技术评审点",
+    "explanation": "检查技术方案、设计成果与技术风险是否满足阶段要求的评审节点。",
+    "example": "例如：在样机阶段评审设计指标和未解决的技术问题。"
+  },
+  {
+    "term": "TTM",
+    "fullName": "Time to Market · 产品上市周期／上市时间",
+    "explanation": "通常表示从产品构想到进入市场所需的时间；截图强调产品按时上市，使用时应明确起止节点。",
+    "example": "例如：跟踪从项目立项到正式上市所需的月数。"
+  },
+  {
+    "term": "TVC",
+    "fullName": "Television Commercial · 电视广告",
+    "explanation": "面向电视传播的商业广告片，也可能被改编用于其他视频渠道。",
+    "example": "例如：制作一支用于电视投放的新品广告。"
+  },
+  {
+    "term": "PACE",
+    "fullName": "Product and Cycle-Time Excellence · 产品及生命周期优化法",
+    "explanation": "围绕产品开发与开发周期改善的管理方法；截图译为产品及生命周期优化法，此处 Cycle-Time 重点指开发周期。",
+    "example": "例如：梳理开发决策和跨部门协作，缩短产品开发周期。"
+  },
+  {
+    "term": "PDCP",
+    "fullName": "Plan Decision Check Point · 计划决策评审点",
+    "explanation": "评审产品计划、商业可行性、资源与风险，并决定是否进入后续阶段的决策关口。",
+    "example": "例如：在开发投入扩大前审查成本、进度和销售预测。"
+  },
+  {
+    "term": "UV",
+    "fullName": "Unique Visitor · 独立访客",
+    "explanation": "在规定时间与识别口径下去重后的访问者数量；设备、浏览器和账号口径可能产生不同结果。",
+    "example": "例如：同一浏览器一天访问页面多次，在相应统计口径下计为一个 UV。"
+  },
+  {
+    "term": "VAT",
+    "fullName": "Value-added Tax · 增值税",
+    "explanation": "对商品或服务增值部分征收的一类税，具体税率、抵扣与申报规则取决于当地法规。",
+    "example": "例如：制定渠道价格时区分含税价与不含税价。"
+  },
+  {
+    "term": "VOC",
+    "fullName": "Voice of Customer · 客户声音",
+    "explanation": "通过访谈、评价、投诉等渠道收集并整理客户需求与反馈的方法和信息。",
+    "example": "例如：汇总用户对佩戴不适的反馈并转化为改进需求。"
+  },
+  {
+    "term": "WCDMA",
+    "fullName": "Wideband Code Division Multiple Access · 宽带码分多址",
+    "explanation": "一种第三代移动通信无线接入技术。",
+    "example": "例如：确认设备在目标地区的网络兼容性时检查 WCDMA 支持情况。"
   }
 ]

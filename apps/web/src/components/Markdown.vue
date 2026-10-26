@@ -1,11 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, onUpdated, ref } from 'vue'
-import { marked } from 'marked'
+import { Marked } from 'marked'
+import { useRouter } from 'vue-router'
 import DOMPurify from 'dompurify'
-import { cleanAIText } from '../aiText'
-const props = defineProps<{ source: string; breaks?: boolean; ai?: boolean }>()
+import { citationExtension, type Citation } from '../aiCitations'
+const props = defineProps<{ source: string; breaks?: boolean; ai?: boolean; citations?: Citation[] }>()
+const router = useRouter()
 const host = ref<HTMLElement>()
-const html = computed(() => DOMPurify.sanitize(marked.parse(props.ai ? cleanAIText(props.source) : props.source, { async: false, breaks: props.breaks || false }) as string))
+const html = computed(() => {
+  const parser = new Marked({ breaks: props.breaks || false, extensions: props.ai ? [citationExtension(props.citations)] : [] })
+  return DOMPurify.sanitize(parser.parse(props.source, { async: false }) as string)
+})
+function followCitation(event: MouseEvent) {
+  if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+  const link = (event.target as Element).closest('a.inline-citation')
+  if (!link || !host.value?.contains(link)) return
+  event.preventDefault()
+  void router.push(link.getAttribute('href')!)
+}
 async function render() {
   const nodes = host.value?.querySelectorAll('code.language-mermaid')
   if (!nodes?.length) return
@@ -17,4 +29,8 @@ async function render() {
 }
 onMounted(render); onUpdated(render)
 </script>
-<template><div ref="host" class="prose" v-html="html"></div></template>
+<template><div ref="host" class="prose" @click="followCitation" v-html="html"></div></template>
+<style scoped>
+.prose :deep(.inline-citation){display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;margin:0 3px;padding:0 6px;border-radius:6px;background:var(--gray);color:var(--muted);font:11px/1 var(--sans);text-decoration:none;vertical-align:super;white-space:nowrap}
+.prose :deep(.inline-citation:hover),.prose :deep(.inline-citation:focus-visible){color:var(--blue);background:#2446eb0d;outline:1px solid currentColor;outline-offset:2px}
+</style>

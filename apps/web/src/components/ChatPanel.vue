@@ -6,6 +6,7 @@ import { api, post, state, peekHistory, deleteHistoryRecord, isHistoryDeleted } 
 import ConfirmDelete from './ConfirmDelete.vue'
 import Composer from './Composer.vue'
 import Markdown from './Markdown.vue'
+import { citationSources } from '../aiCitations'
 const props = defineProps<{ scope?: string; documentId?: string; sessionId?: string; conversationId?: string; docked?: boolean }>()
 const route = useRoute(), router = useRouter()
 const draft = ref(''), busy = ref(false), error = ref(''), messages = ref<any[]>([])
@@ -121,8 +122,8 @@ watch(()=>[messages.value.length,error.value,busy.value], async()=>{
     <p v-if="contextAfter" class="notice">已清空前 {{contextAfter}} 轮的上下文。旧消息已从当前窗口隐藏，历史记录保留。<button class="text-link" @click="showPrevious = !showPrevious">{{ showPrevious ? '隐藏旧消息' : '查看旧消息' }}</button></p>
     <LoadingState v-if="restoring" label="正在加载历史对话…" compact />
     <div v-for="(message, index) in visibleMessages" :key="index" class="message-pair">
-      <p class="question">{{ message.question }}</p><p v-if="message.pending" class="thinking meta" role="status">正在思考…</p><template v-else><p class="provider-label">{{ message.provider === 'mock' ? '旧版记录' : message.model }}{{message.turn <= contextAfter ? ' · 已移出上下文' : ''}}</p><Markdown ai class="answer chat-answer" :source="message.answer || ''" /></template>
-      <div class="citations"><RouterLink v-for="c in message.citations" :key="c.chunk_id" :to="c.url + '?heading=' + encodeURIComponent(c.heading_path)">{{ c.title }} · {{ c.heading_path }} ↗</RouterLink></div>
+      <p class="question">{{ message.question }}</p><p v-if="message.pending" class="thinking meta" role="status">正在思考…</p><template v-else><p class="provider-label">{{ message.provider === 'mock' ? '旧版记录' : message.model }}{{message.turn <= contextAfter ? ' · 已移出上下文' : ''}}</p><Markdown ai class="answer chat-answer" :source="message.answer || ''" :citations="message.citations" /></template>
+      <div class="citations"><RouterLink v-for="c in citationSources(message.citations)" :key="c.key" :to="c.href">{{ c.number }}. {{ c.title }} ↗</RouterLink></div>
       <p class="meta">{{ message.limitations }}</p>
     </div>
     <p v-if="error" class="error" role="alert">{{ error }}</p>
