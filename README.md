@@ -52,6 +52,9 @@ GTM 概览已从前端的 `public` 目录移到知识资料区；网页地址仍
 | 岗位 JD | 公共岗位资料栏目，供后续扩充 |
 | 在职经验 | 业务经验和学习笔记 |
 | GTM 专有名词库 | 名词、解释和场景例子，两列表格，支持预览和完整页面 |
+| 爆品操盘GTM | 全书六章与附录，支持框内阅读、全文搜索、图片放大和独立页面；资料位于 knowledge/site/gtm-book/ |
+
+所有「目标岗位」选择器只提供「GTM」与「自定义/以JD为准」，默认 GTM；旧岗位偏好在进入选择器时归一为 GTM，自定义模式保留用户填写的岗位名。
 
 面经统一在 `/interviews` 的「面经与 Mock」中展示。JD、面经、在职经验共用文章目录和正文阅读布局；资料卡片不展示预计阅读时长。
 
@@ -230,7 +233,7 @@ Dockerfile 将 skills 复制进镜像，修改本机 Skill 后需要重新 build
 
 ## 知识资料与 Embedding
 
-知识源包括 `knowledge/` 下的 Markdown、GTM 概览 HTML 正文及名词库 JSON。每篇 Markdown 需要 frontmatter，包含 ID、标题、类别、显示编号、许可、质量状态、来源和岗位/行业标签。只索引 `public_display` 且未弃用的资料；概览和名词库从原文件自动提取，不需维护 Markdown 副本。
+知识源包括 `knowledge/` 下的 Markdown、GTM 概览 HTML 正文、《爆品操盘GTM》六章及附录 HTML、名词库 JSON。每篇 Markdown 需要 frontmatter，包含 ID、标题、类别、显示编号、许可、质量状态、来源和岗位/行业标签。只索引 `public_display` 且未弃用的资料；概览、全书和名词库从原文件自动提取，不需在知识目录维护无 frontmatter 的 Markdown 副本。
 
 入库按章节和约 1800 字符上限分块，检查重复 ID/正文并保存哈希。内容和模型名称未变化时跳过重建；删除或撤销许可的资料会从索引移除。API 启动时执行索引，管理员也可调用 `POST /api/v1/admin/knowledge/reindex` 重建。
 
@@ -244,7 +247,7 @@ PostgreSQL 模式组合词法信号、全文检索和向量余弦排序，通过
 
 当前请求、校验和数据库字段固定 **1536 维**。`EMBEDDING_DIMENSIONS` 当前没有被代码读取；换成 1024 维模型需要修改代码、迁移数据库并重建索引。相同维度但不同模型的向量也不能混用。
 
-个人简历不会进入公共向量库；私人 JD 以授权上下文提供。GTM 概览与名词库已作为站内参考资料接入检索和引用；引用可打开索引正文及原页面，不混入 JD、面经、在职经验卡片。资料扩充、统一 Markdown 契约与两份采集 Skill 见 [内容维护指南](docs/CONTENT_GUIDE.md)。
+个人简历不会进入公共向量库；私人 JD 以授权上下文提供。GTM 概览、《爆品操盘GTM》与名词库已作为站内参考资料接入检索和引用；引用可打开索引正文及原页面，不混入 JD、面经、在职经验卡片。全书索引涵盖正文、HTML 表格文字及图题，图片内部文字未自动 OCR；源文件位于 `knowledge/site/gtm-book/chapter-*.html`。资料扩充、统一 Markdown 契约与两份采集 Skill 见 [内容维护指南](docs/CONTENT_GUIDE.md)。
 
 ## 环境变量与模型接口
 

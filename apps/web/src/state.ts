@@ -20,7 +20,7 @@ sessionStorage.removeItem('atlas-token'); sessionStorage.removeItem('atlas-refre
 export const state = reactive({
   user: null as any,
   token: localStorage.getItem('atlas-token') || '',
-  context: { role: '', role_raw: '', industry: '', language: 'zh-CN', region: '', seniority: 'intern', business_model: 'unknown' },
+  context: { role: 'gtm', role_raw: '', industry: '', language: 'zh-CN', region: '', seniority: 'intern', business_model: 'unknown' },
   roles: [] as any[], industries: [] as any[], health: null as any,
   assistant: false, assistantBusy: false, assistantRequest: null as { question: string } | null,
   scope: 'global', documentId: '', careerId: '', notice: '', historyRevision: 0,

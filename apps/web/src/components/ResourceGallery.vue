@@ -2,17 +2,18 @@
 import LoadingState from './LoadingState.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowUpRight, BookOpen, BriefcaseBusiness, MessageSquare, Search, Lock, BookA, Compass } from 'lucide-vue-next'
+import { ArrowUpRight, BookOpen, BriefcaseBusiness, MessageSquare, Search, Lock, BookA, Compass, BookText } from 'lucide-vue-next'
 import { knowledgeDocuments, peekKnowledge, refreshKnowledge, state } from '../state'
 import { warmDocument } from '../preload'
 import ContextPicker from './ContextPicker.vue'
 import GtmGlossaryPreview from './GtmGlossaryPreview.vue'
 import GtmOverview from './GtmOverview.vue'
+import GtmBook from './GtmBook.vue'
 const props = defineProps<{fixedKind?: string}>()
 const route=useRoute(), router=useRouter(), items=ref<any[]>([]), query=ref(''), busy=ref(false), error=ref('')
 const kinds=[{id:'jd',name:'岗位 JD',en:'JOB DESCRIPTIONS',icon:BriefcaseBusiness,description:'读懂职责与能力要求，明确你的目标。'},{id:'interview',name:'面经',en:'INTERVIEW NOTES',icon:MessageSquare,description:'从真实问题与个人复盘，理解考查方向。'},{id:'learning',name:'在职经验',en:'WORK EXPERIENCE',icon:BookOpen,description:'从市场洞察到上市经营，理解实际工作中的方法与经验。'}]
 const visibleKinds=computed(()=>kinds.filter(k=>k.id!=='interview'))
-const selected=computed(()=>props.fixedKind || (['overview','jd','learning','glossary'].includes(String(route.query.kind))?String(route.query.kind):'overview'))
+const selected=computed(()=>props.fixedKind || (['overview','jd','learning','glossary','book'].includes(String(route.query.kind))?String(route.query.kind):'overview'))
 const filtered=computed(()=>items.value.filter(d=>!d.meta.demo))
 const columns=computed(()=>kinds.filter(k=>k.id===selected.value))
 const total=computed(()=>filtered.value.filter(d=>d.kind===selected.value).length)
@@ -39,10 +40,11 @@ watch(()=>[state.context.role,state.context.industry,state.user?.id],load);onMou
 </script>
 <template><section class="resource-gallery">
   <div class="gallery-heading"><div><p class="eyebrow">YOUR GTM READING ROOM</p><h2>{{fixedKind?'把每一次面试，变成下一次的准备。':'岗位、经验与知识，放在一起。'}}</h2></div></div>
-  <div v-if="!fixedKind" class="gallery-tabs" aria-label="资料分类"><button :class="{active:selected==='overview'}" @click="choose('overview')"><Compass :size="15"/>GTM 概览</button><button v-for="kind in visibleKinds" :key="kind.id" :class="{active:selected===kind.id}" @click="choose(kind.id)"><component :is="kind.icon" :size="15"/>{{kind.name}}<span>{{count(kind.id)}}</span></button><button :class="{active:selected==='glossary'}" @click="choose('glossary')"><BookA :size="15"/>GTM 专有名词库</button></div>
+  <div v-if="!fixedKind" class="gallery-tabs" aria-label="资料分类"><button :class="{active:selected==='overview'}" @click="choose('overview')"><Compass :size="15"/>GTM 概览</button><button v-for="kind in visibleKinds" :key="kind.id" :class="{active:selected===kind.id}" @click="choose(kind.id)"><component :is="kind.icon" :size="15"/>{{kind.name}}<span>{{count(kind.id)}}</span></button><button :class="{active:selected==='glossary'}" @click="choose('glossary')"><BookA :size="15"/>GTM 专有名词库</button><button :class="{active:selected==='book'}" @click="choose('book')"><BookText :size="15"/>爆品操盘GTM</button></div>
   <GtmGlossaryPreview v-if="!fixedKind" v-show="selected==='glossary'"/>
   <GtmOverview v-if="!fixedKind" v-show="selected==='overview'"/>
-  <template v-if="selected!=='glossary' && selected!=='overview'">
+  <GtmBook v-if="!fixedKind && selected==='book'"/>
+  <template v-if="selected!=='glossary' && selected!=='overview' && selected!=='book'">
   <div class="list-toolbar"><form class="search-field" @submit.prevent="load"><Search :size="17"/><input v-model="query" aria-label="搜索资料" placeholder="搜索主题、企业或关键词"><button>搜索</button></form><ContextPicker/></div>
   <div class="gallery-meta"><button class="text-link" :disabled="busy" @click="refresh">刷新资料</button><span class="meta">{{total}} 份资料 · 点击卡片阅读全文</span></div>
   <LoadingState v-if="busy" label="正在加载资料…"/><p v-else-if="error" class="error" role="alert">{{error}}</p>

@@ -69,6 +69,18 @@ def reference_documents(project_root):
         title = 'GTM 概览｜' + (unescape(heading[1]).strip() if heading else file.stem)
         yield _document(root, file, 'gtm-reference-overview-' + file.stem, title, body,
                         '/gtm-overview/' + file.name, 'overview')
+    book = root / 'knowledge/site/gtm-book'
+    for file in sorted(book.glob('chapter-*.html')):
+        raw = file.read_text(encoding='utf-8')
+        parser = MainText()
+        parser.feed(raw)
+        body = parser.text()
+        if not body:
+            raise ValueError(f'Empty book main content: {file.name}')
+        heading = re.search(r'<title>(.*?)</title>', raw, re.I | re.S)
+        chapter = unescape(heading[1]).split(' · ')[0].strip() if heading else file.stem
+        yield _document(root, file, 'gtm-reference-book-' + file.stem,
+                        '爆品操盘GTM｜' + chapter, body, '/gtm-book/' + file.name, 'book')
     glossary = root / 'knowledge/glossary/gtm-glossary.json'
     if glossary.exists():
         items = json.loads(glossary.read_text(encoding='utf-8'))
@@ -97,4 +109,7 @@ def _document(root, file, did, title, body, url, group):
         'excerpt': '从站内原始资料提取，可检索并引用；含义与适用条件以原资料为准。',
         'content_notice': '站内学习资料的文字索引，保留标题、段落及图表中的文字；不是独立核实的企业标准。可通过来源链接查看原页面。',
     }
+    if group == 'book':
+        meta['source_author'] = '朱秋虎'
+        meta['content_notice'] = '《爆品操盘GTM》的章节文字索引，保留正文、表格文字和图题；图片内部文字未自动识别。请通过来源链接查看完整图表。'
     return file.relative_to(root).as_posix(), '---\n' + yaml.safe_dump(meta, allow_unicode=True, sort_keys=False) + '---\n' + body
