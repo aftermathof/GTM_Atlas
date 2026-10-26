@@ -8,7 +8,7 @@ import ChatPanel from '../components/ChatPanel.vue'
 import NoteEditor from '../components/NoteEditor.vue'
 import NoteMark from '../components/NoteMark.vue'
 import { warmNote } from '../preload'
-import { cachedNotes, cachedNote, fetchNotes, fetchNote, cacheSavedNote, evictNote, forgetNote, type Note } from '../notesStore'
+import { cachedNotes, cachedNote, fetchNotes, fetchNote, cacheSavedNote, deleteNote, forgetNote, type Note } from '../notesStore'
 
 const route = useRoute(), router = useRouter()
 const cards = ref<Note[]>([]), note = ref<Note | null>(null)
@@ -40,19 +40,15 @@ function trapDelete(event: KeyboardEvent) {
 }
 async function deleteCard() {
   if (!pendingDelete.value || deleting.value) return
-  const selected = pendingDelete.value, account = state.user?.id
-  deleting.value = true; deleteError.value = ''
-  try {
-    await nextTick(); deleteDialog.value?.focus()
-    await api('/notes/' + selected.id, {method:'DELETE'})
-    if (account !== state.user?.id) return
-    evictNote(selected.id); cards.value = cards.value.filter(card => card.id !== selected.id)
-    deleting.value = false; closeDelete()
-  } catch (e: any) { if (account === state.user?.id) deleteError.value = e.message }
-  finally {
-    deleting.value = false
-    if (pendingDelete.value && account === state.user?.id) nextTick(() => cancelDelete.value?.focus())
+  const selected = pendingDelete.value
+  closeDelete()
+  const pending = deleteNote(selected)
+  cards.value = cards.value.filter(card => card.id !== selected.id)
+  if (id.value === selected.id) {
+    original.value = JSON.stringify([title.value, body.value])
+    void router.push('/notes')
   }
+  try { await pending } catch { /* The shared store restores the note and publishes the error. */ }
 }
 const id = computed(() => String(route.params.id || ''))
 const editing = computed(() => !!id.value)
@@ -70,6 +66,7 @@ async function load() {
     if (!state.user) { cards.value = []; return }
     if (!id.value) {
       const cached = cachedNotes()
+      error.value = state.notesDeleteError
       if (cached) { cards.value = cached; loading.value = false }
       const rows = cached || await fetchNotes()
       if (current === generation) cards.value = rows
@@ -99,18 +96,14 @@ async function save() {
   } catch (e: any) { if (note.value) forgetNote(note.value.id); error.value = e.message }
   finally { saving.value = false }
 }
-async function remove() {
-  if (!note.value || saving.value || !window.confirm('删除这篇笔记？此操作无法恢复，已有聊天中的引用快照会保留。')) return
-  saving.value = true; error.value = ''
-  try {
-    await api('/notes/' + note.value.id, {method:'DELETE'})
-    evictNote(note.value.id)
-    original.value = JSON.stringify([title.value, body.value])
-    saving.value = false
-    await router.push('/notes')
-  } catch (e: any) { error.value = e.message }
-  finally { saving.value = false }
+function remove(event: Event) {
+  if (!note.value || saving.value) return
+  void requestDelete(note.value, event)
 }
+watch(() => state.notesRevision, () => {
+  cards.value = cachedNotes() || cards.value
+  error.value = state.notesDeleteError
+})
 function canLeave() { return !saving.value && (!dirty.value || window.confirm('笔记尚未保存，确定离开并放弃修改？')) }
 onBeforeRouteLeave(canLeave)
 onBeforeRouteUpdate((to, from) => to.params.id === from.params.id || canLeave())
@@ -133,9 +126,9 @@ function keydown(event: KeyboardEvent) {
       <div class="notes-hero"><div><span class="eyebrow">YOUR PERSONAL KNOWLEDGE</span><h1>学习笔记</h1><p>把读过的知识，写成自己的理解。</p></div><RouterLink to="/notes/new" class="button primary"><Plus :size="17"/>新建笔记</RouterLink></div>
       <div class="collection-line"><span>我的笔记 <b>{{ cards.length.toString().padStart(2, '0') }}</b></span><span>仅自己可见 · AI 可参考已保存内容</span></div>
       <p v-if="loading" class="note-message" role="status">正在整理你的笔记…</p>
-      <p v-else-if="error" class="error" role="alert">{{ error }} <button @click="load">重新加载</button></p>
-      <div v-else-if="cards.length" class="note-grid"><article v-for="card in cards" :key="card.id" class="note-card"><RouterLink :to="'/notes/' + card.id" class="note-card-link" @mouseenter="warmNote(card.id,true)" @focus="warmNote(card.id,true)"><div class="note-cover"><span class="eyebrow">LEARNING NOTES</span><NoteMark/><span class="note-number">{{ numbers.get(card.id) }}</span></div><div class="note-card-content"><h2>{{ card.title }}</h2><div class="note-card-footer"><time :datetime="card.updated_at">{{ date(card.updated_at) }}</time><ArrowUpRight :size="18" aria-hidden="true"/></div></div></RouterLink><button class="note-card-delete" :aria-label="'删除笔记：'+card.title" @click="requestDelete(card,$event)"><Trash2 :size="14"/>删除</button></article></div>
-      <div v-else class="notes-empty"><BookOpen :size="34" :stroke-width="1"/><h2>留一页，给新的理解。</h2><p>从一次学习、一个想法，或一场复盘开始。</p><RouterLink to="/notes/new" class="text-link">写下第一篇笔记 <ArrowUpRight :size="15"/></RouterLink></div>
+      <p v-if="error" class="error" role="alert">{{ error }} <button @click="load">重新加载</button></p>
+      <div v-if="!loading && cards.length" class="note-grid"><article v-for="card in cards" :key="card.id" class="note-card"><RouterLink :to="'/notes/' + card.id" class="note-card-link" @mouseenter="warmNote(card.id,true)" @focus="warmNote(card.id,true)"><div class="note-cover"><span class="eyebrow">LEARNING NOTES</span><NoteMark/><span class="note-number">{{ numbers.get(card.id) }}</span></div><div class="note-card-content"><h2>{{ card.title }}</h2><div class="note-card-footer"><time :datetime="card.updated_at">{{ date(card.updated_at) }}</time><ArrowUpRight :size="18" aria-hidden="true"/></div></div></RouterLink><button class="note-card-delete" :aria-label="'删除笔记：'+card.title" @click="requestDelete(card,$event)"><Trash2 :size="14"/>删除</button></article></div>
+      <div v-else-if="!loading && !error" class="notes-empty"><BookOpen :size="34" :stroke-width="1"/><h2>留一页，给新的理解。</h2><p>从一次学习、一个想法，或一场复盘开始。</p><RouterLink to="/notes/new" class="text-link">写下第一篇笔记 <ArrowUpRight :size="15"/></RouterLink></div>
     </template>
     <template v-else>
       <div class="editor-top"><RouterLink to="/notes" class="back-link"><ArrowLeft :size="15"/>全部笔记</RouterLink><div class="note-actions"><span class="save-status" role="status">{{ saving ? '正在保存…' : dirty ? '有未保存的修改' : note ? '已保存 · ' + date(note.updated_at) : '新笔记' }}</span><button v-if="note" class="icon-button" aria-label="删除笔记" :disabled="saving || loading" @click="remove"><Trash2 :size="17"/></button><button class="button primary" :disabled="saving || loading || !title.trim() || (!!note && !dirty)" @click="save"><Save :size="16"/>保存笔记</button></div></div>

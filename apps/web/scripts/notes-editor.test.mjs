@@ -137,3 +137,43 @@ test('delete confirmation keeps keyboard focus inside while its buttons are disa
   assert.equal(focused,1)
   assert.equal(prevented,1)
 })
+
+test('deleting a note hides it immediately and restores it on failure',async()=>{
+  const app=store()
+  let pending=app.cache.fetchNotes();app.respond([]);await pending
+  const note={id:'1',title:'笔记',body:'正文',updated_at:'2026-10-26'}
+  app.cache.cacheSavedNote(note)
+  const deletion=app.cache.deleteNote(note)
+  assert.equal(app.cache.cachedNotes().length,0)
+  assert.equal(app.cache.cachedNote('1'),undefined)
+  app.respond(Promise.reject(new Error('offline')))
+  await assert.rejects(deletion,/offline/)
+  assert.equal(app.cache.cachedNotes()[0].id,'1')
+  assert.equal(app.cache.cachedNote('1').body,'正文')
+})
+
+test('confirming deletion closes the modal and removes the card before the API returns',async()=>{
+  const component=readFileSync(new URL('../src/pages/Notes.vue',import.meta.url),'utf8')
+  const fn=component.slice(component.indexOf('async function deleteCard('),component.indexOf('const id ='))
+  let finish
+  const pendingDelete={value:{id:'1'}},cards={value:[{id:'1'},{id:'2'}]}
+  const context=vm.createContext({exports:{},pendingDelete,cards,deleting:{value:false},id:{value:''},
+    closeDelete(){pendingDelete.value=null},deleteNote:()=>new Promise(resolve=>{finish=resolve})})
+  vm.runInContext(ts.transpileModule(fn+'\nexports.deleteCard=deleteCard',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText,context)
+  const pending=context.exports.deleteCard()
+  assert.equal(pendingDelete.value,null)
+  assert.deepEqual(cards.value.map(row=>row.id),['2'])
+  finish();await pending
+})
+
+test('late deletion failure cannot restore private notes after switching accounts',async()=>{
+  const app=store()
+  const note={id:'1',title:'private',body:'private',updated_at:'2026-10-26'}
+  app.cache.cacheSavedNote(note)
+  const pending=app.cache.deleteNote(note)
+  app.state.user={id:'bob'};app.state.token='bob-token'
+  app.respond(Promise.reject(new Error('offline')))
+  await assert.rejects(pending)
+  assert.equal(app.cache.cachedNote('1'),undefined)
+  assert.equal(app.state.notesDeleteError,'')
+})

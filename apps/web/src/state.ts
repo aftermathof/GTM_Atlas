@@ -23,7 +23,8 @@ export const state = reactive({
   context: { role: '', role_raw: '', industry: '', language: 'zh-CN', region: '', seniority: 'intern', business_model: 'unknown' },
   roles: [] as any[], industries: [] as any[], health: null as any,
   assistant: false, assistantBusy: false, assistantRequest: null as { question: string } | null,
-  scope: 'global', documentId: '', careerId: '', notice: '', historyRevision: 0
+  scope: 'global', documentId: '', careerId: '', notice: '', historyRevision: 0,
+  notesRevision: 0, notesDeleteError: ''
 })
 
 export function saveSession(value: any, renewal=false) {
