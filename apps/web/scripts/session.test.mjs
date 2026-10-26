@@ -12,6 +12,86 @@ function compileState(apiOrigin = '') {
 }
 const compiled = compileState()
 
+test('an old unauthorized request cannot refresh or clear a newer account',async()=>{
+  let finish,calls=0
+  const app=load(storage({'atlas-token':'old','atlas-refresh':'old-refresh'}),storage(),async()=>{
+    calls++;if(calls===1)return new Promise(resolve=>{finish=()=>resolve(new Response('{}',{status:401}))})
+    return new Response('{}',{status:401})
+  })
+  const pending=app.api('/history')
+  app.saveSession({token:'new',refresh_token:'new-refresh'});app.state.user={id:'bob'}
+  finish();await assert.rejects(pending)
+  assert.equal(app.state.user.id,'bob')
+  assert.equal(app.state.token,'new')
+  assert.equal(calls,1)
+})
+
+test('profile restoration still succeeds when an expired token is renewed',async()=>{
+  let checks=0
+  const app=load(storage({'atlas-token':'expired','atlas-refresh':'refresh'}),storage(),async url=>{
+    if(url.endsWith('/auth/refresh'))return new Response('{"token":"renewed","refresh_token":"refresh-2"}')
+    return ++checks===1?new Response('{}',{status:401}):new Response('{"id":"alice","preferences":{}}')
+  })
+  await app.restoreSession()
+  assert.equal(app.state.user?.id,'alice')
+  assert.equal(app.state.token,'renewed')
+})
+
+test('late logout rejection cannot refresh credentials or clear a newer login',async()=>{
+  let finish,calls=0
+  const app=load(storage({'atlas-token':'old','atlas-refresh':'old-refresh'}),storage(),async()=>{
+    calls++;return new Promise(resolve=>{finish=()=>resolve(new Response('{}',{status:401}))})
+  })
+  const pending=app.logoutSession()
+  app.saveSession({token:'new',refresh_token:'new-refresh'});app.state.user={id:'bob'}
+  finish();await pending
+  assert.equal(app.state.token,'new')
+  assert.equal(app.state.user.id,'bob')
+  assert.equal(calls,1)
+})
+
+test('late profile restoration cannot overwrite the user who logged in afterward',async()=>{
+  let finish
+  const app=load(storage({'atlas-token':'old'}),storage(),async()=>new Promise(resolve=>{
+    finish=()=>resolve(new Response('{"id":"alice","preferences":{}}'))
+  }))
+  const pending=app.restoreSession()
+  app.saveSession({token:'new'});app.state.user={id:'bob'}
+  finish();await pending
+  assert.equal(app.state.user.id,'bob')
+})
+
+test('logout clears local state immediately while remote revocation is pending',async()=>{
+  let finish, request
+  const app=load(storage({'atlas-token':'old','atlas-refresh':'refresh'}),storage(),async(url,options)=>{
+    request={url,options};return new Promise(resolve=>{finish=()=>resolve(new Response('{}'))})
+  })
+  app.state.user={id:'alice'}
+  const pending=app.logoutSession()
+  assert.equal(app.state.user,null)
+  assert.equal(app.state.token,'')
+  assert.equal(app.localStorage.getItem('atlas-refresh'),null)
+  assert.equal(request.options.headers.Authorization,'Bearer old')
+  assert.equal(request.options.keepalive,true)
+  finish();await pending
+})
+
+test('a refresh response arriving after logout cannot restore old credentials',async()=>{
+  let finishRefresh,meCalls=0
+  const app=load(storage({'atlas-token':'expired','atlas-refresh':'refresh'}),storage(),async url=>{
+    if(url.endsWith('/auth/refresh'))return new Promise(resolve=>{finishRefresh=()=>resolve(new Response('{"token":"old-renewed","refresh_token":"old-refresh"}'))})
+    return new Response('{}',{status:++meCalls===1?401:200})
+  })
+  const pending=app.api('/auth/me')
+  while(!finishRefresh)await Promise.resolve()
+  app.clearSession()
+  finishRefresh()
+  await assert.rejects(pending)
+  assert.equal(app.state.token,'')
+  assert.equal(app.localStorage.getItem('atlas-token'),null)
+  assert.equal(meCalls,1)
+})
+
 test('deleting history hides it from all caches immediately while DELETE is pending',async()=>{
   let finish
   const app=load(storage({'atlas-token':'alice'}),storage(),async(url,options)=>{

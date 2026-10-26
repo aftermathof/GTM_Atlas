@@ -6,6 +6,7 @@ const listCache = new Map<string, CachedResult>()
 const knowledgeCache = new Map<string, CachedResult>()
 const privateHistoryCache = new Map<string, CachedResult>()
 const deletedHistory = new Set<string>()
+let sessionGeneration=0
 export function isHistoryDeleted(id: string) { return deletedHistory.has(state.token+'\n'+id) }
 
 if (!localStorage.getItem('atlas-token') && sessionStorage.getItem('atlas-token')) {
@@ -25,7 +26,8 @@ export const state = reactive({
   scope: 'global', documentId: '', careerId: '', notice: '', historyRevision: 0
 })
 
-export function saveSession(value: any) {
+export function saveSession(value: any, renewal=false) {
+  if(!renewal)sessionGeneration++
   deletedHistory.clear()
   listCache.clear(); knowledgeCache.clear(); privateHistoryCache.clear()
   state.token = value.token
@@ -35,6 +37,7 @@ export function saveSession(value: any) {
 }
 
 export function clearSession() {
+  sessionGeneration++
   deletedHistory.clear()
   listCache.clear(); knowledgeCache.clear(); privateHistoryCache.clear()
   state.user = null; state.token = ''
@@ -44,6 +47,7 @@ export function clearSession() {
 
 window.addEventListener('storage', event => {
   if (event.storageArea !== localStorage || (event.key !== 'atlas-token' && event.key !== null)) return
+  sessionGeneration++
   deletedHistory.clear()
   listCache.clear(); knowledgeCache.clear(); privateHistoryCache.clear()
   state.token = event.key === null ? '' : event.newValue || ''
@@ -56,22 +60,36 @@ async function refreshSession() {
     const token = localStorage.getItem('atlas-refresh')
     if (!token) throw new Error('请重新登录')
     const r = await fetch(API_ORIGIN + '/api/v1/auth/refresh', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({refresh_token:token}) })
+    if(localStorage.getItem('atlas-refresh')!==token)throw new Error('登录状态已改变，请重新登录')
     if (!r.ok) {
       if (r.status === 400 || r.status === 401) clearSession()
       throw new Error(r.status >= 500 ? '登录服务暂时不可用，请稍后重试' : '登录已过期，请重新登录')
     }
-    saveSession(await r.json())
+    const session=await r.json()
+    if(localStorage.getItem('atlas-refresh')!==token)throw new Error('登录状态已改变，请重新登录')
+    saveSession(session,true)
   })().finally(() => { refreshing = null })
   return refreshing
 }
 
+export function logoutSession(): Promise<void> {
+  const token=state.token
+  clearSession()
+  if(!token)return Promise.resolve()
+  return fetch(API_ORIGIN+'/api/v1/auth/logout',{
+    method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:'{}',keepalive:true,
+  }).then(response=>{if(!response.ok && response.status!==401)throw new Error('服务端会话撤销暂未完成')})
+}
+
 export async function authorizedFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const generation=sessionGeneration
   const headers = new Headers(options.headers)
   if (state.token) headers.set('Authorization', `Bearer ${state.token}`)
   if (options.body && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json')
   let r = await fetch(API_ORIGIN + path, { ...options, headers })
-  if (r.status === 401 && localStorage.getItem('atlas-refresh') && !path.startsWith('/api/v1/auth/login') && !path.startsWith('/api/v1/auth/register')) {
+  if (r.status === 401 && generation===sessionGeneration && localStorage.getItem('atlas-refresh') && !path.startsWith('/api/v1/auth/login') && !path.startsWith('/api/v1/auth/register')) {
     await refreshSession()
+    if(generation!==sessionGeneration)return r
     headers.set('Authorization', `Bearer ${state.token}`)
     r = await fetch(API_ORIGIN + path, {...options, headers})
   }
@@ -102,6 +120,7 @@ function invalidateHistory(path: string) {
 }
 async function requestApi(path: string, options: RequestInit = {}): Promise<any> {
   const ownerToken=state.token
+  const ownerSession=sessionGeneration
   const rewriting = path.endsWith('/block-dialogue')
   let r: Response
   try { r = await authorizedFetch('/api/v1' + path, options) }
@@ -111,7 +130,7 @@ async function requestApi(path: string, options: RequestInit = {}): Promise<any>
   }
   if (!r.ok) {
     const body = await r.json().catch(() => ({}))
-    if (r.status === 401 && !path.startsWith('/auth/login')) clearSession()
+    if (r.status === 401 && ownerSession===sessionGeneration && !path.startsWith('/auth/login')) clearSession()
     if (typeof body.detail === 'string') throw new Error(body.detail)
     if (Array.isArray(body.detail) && body.detail.length) {
       const labels: Record<string,string> = {patches:'改写段落',text:'内容',approved_fact_ids:'授权段落',template:'排版模板',base_version_id:'基础版本',facts:'简历事实',count:'题目数量'}
@@ -262,13 +281,14 @@ let restoringProfile: Promise<void> | null = null
 export async function restoreSession() {
   if (state.user || !state.token) return
   if (!restoringProfile) restoringProfile = (async () => {
+    const generation=sessionGeneration
     try {
       const user = await api('/auth/me')
-      if (state.token) {
+      if (state.token && sessionGeneration===generation) {
         state.user = user
         Object.assign(state.context, user.preferences)
       }
-    } catch (e: any) { state.notice = e.message }
+    } catch (e: any) { if(sessionGeneration===generation)state.notice = e.message }
   })().finally(() => { restoringProfile = null })
   await restoringProfile
 }

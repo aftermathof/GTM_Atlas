@@ -110,7 +110,14 @@ def create_app(url=None):
     @app.post("/api/v1/auth/login")
     def login(body: Credentials):
         if supabase.auth_mode() == 'supabase':
-            return supabase.credentials('login', body.email, body.password)
+            result = supabase.credentials('login', body.email, body.password)
+            identity = result.get('user') or supabase.call('GET', '/auth/v1/user', token=result['token']).json()
+            with factory() as db:
+                user = db.get(User, identity['id'])
+                if not user:
+                    raise HTTPException(503, '用户资料尚未同步，请确认已执行 Supabase 初始化 SQL')
+                result['user'] = {'id': user.id, 'email': user.email, 'preferences': user.preferences}
+            return result
         with factory() as db:
             user = db.scalar(select(User).where(User.email == body.email.lower().strip()))
             if not user or not check_password(body.password, user.password_hash):
@@ -118,10 +125,14 @@ def create_app(url=None):
             return issue_token(db, user)
 
     @app.post("/api/v1/auth/logout")
-    def logout(request: Request, user=Depends(current_user)):
+    def logout(request: Request):
+        value = request.headers.get('Authorization', '')
+        if not value.startswith('Bearer ') or not value[7:]:
+            raise HTTPException(401, '请先登录')
         if supabase.auth_mode() == 'supabase':
-            supabase.call('POST', '/auth/v1/logout?scope=local', token=request.headers['Authorization'][7:])
+            supabase.call('POST', '/auth/v1/logout?scope=local', token=value[7:])
             return {'ok': True}
+        current_user(request)
         with factory() as db:
             value = request.headers["Authorization"][7:]
             token = db.get(Token, hashlib.sha256(value.encode()).hexdigest())

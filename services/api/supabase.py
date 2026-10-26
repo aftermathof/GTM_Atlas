@@ -71,4 +71,7 @@ def credentials(action, email, password):
 
 
 def session(data):
-    return {'token': data['access_token'], 'refresh_token': data.get('refresh_token'), 'expires_in': data.get('expires_in', 3600)}
+    result = {'token': data['access_token'], 'refresh_token': data.get('refresh_token'), 'expires_in': data.get('expires_in', 3600)}
+    if data.get('user', {}).get('id'):
+        result['user'] = {'id': data['user']['id']}
+    return result

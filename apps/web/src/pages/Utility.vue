@@ -3,7 +3,7 @@ import LoadingState from '../components/LoadingState.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, ArrowLeft, Search, LogOut, Trash2 } from 'lucide-vue-next'
-import { api, post, state, saveSession, clearSession, historyRecords, peekHistoryRecords, deleteHistoryRecord, isHistoryDeleted } from '../state'
+import { api, post, state, saveSession, clearSession, logoutSession, historyRecords, peekHistoryRecords, deleteHistoryRecord, isHistoryDeleted } from '../state'
 import ConfirmDelete from '../components/ConfirmDelete.vue'
 import ContextPicker from '../components/ContextPicker.vue'
 const route=useRoute(),router=useRouter(), email=ref(''), password=ref(''),register=ref(false), error=ref(''),success=ref(''),busy=ref(false),history=ref<any[]>([]),query=ref(String(route.query.q || '')), results=ref<any[]>([])
@@ -70,11 +70,15 @@ async function auth(){
       return
     }
     saveSession(r);state.user=r.user || await api('/auth/me');Object.assign(state.context,state.user.preferences)
-    void historyRecords().catch(()=>{})
     await router.push('/')
   }catch(e:any){error.value=e.message}finally{busy.value=false}
 }
-async function logout(){try{await post('/auth/logout',{});success.value='已退出登录'}catch(e:any){error.value='已退出此浏览器，服务端会话撤销失败：'+e.message}finally{clearSession();history.value=[]}}
+function logout(){
+  const pending=logoutSession()
+  history.value=[]
+  void router.replace('/login')
+  void pending.catch(()=>{if(!state.token)state.notice='已退出此浏览器。服务端会话撤销暂未完成，请检查网络。'})
+}
 async function save(){try{await api('/preferences',{method:'PUT',body:JSON.stringify(state.context)});success.value='偏好已保存，可随时修改'}catch(e:any){error.value=e.message}}
 async function search(){busy.value=true;error.value='';try{results.value=(await post('/knowledge/search',{query:query.value})).items}catch(e:any){error.value=e.message}finally{busy.value=false}}
 function remove(item:any){pendingDelete.value=item}
