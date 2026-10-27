@@ -224,11 +224,11 @@ export async function deleteHistoryRecord(item: {id:string;kind:string}) {
 }
 
 function prime(cache: Map<string,CachedResult>, path: string, value: any) {
-  cache.set(state.token+'\n'+path,{expires:cache===knowledgeCache?Date.now()+30000:Infinity,value,pending:Promise.resolve(value)})
+  cache.set(state.token+'\n'+path,{expires:Infinity,value,pending:Promise.resolve(value)})
 }
 export async function preloadDocuments() {
   const path='/knowledge/preload', key=state.token+'\n'+path
-  const pending=cachedList(path,30000,knowledgeCache), entry=knowledgeCache.get(key)
+  const pending=cachedList(path,Infinity,knowledgeCache), entry=knowledgeCache.get(key)
   const result=await pending
   if(knowledgeCache.get(key)!==entry)return
   for(const document of result.items) prime(knowledgeCache,'/knowledge/documents/'+encodeURIComponent(document.id),document)
@@ -273,9 +273,22 @@ async function cachedList(path: string, ttl: number, cache = listCache) {
   }
 }
 
-export function knowledgeDocuments(query: string) { return cachedList('/knowledge/documents?' + query, 30000, knowledgeCache) }
-export function knowledgeDocument(id: string) { return cachedList('/knowledge/documents/' + encodeURIComponent(id), 30000, knowledgeCache) }
+export function knowledgeDocuments(query: string) { return cachedList('/knowledge/documents?' + query, Infinity, knowledgeCache) }
+export function knowledgeDocument(id: string) { return cachedList('/knowledge/documents/' + encodeURIComponent(id), Infinity, knowledgeCache) }
 export function peekKnowledge(path: string) { const cached=knowledgeCache.get(state.token + '\n' + path);return cached && cached.expires>Date.now()?cached.value:undefined }
+export function knowledgeCapabilities(){return cachedList('/knowledge/capabilities',Infinity,knowledgeCache)}
+export function peekKnowledgeDocuments(query:string):any[]|undefined{
+  const first=peekKnowledge('/knowledge/documents?'+query)
+  if(!first)return undefined
+  const rows=[...first.items]
+  if(!rows.length && first.total)return undefined
+  while(rows.length<first.total){
+    const page=peekKnowledge('/knowledge/documents?'+query+'&offset='+rows.length)
+    if(!page?.items.length)return undefined
+    rows.push(...page.items)
+  }
+  return rows
+}
 export function refreshKnowledge() { knowledgeCache.clear() }
 function knowledgeChanged(){
   refreshKnowledge();state.knowledgeRevision++

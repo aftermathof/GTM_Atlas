@@ -3,7 +3,7 @@ import LoadingState from '../components/LoadingState.vue'
 import { computed, defineAsyncComponent, ref, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, ArrowLeft, Pencil, Trash2 } from 'lucide-vue-next'
-import { api, knowledgeDocument, deleteKnowledgeDocument, peekKnowledge, state } from '../state'
+import { knowledgeCapabilities, knowledgeDocument, deleteKnowledgeDocument, peekKnowledge, state } from '../state'
 import ArticleBody from '../components/ArticleBody.vue'
 import ChatPanel from '../components/ChatPanel.vue'
 import ResourceGallery from '../components/ResourceGallery.vue'
@@ -30,7 +30,7 @@ async function load() {
 async function permissions(){
   canManage.value=false
   if(!state.user)return
-  try{canManage.value=!!(await api('/knowledge/capabilities')).can_manage_learning}catch{}
+  try{canManage.value=!!(await knowledgeCapabilities()).can_manage_learning}catch{}
 }
 function beginEdit(){editing.value=true;void router.replace({query:{...route.query,edit:'1'}})}
 function cancelEdit(){editing.value=false;void router.replace({query:{...route.query,edit:undefined}})}

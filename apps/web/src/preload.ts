@@ -64,7 +64,7 @@ export function preloadWorkspace() {
     const catalog = async () => {
       let offset = 0
       while (current()) {
-        const page = await knowledgeDocuments('limit=100&q=&role=&industry=' + (offset ? '&offset=' + offset : ''))
+        const page = await knowledgeDocuments('limit=100&q=&role='+encodeURIComponent(role)+'&industry='+encodeURIComponent(industry)+(offset?'&offset='+offset:''))
         if (!current()) break
         offset += page.items.length
         if (!page.items.length || offset >= page.total) break
