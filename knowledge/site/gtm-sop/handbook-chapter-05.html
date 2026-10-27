@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="zh-CN" data-accent="ikb">
+<head>
+  <meta charset="utf-8">
+  <title>定价与经营分析 · GTM 操盘手册 · SOP</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* =========================================================
+       Swiss International — Social Card Seed Template
+       ---------------------------------------------------------
+       Three boards built in one HTML:
+         .poster.xhs      1080×1440  (3:4   小红书)
+         .poster.square   1080×1080  (1:1   微信方封面)
+         .poster.wide     2100× 900  (21:9  微信主封面)
+         .pair-preview                       21:9 + 1:1 配对预览
+
+       Accent switching via <html data-accent="…">:
+         ikb (Klein Blue) | lemon-yellow | lemon-green | safety-orange
+
+       Fill posters where marked <!-- POSTERS_HERE -->.
+       Each poster carries one Layout Recipe (S01-S12) from
+       references/layout-recipes.md.
+       ========================================================= */
+
+    /* ---------- 1. Accent palettes (4 mutually exclusive) ---------- */
+    :root,
+    [data-accent="ikb"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #002FA7;
+      --accent-on: #ffffff;
+    }
+    [data-accent="lemon-yellow"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #FFD500;
+      --accent-on: #0a0a0a;
+    }
+    [data-accent="lemon-green"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #C5E803;
+      --accent-on: #0a0a0a;
+    }
+    [data-accent="safety-orange"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #FF6B35;
+      --accent-on: #ffffff;
+    }
+
+    /* ---------- 2. Typography stack ---------- */
+    :root {
+      --sans:    "Inter", "Helvetica Neue", Helvetica, "Noto Sans SC",
+                 -apple-system, "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      --sans-zh: "Noto Sans SC", -apple-system, "PingFang SC",
+                 "Microsoft YaHei UI", "Inter", sans-serif;
+      --mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+    }
+
+    /* ---------- 3. Spacing tokens (8/12/16/24/32/40/48/64/80/96/160) ---------- */
+    :root {
+      --sp-3:   8px;
+      --sp-4:  12px;
+      --sp-5:  16px;
+      --sp-6:  24px;
+      --sp-7:  32px;
+      --sp-8:  40px;
+      --sp-9:  48px;
+      --sp-10: 64px;
+      --sp-11: 80px;
+      --sp-12: 96px;
+      --sp-13:160px;
+    }
+
+    /* ---------- 4. Reset & sheet ---------- */
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: #1a1a1a;
+      font-family: var(--sans);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: 64px 32px;
+    }
+    .sheet {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
+    }
+
+    /* ---------- 5. Poster boards (fixed export sizes) ---------- */
+    .poster {
+      position: relative;
+      background: var(--paper);
+      color: var(--ink);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .poster.xhs    { width: 1080px; height: 1440px; }
+    .poster.square { width: 1080px; height: 1080px; }
+    .poster.wide   { width: 2100px; height:  900px; }
+    .poster figure { margin: 0; }
+
+    .poster.xhs    .content { padding: var(--sp-12) var(--sp-11); }
+    .poster.square .content { padding: var(--sp-11) var(--sp-11); }
+    .poster.wide   .content { padding: var(--sp-11) var(--sp-13); }
+    .content { position: relative; width: 100%; height: 100%; z-index: 2; }
+
+    /* Optional decorative layers — opt in per poster */
+    .dot-mat,
+    .ring-mat,
+    .cross-mat {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .dot-mat {
+      opacity: .08;
+      background-image: radial-gradient(var(--ink) 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+    }
+    .ring-mat {
+      opacity: .08;
+      background-image: radial-gradient(circle at 50% 50%, transparent 4px, var(--ink) 4.5px, var(--ink) 5px, transparent 5.5px);
+      background-size: 32px 32px;
+    }
+    .cross-mat {
+      opacity: .06;
+      background-image:
+        linear-gradient(var(--ink), var(--ink)),
+        linear-gradient(90deg, var(--ink), var(--ink));
+      background-size: 1px 14px, 14px 1px;
+      background-position: center, center;
+      background-repeat: repeat;
+    }
+
+    /* ---------- 6. Typography roles (Swiss extreme contrast) ----------
+       Hard rule: "the larger, the lighter"
+       ≥ 200px → weight 200 (ExtraLight)
+       Smaller text gets heavier weight (≥ 500). */
+    .h-hero {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 240px;
+      line-height: 1.02;
+      letter-spacing: -.02em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-statement {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 180px;
+      line-height: 1.05;
+      letter-spacing: -.015em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-xl {
+      font-family: var(--sans);
+      font-weight: 300;
+      font-size: 120px;
+      line-height: 1.08;
+      letter-spacing: -.01em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-md {
+      font-family: var(--sans);
+      font-weight: 400;
+      font-size: 56px;
+      line-height: 1.18;
+      margin: 0;
+      color: var(--ink);
+    }
+    .lead {
+      font-family: var(--sans-zh);
+      font-weight: 400;
+      font-size: 30px;
+      line-height: 1.55;
+      color: var(--ink);
+      margin: 0;
+    }
+    .body {
+      font-family: var(--sans-zh);
+      font-weight: 400;
+      font-size: 26px;
+      line-height: 1.6;
+      color: var(--ink);
+      margin: 0;
+    }
+    .t-cat {
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0;
+    }
+    .t-meta {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 20px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+    .num-mega {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 200px;
+      line-height: .92;
+      letter-spacing: -.03em;
+      color: var(--ink);
+      margin: 0;
+    }
+    .num-xl {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 144px;
+      line-height: .96;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .mono { font-family: var(--mono); }
+
+    /* XHS (3:4) boards: 1080×1440 has the tightest vertical budget,
+       so display sizes step down vs the .wide default. These caps
+       were validated by the smoke-ai-tools deck — 2-line h-xl @96px
+       leaves room for matrix + hero-stat-bottom inside 1440px. */
+    .poster.xhs .h-hero          { font-size: 168px; }
+    .poster.xhs .h-statement     { font-size: 124px; }
+    .poster.xhs .h-xl            { font-size: 96px; }
+    .poster.xhs .num-mega        { font-size: 168px; }
+    .poster.xhs .num-xl          { font-size: 120px; }
+
+    /* Square boards tighten scales */
+    .poster.square .h-hero       { font-size: 180px; }
+    .poster.square .h-statement  { font-size: 140px; }
+    .poster.square .h-xl         { font-size: 88px; }
+    .poster.square .num-mega     { font-size: 168px; }
+    .poster.square .num-xl       { font-size: 112px; }
+
+    /* Wide boards rely on horizontal real estate */
+    .poster.wide .h-hero         { font-size: 200px; }
+    .poster.wide .h-statement    { font-size: 156px; }
+    .poster.wide .h-xl           { font-size: 104px; }
+
+    /* ---------- 7. Layout primitives ---------- */
+    .stack    { display: flex; flex-direction: column; }
+    .row      { display: flex; flex-direction: row; }
+    .gap-3    { gap: var(--sp-3); }
+    .gap-4    { gap: var(--sp-4); }
+    .gap-5    { gap: var(--sp-5); }
+    .gap-6    { gap: var(--sp-6); }
+    .gap-7    { gap: var(--sp-7); }
+    .gap-8    { gap: var(--sp-8); }
+    .gap-9    { gap: var(--sp-9); }
+    .gap-10   { gap: var(--sp-10); }
+    .grow     { flex: 1; }
+    .grid-12  { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--sp-7); }
+    .grid-2-9 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+    .grid-3   { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-7); }
+    .grid-4   { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-6); }
+    .span-2   { grid-column: span 2; }
+    .span-3   { grid-column: span 3; }
+    .span-4   { grid-column: span 4; }
+    .span-6   { grid-column: span 6; }
+    .span-8   { grid-column: span 8; }
+    .span-9   { grid-column: span 9; }
+    .span-12  { grid-column: span 12; }
+    .center   { text-align: center; }
+    .right    { text-align: right; }
+    .uppercase{ text-transform: uppercase; }
+    .hr-hairline {
+      height: 1px;
+      background: var(--grey-2);
+      border: 0;
+      margin: 0;
+    }
+    .hr-accent {
+      height: 3px;
+      background: var(--accent);
+      border: 0;
+      width: 96px;
+      margin: 0;
+    }
+
+    /* ---------- 8. Card fills (mutually exclusive — pick ONE) ----------
+       Hard rule: never combine card-ink/card-accent/card-fill/card-outlined
+       on the same node. Multi-card grids must use the same class. */
+    .card-ink {
+      background: var(--ink);
+      color: var(--paper);
+      padding: var(--sp-8);
+    }
+    .card-ink .t-cat,
+    .card-ink .t-meta,
+    .card-ink .lead,
+    .card-ink .body,
+    .card-ink .h-md { color: var(--paper); }
+    .card-accent {
+      background: var(--accent);
+      color: var(--accent-on);
+      padding: var(--sp-8);
+    }
+    .card-accent .t-cat,
+    .card-accent .t-meta,
+    .card-accent .lead,
+    .card-accent .body,
+    .card-accent .h-md { color: var(--accent-on); }
+    .card-fill {
+      background: var(--grey-1);
+      color: var(--ink);
+      padding: var(--sp-8);
+    }
+    .card-outlined {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--grey-2);
+      padding: var(--sp-8);
+    }
+
+    /* ---------- 9. Frame containers (image holders) ---------- */
+    .frame-img {
+      position: relative;
+      overflow: hidden;
+      background: var(--grey-1);
+      display: block;
+      margin: 0;
+    }
+    .frame-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      display: block;
+    }
+    .frame-img.fit-contain img { object-fit: contain; background: var(--paper); }
+    .frame-img.r-3x4   { aspect-ratio: 3 / 4; }
+    .frame-img.r-1x1   { aspect-ratio: 1 / 1; }
+    .frame-img.r-4x3   { aspect-ratio: 4 / 3; }
+    .frame-img.r-16x9  { aspect-ratio: 16 / 9; }
+    .frame-img.r-16x10 { aspect-ratio: 16 / 10; }
+    .frame-img.r-21x9  { aspect-ratio: 21 / 9; }
+    .swiss-img-caption {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin-top: var(--sp-5);
+    }
+
+    /* ---------- 9b. Screenshot treatment (.frame-shot) ---------- */
+    /* Swiss is stricter than Editorial: corners default square, shadows default
+       none. Override only when the shot must literally float off the page.   */
+    .frame-shot {
+      position: relative;
+      overflow: hidden;
+      display: block;
+      margin: 0;
+      background: var(--grey-1);
+      border-radius: 0;
+    }
+    .frame-shot.corners-sq { border-radius: 0; }
+    .frame-shot.corners-sm { border-radius: 4px; }
+    .frame-shot.corners-md { border-radius: 10px; }
+
+    /* Swiss shadows are flat — only the subtle outline scrim is welcome */
+    .frame-shot.shadow-soft { box-shadow: 0 12px 28px -16px rgba(0,0,0,.18); }
+    .frame-shot.shadow-ed   { box-shadow: 0 20px 40px -20px rgba(0,0,0,.22), 0 0 0 1px var(--grey-2); }
+
+    /* background tones — pure / dot / grid only. No accent colour fills. */
+    .frame-shot.bg-paper    { background: var(--paper); }
+    .frame-shot.bg-grey-1   { background: var(--grey-1); }
+    .frame-shot.bg-ink      { background: var(--ink); }
+    .frame-shot.bg-grid     {
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(to right, var(--grey-2) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grey-2) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .frame-shot.bg-dot {
+      background-color: var(--paper);
+      background-image: radial-gradient(var(--grey-2) 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+
+    /* asset backgrounds — ported from PPT skill, real texture for screenshot wells.
+       Use ONLY when current accent matches the asset's accent (don't mix oranges and IKB). */
+    .frame-shot.bg-asset-ikb-dot          { background: #0c1a3a url("../assets/screenshot-backgrounds/style-b/ikb-dot-gradient.webp")       center/cover no-repeat; }
+    .frame-shot.bg-asset-lemon-green-dot  { background: #d6e08a url("../assets/screenshot-backgrounds/style-b/lemon-green-dot-shadow.webp") center/cover no-repeat; }
+    .frame-shot.bg-asset-lemon-grid       { background: #e6e9b8 url("../assets/screenshot-backgrounds/style-b/lemon-grid.webp")             center/cover no-repeat; }
+    .frame-shot.bg-asset-safety-orange    { background: #ff5b1f url("../assets/screenshot-backgrounds/style-b/safety-orange-halftone.webp") center/cover no-repeat; }
+
+    .frame-shot.inset-none > img,
+    .frame-shot.inset-none > .shot-body { padding: 0; }
+    .frame-shot.inset-sub  { padding: 20px; }
+    .frame-shot.inset-bal  { padding: 48px; }
+
+    .frame-shot.r-3x4   { aspect-ratio: 3 / 4; }
+    .frame-shot.r-1x1   { aspect-ratio: 1 / 1; }
+    .frame-shot.r-4x3   { aspect-ratio: 4 / 3; }
+    .frame-shot.r-16x9  { aspect-ratio: 16 / 9; }
+    .frame-shot.r-16x10 { aspect-ratio: 16 / 10; }
+    .frame-shot.r-21x9  { aspect-ratio: 21 / 9; }
+    .frame-shot.r-3x2   { aspect-ratio: 3 / 2; }
+
+    .frame-shot > img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      border-radius: inherit;
+    }
+    .frame-shot.fit-cover > img { object-fit: cover; }
+
+    /* device chrome — CSS-only, no SVG */
+    .device-browser {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--grey-2);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .device-browser::before {
+      content: '';
+      display: block;
+      height: 32px;
+      background: var(--grey-1);
+      border-bottom: 1px solid var(--grey-2);
+      background-image:
+        radial-gradient(circle at 16px 16px, var(--grey-3) 4px, transparent 4.5px),
+        radial-gradient(circle at 34px 16px, var(--grey-3) 4px, transparent 4.5px),
+        radial-gradient(circle at 52px 16px, var(--grey-3) 4px, transparent 4.5px);
+    }
+    .device-browser > .frame-shot,
+    .device-browser > img {
+      border-radius: 0;
+      display: block;
+      width: 100%;
+    }
+    .device-phone {
+      position: relative;
+      background: var(--ink);
+      border-radius: 28px;
+      padding: 12px;
+      box-shadow: 0 16px 36px -18px rgba(0,0,0,.32);
+    }
+    .device-phone > .frame-shot,
+    .device-phone > img {
+      border-radius: 18px;
+      display: block;
+      width: 100%;
+    }
+
+    /* ---------- 9c. Map block (.map-block) ---------- */
+    /* Static map for Swiss decks. Pins are pure HTML, no SVG text.
+       Use accent sparingly: at most one accent pin per board. */
+    .map-block {
+      position: relative;
+      background: var(--grey-1);
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      width: 100%;
+    }
+    .map-block.r-16x10 { aspect-ratio: 16 / 10; }
+    .map-block.r-16x9  { aspect-ratio: 16 / 9; }
+    .map-block.r-1x1   { aspect-ratio: 1 / 1; }
+    .map-block.r-3x4   { aspect-ratio: 3 / 4; }
+    .map-block > img,
+    .map-block > svg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+    .map-block > img { object-fit: cover; }
+    /* desaturated tile filter to keep Swiss strict tone */
+    .map-block.tone-paper > img { filter: saturate(0) contrast(1.05) brightness(1.02); }
+    .map-block.tone-ink > img   { filter: saturate(0) brightness(.58); }
+    /* schematic SVG defaults */
+    .map-block > svg .map-coast { fill: none; stroke: var(--grey-2); stroke-width: .4; }
+    .map-block > svg .map-road  { fill: none; stroke: var(--grey-3); stroke-width: .28; stroke-dasharray: 1.2 .8; opacity: .7; }
+    .map-block > svg .map-water { fill: var(--grey-1); }
+    .map-block > svg .map-grid  { stroke: var(--grey-2); stroke-width: .15; opacity: .5; }
+
+    .map-pin {
+      position: absolute;
+      width: 0; height: 0;
+      transform: translate(-50%, -50%);
+    }
+    .map-pin .dot {
+      position: absolute;
+      left: -6px; top: -6px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--ink);
+      border: 2px solid var(--paper);
+      box-shadow: 0 1px 3px rgba(0,0,0,.22);
+    }
+    .map-pin.accent .dot { background: var(--accent); }
+    .map-pin .line {
+      position: absolute;
+      left: 7px; top: 0;
+      width: 28px; height: 1px;
+      background: var(--ink);
+      opacity: .55;
+    }
+    .map-pin.left .line { left: auto; right: 7px; }
+    .map-pin .card {
+      position: absolute;
+      left: 38px; top: -20px;
+      min-width: 80px;
+      padding: 8px 10px;
+      background: rgba(250,250,248,.94);
+      box-shadow: 0 0 0 1px var(--grey-2);
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+    .map-pin.left .card { left: auto; right: 38px; }
+    .map-pin .card .name {
+      font-family: var(--sans-zh), var(--sans);
+      font-weight: 500;
+      font-size: 15px;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    .map-pin .card .meta {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+    }
+    .map-pin.accent .card .name { color: var(--accent); }
+
+    .map-legend {
+      position: absolute;
+      left: 14px; bottom: 14px;
+      z-index: 3;
+      background: rgba(250,250,248,.94);
+      padding: 8px 12px;
+      box-shadow: 0 0 0 1px var(--grey-2);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+    }
+    .map-legend.tr { left: auto; right: 14px; top: 14px; bottom: auto; }
+
+    /* ---------- 10. Swiss-specific components ---------- */
+
+    /* S08 Image Hero (port of S22) */
+    .image-hero {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: var(--sp-7);
+      height: 100%;
+    }
+    .image-hero .hero-img-wrap {
+      position: relative;
+      overflow: hidden;
+      background: var(--grey-1);
+    }
+    .image-hero .hero-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      display: block;
+    }
+    .image-hero .hero-overlay-block {
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: var(--paper);
+      padding: var(--sp-7) var(--sp-8);
+      max-width: 60%;
+    }
+    .image-hero .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--sp-8);
+      align-items: end;
+      border-top: 1px solid var(--grey-2);
+      padding-top: var(--sp-7);
+    }
+    .image-hero .hero-stats .stat-block .num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 96px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      color: var(--ink);
+      margin: 0 0 var(--sp-4);
+    }
+    .image-hero .hero-stats .stat-block .lbl {
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+
+    /* S09 KPI Tower (port of S06) */
+    .kpi-tower-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-7);
+      align-items: end;
+      height: 100%;
+    }
+    .kpi-tower-row .tower-col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-5);
+      align-items: flex-start;
+    }
+    .kpi-tower-row .tower-col .num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 112px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .kpi-tower-row .tower-col .lbl {
+      font-family: var(--mono);
+      font-size: 20px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+    .kpi-tower-row .tower-col .bar-tower {
+      width: 100%;
+      height: var(--h, 240px);
+      background: var(--accent);
+      transform-origin: bottom;
+    }
+    .kpi-tower-row .tower-col.muted .bar-tower {
+      background: var(--grey-2);
+    }
+    .poster.xhs .kpi-tower-row { grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+    .poster.square .kpi-tower-row { grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+
+    /* S10 H-Bar Chart (port of S07) */
+    .h-bar-chart {
+      display: grid;
+      gap: var(--sp-6);
+    }
+    .h-bar-chart .bar-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 120px;
+      gap: var(--sp-6);
+      align-items: center;
+    }
+    .h-bar-chart .bar-row .row-lbl {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 26px;
+      color: var(--ink);
+    }
+    .h-bar-chart .bar-row .row-track {
+      position: relative;
+      height: 28px;
+      background: var(--grey-1);
+    }
+    .h-bar-chart .bar-row .row-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: var(--w, 50%);
+      background: var(--accent);
+    }
+    .h-bar-chart .bar-row .row-val {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 26px;
+      letter-spacing: .04em;
+      text-align: right;
+      color: var(--ink);
+    }
+    /* On portrait the labels move above the track */
+    .poster.xhs .h-bar-chart .bar-row {
+      grid-template-columns: 1fr;
+      gap: var(--sp-4);
+    }
+    .poster.xhs .h-bar-chart .bar-row .row-val {
+      text-align: left;
+    }
+
+    /* S11 Stacked Ledger (port of S20) */
+    .stacked-ledger {
+      display: flex;
+      flex-direction: column;
+    }
+    .stacked-ledger .ledger-row {
+      display: grid;
+      grid-template-columns: 280px 1fr auto;
+      gap: var(--sp-7);
+      align-items: baseline;
+      padding: var(--sp-7) 0;
+      border-bottom: 1px solid var(--grey-2);
+    }
+    .stacked-ledger .ledger-row:first-child { padding-top: 0; }
+    .stacked-ledger .ledger-row:last-child  { border-bottom: 0; }
+    .stacked-ledger .ledger-num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 112px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .stacked-ledger .ledger-lbl {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 30px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .stacked-ledger .ledger-lbl .sub {
+      display: block;
+      font-weight: 400;
+      font-size: 22px;
+      color: var(--grey-3);
+      margin-top: var(--sp-3);
+    }
+    .stacked-ledger .ledger-icn {
+      width: 56px;
+      height: 56px;
+      color: var(--accent);
+    }
+    .poster.square .stacked-ledger .ledger-num { font-size: 88px; }
+    .poster.square .stacked-ledger .ledger-row { grid-template-columns: 220px 1fr auto; }
+
+    /* S12 Matrix Fill (port of S15) */
+    .matrix-fill {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-auto-rows: 1fr;
+      gap: var(--sp-5);
+    }
+    .matrix-fill .matrix-cell {
+      background: var(--grey-1);
+      padding: var(--sp-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-4);
+      min-height: 160px;
+    }
+    .matrix-fill .matrix-cell .cell-nb {
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .12em;
+      color: var(--grey-3);
+    }
+    .matrix-fill .matrix-cell .cell-title {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 26px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .matrix-fill .matrix-cell.is-accent {
+      background: var(--accent);
+      color: var(--accent-on);
+    }
+    .matrix-fill .matrix-cell.is-accent .cell-nb,
+    .matrix-fill .matrix-cell.is-accent .cell-title { color: var(--accent-on); }
+    .hero-stat-bottom {
+      margin-top: var(--sp-9);
+      padding-top: var(--sp-7);
+      border-top: 1px solid var(--grey-2);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: var(--sp-7);
+    }
+    /* xhs uses 2 columns; up to 8 cells = 4 rows. Switch to min-content
+       so rows don't stretch and crowd out hero-stat-bottom (validated
+       in smoke-ai-tools/xhs-04). When pairing matrix-fill with
+       hero-stat-bottom inside .poster.xhs, prefer 6 cells (3 rows). */
+    .poster.xhs .matrix-fill {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: min-content;
+      gap: var(--sp-4);
+    }
+    .poster.xhs .matrix-fill .matrix-cell { min-height: 0; padding: var(--sp-5); }
+    .poster.xhs .matrix-fill .matrix-cell .cell-title { font-size: 24px; }
+    .poster.xhs .hero-stat-bottom {
+      margin-top: var(--sp-6);
+      padding-top: var(--sp-5);
+      align-items: center;
+    }
+    .poster.xhs .hero-stat-bottom .num-mega { font-size: 128px; line-height: 1; }
+    .poster.square .matrix-fill{ grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; }
+    .poster.square .matrix-fill .matrix-cell { min-height: 0; }
+
+    /* ---------- 11. Issue label + corner metadata ---------- */
+    .chrome-min {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      padding-bottom: var(--sp-6);
+      border-bottom: 1px solid var(--grey-2);
+      margin-bottom: var(--sp-9);
+    }
+
+    /* ---------- 12. Pair preview frame ---------- */
+    .pair-preview {
+      width: 2400px;
+      min-height: 1180px;
+      background: var(--grey-1);
+      padding: var(--sp-9);
+      display: grid;
+      grid-template-columns: 2100px 1080px;
+      grid-template-rows: 900px 1080px;
+      gap: var(--sp-9);
+      align-content: center;
+      justify-content: center;
+    }
+    .pair-preview .preview-wide   { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+    .pair-preview .preview-square { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+    .pair-preview .preview-label {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin-bottom: var(--sp-5);
+    }
+
+    /* ---------- 13. Hard rules (visual guard rails) ----------
+       Swiss style refuses these — uncomment to find offenders.
+    .poster *[style*="border-radius"],
+    .poster *[style*="box-shadow"],
+    .poster *[style*="linear-gradient"] { outline: 4px solid red !important; }
+    */
+  </style>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="handbook.css"><script src="reader.js" defer></script></head>
+<body class="handbook"><a class="skip" href="#content">跳到正文</a><header class="top"><a class="brand" href="index.html">GTM Atlas <span>/ SOP</span></a><a href="handbook-index.html">操盘手册总览 ↗</a></header><div class="layout"><aside class="sidebar"><details class="directory" open><summary>操盘手册 · 8 章</summary><nav aria-label="操盘手册章节目录"><a class="contents-home" href="index.html">← 返回 SOP</a><a class="handbook-link" href="handbook-index.html">操盘手册总览 ↗</a><a class="chapter-link" href="handbook-chapter-01.html"><span>01</span>角色认知与经营责任</a><a class="chapter-link" href="handbook-chapter-02.html"><span>02</span>生命周期与 SOP</a><a class="chapter-link" href="handbook-chapter-03.html"><span>03</span>操盘必备的三套表</a><a class="chapter-link" href="handbook-chapter-04.html"><span>04</span>市场与渠道洞察</a><a class="chapter-link" href="handbook-chapter-05.html" aria-current="page"><span>05</span>定价与经营分析</a><a class="chapter-link" href="handbook-chapter-06.html"><span>06</span>会议与协同机制</a><a class="chapter-link" href="handbook-chapter-07.html"><span>07</span>标准动作与交付节奏</a><a class="chapter-link" href="handbook-chapter-08.html"><span>08</span>常用业务术语</a></nav></details></aside><main id="content" class="handbook-prose" tabindex="-1"><div class="document-heading"><p class="eyebrow">GTM PLAYBOOK / 05</p><h1 class="h-xl">定价与经营分析</h1><p class="lead">理解成本口径、定价方式、量价竞争和 BP 汇报。</p></div><nav class="sheet-links" aria-label="本章主题"><a href="#page-41">先分清成本口径</a><a href="#page-42">三种定价模式</a><a href="#page-43">成本定价与竞争定价</a><a href="#page-44">价值定价的适用条件</a><a href="#page-45">产品损益管理的分工与审批</a><a href="#page-46">量价对标与经营分析</a><a href="#page-47">经营与销售分析的“四比”</a><a href="#page-48">BP 汇报的五个环节</a></nav><section class="handbook-topic" id="page-41"><h2>先分清成本口径</h2><div class="prose"><p>产品定价要先弄清成本口径。操盘全链路涉及前、中、后台的成本与结算口径，可能存在层层加价和留利。</p><div class="table-scroll" role="region" tabindex="0" aria-label="定价前的五种成本口径"><table><caption>定价前的五种成本口径</caption><thead><tr><th scope="col">口径</th><th scope="col">原资料中的含义</th></tr></thead><tbody><tr><td>终端零售价</td><td>消费者界面看到的建议零售价。</td></tr><tr><td>客户开票价 / invoice price</td><td>销售经理基于销售成本，扣除增值税和渠道前向返点后的结算价。</td></tr><tr><td>销售成本</td><td>在财务成本基础上，对促销激励、联合营销、变动费用等进行计提，并结算给销售经理。</td></tr><tr><td>财务成本</td><td>按公司财务规则，对汇率、专利、回款等风险进行计提，在 BOM 成本上加价，结算给销售组织。</td></tr><tr><td>BOM 成本</td><td>汇总物料采购、硬软件研发、生产、包装、运输方式、装柜量等成本。</td></tr></tbody></table></div><details class="source-proof"><summary>查看原表图示</summary><figure><a href="images/handbook-page-41.png" target="_blank" rel="noopener"><img src="images/handbook-page-41.png" alt="先分清成本口径图表" width="2007" height="963" loading="lazy"></a><figcaption>先分清成本口径 · 原资料第 41 页 · 点击查看大图</figcaption></figure></details></div></section><section class="handbook-topic" id="page-42"><h2>三种定价模式</h2><div class="prose"><p>价格策略包括定价策略和促销策略。定价策略分为成本定价、竞争定价和价值定价。</p><div class="table-scroll" role="region" tabindex="0" aria-label="三种定价模式"><table><caption>三种定价模式</caption><thead><tr><th scope="col">方式</th><th scope="col">原导图的简要定位</th></tr></thead><tbody><tr><td>成本定价</td><td>弱品牌、强竞争，薄利多销。</td></tr><tr><td>竞争定价</td><td>强品牌、强竞争，拼出份额。</td></tr><tr><td>价值定价</td><td>强品牌、弱竞争，卖出溢价。</td></tr></tbody></table></div><figure><a href="images/handbook-page-42.png" target="_blank" rel="noopener"><img src="images/handbook-page-42.png" alt="三种定价模式图表" width="1930" height="568" loading="lazy"></a><figcaption>三种定价模式 · 原资料第 42 页 · 点击查看大图</figcaption></figure></div></section><section class="handbook-topic" id="page-43"><h2>成本定价与竞争定价</h2><div class="prose"><p>成本定价</p><p>成本定价适用于品牌基础弱,营销预算少且市场竞争激烈的阶段。为了打开市场,厂家这时往往会采取贴近成本,薄利多销的策略进行定价。</p><p>注意,这里的贴近成本定价,并不是说我进货花了多少钱,就以什么价格卖出去,而是需要综合考虑产品生产、制造、运输、储存和销售成本等多个要素,确定最终的那个“大成本&quot;。成本定价的策略,本质上是在用价格撬动消费者的考虑度,这也是最直接、快速提升销量,打开局面的方式。</p><p>在群雄争霸的市场环境下,如果自身力量尚为渺小,不妨考虑先以价格,换取消费者的尝试-步步地积累顾客口碑,逐步建立品牌基础,反向撬动更多市场资源。</p><p>竞争定价</p><p>竞争定价更适用于产品竞争的“僵持阶段”。例如,苹果和三星两个品牌都很强,在香港市场,份额不相上下。很快,三星就要推出最新的旗舰手机,这款手机的硬件、软件功能都和苹果相差无几，某些层面反而更有优势。</p><p>为了跟苹果在旗舰机档位拼出个胜负,三星采取了竞争定价的策略:在参数比你强的基础上,跟你同价,或者稍低价。</p><p>这种定价策略很可能赢得那些产品主义,而非品牌主义顾客的青睐。在两强竞争胶着时期，打破僵局,改变局势。</p></div></section><section class="handbook-topic" id="page-44"><h2>价值定价的适用条件</h2><div class="prose"><p>价值定价，适用于积累了一定品牌势能、市场份额之后,目标冲击高端的厂商。通俗地讲，就是“卖出溢价”,即产品硬件水平并非顶级,但价格却遥遥领先。这种定价策略,需要强大的品牌拉力和消费者认可,除了行业巨头经常使用外,一些“新势力”品牌也常借一两款产品的成功,继而在迭代产品上进一步站稳“高端”的人设。</p><p>价值定价的策略不能盲目使用,如果一个品牌之前给人树立的是“性价比”的形象,往往很难通过提高定价,来改变消费者的看法,反而会被之前的形象所反。这时,注册子品牌,以全新的产品、品牌形象、产品定价来面对消费者,可能在冲击高端的路上更容易成功。</p></div></section><section class="handbook-topic" id="page-45"><h2>产品损益管理的分工与审批</h2><div class="prose"><p>产品损益管理需要明确各角色的信息输入、方案输出与决策关系。</p><div class="table-scroll" role="region" tabindex="0" aria-label="产品损益的定岗定责"><table><caption>产品损益的定岗定责</caption><thead><tr><th scope="col">角色</th><th scope="col">输入或职责</th></tr></thead><tbody><tr><td>供应</td><td>提供产品成本、汇率预测等测算基础信息。</td></tr><tr><td>客户群</td><td>提供渠道竞争、渠道结构、订单预测与联合营销信息。</td></tr><tr><td>MKT</td><td>提供投放预算，并与销量目标衔接。</td></tr><tr><td>GTM</td><td>进行竞争和定价分析、价格测算与损益预算，输出量价方案。</td></tr><tr><td>财经 / 财务</td><td>基于产品损益和投放预算做最终测算，输出损益方案。</td></tr><tr><td>国家经理</td><td>结合 GTM 方案与财经测算审批；同意后启动上市及预算分配，挑战则修改方案，否定则不上市。</td></tr></tbody></table></div><figure><a href="images/handbook-page-45.png" target="_blank" rel="noopener"><img src="images/handbook-page-45.png" alt="产品损益管理的分工与审批图表" width="2007" height="759" loading="lazy"></a><figcaption>产品损益管理的分工与审批 · 原资料第 45 页 · 点击查看大图</figcaption></figure></div></section><section class="handbook-topic" id="page-46"><h2>量价对标与经营分析</h2><div class="prose"><p>把竞品销量与价格放在同一条时间线上，观察竞争对位及促销节点。原示例以 2305—2312 为横轴，比较苹果、华为和三星的销量及价格；柱形对应销量，折线对应价格。</p><figure><a href="images/handbook-page-46.png" target="_blank" rel="noopener"><img src="images/handbook-page-46.png" alt="量价对标与经营分析图表" width="2007" height="963" loading="lazy"></a><figcaption>量价对标与经营分析 · 原资料第 46 页 · 点击查看大图</figcaption></figure></div></section><section class="handbook-topic" id="page-47"><h2>经营与销售分析的“四比”</h2><div class="prose"><p>同比</p><p>同比:(同比增长)是指与去年同一时期相比的增长或变化。它用来衡量某一时间段与上一年同一时间段的表现差异。</p><p>同比增长率=(本期数值-去年同期数值)/去年同期数值 x100%。</p><p>应用:例如，如果今年6月的销售额是100万元而去年6月的销售额是80万元，那么同比增长率为(100-80)/80x100%=25%。</p><p>环比</p><p>环比(环比增长)是指与上一个时期相比的增长或变化。它用来衡量连续两个时间段之间的表现差异。</p><p>环比增长率=(本期数值-上期数值)/上期数值x100%</p><p>应用:例如，如果6月的销售额是100万元，5月的销售额是90万元，那么环比增长率为(100-90)/90x100%=11.11%。</p><p>控比</p><p>控比(竞争对位)是指与目标竞争对手相比，比值的高与低。它用来衡量两个竞争品牌之间的表现差异。</p><p>控比=我品销量/竞品销量x100%(除了销量外价格对比也可以应用，用来衡量相同规格，我品与竞品的价格差距)</p><p>盘比</p><p>与市占率类似，但更倾向于细分市场和细分周期，</p><p>例如 Prime Day 几天内的总盘为10W台，其中我品干了3万台，竞品3.5万台，我们和竞品占大盘的比例，被称为盘比。</p></div></section><section class="handbook-topic" id="page-48"><h2>BP 汇报的五个环节</h2><div class="prose"><ul><li>先复盘。</li><li>再做外部洞察与内部洞察。</li><li>形成 BP 输出。</li><li>基于 BP 规划开支。</li></ul><figure><a href="images/handbook-page-48.png" target="_blank" rel="noopener"><img src="images/handbook-page-48.png" alt="BP 汇报的五个环节图表" width="1028" height="998" loading="lazy"></a><figcaption>BP 汇报的五个环节 · 原资料第 48 页 · 点击查看大图</figcaption></figure></div></section><nav class="pager" aria-label="前后章节"><a href="handbook-chapter-04.html">← 市场与渠道洞察</a><a href="handbook-chapter-06.html">会议与协同机制 →</a></nav></main></div><footer class="site-footer">GTM 操盘手册 · 原作者：晴子西西</footer></body></html>

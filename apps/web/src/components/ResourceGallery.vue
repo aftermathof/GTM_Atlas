@@ -12,12 +12,15 @@ import ContextPicker from './ContextPicker.vue'
 import GtmGlossaryPreview from './GtmGlossaryPreview.vue'
 import GtmOverview from './GtmOverview.vue'
 import GtmBook from './GtmBook.vue'
+import GtmSop from './GtmSop.vue'
 const props = defineProps<{fixedKind?: string}>()
 const route=useRoute(), router=useRouter(), items=ref<ResourceCard[]>([]), query=ref(String(route.query.q||'')), busy=ref(false), error=ref('')
 const listTop=ref<HTMLElement>(), canManage=ref(false), pendingDelete=ref<any>(null), deleting=ref(false)
 const matches=ref<Set<string>|null>(null)
 const kinds=[{id:'jd',name:'岗位 JD',en:'JOB DESCRIPTIONS',icon:BriefcaseBusiness,description:'读懂职责与能力要求，明确你的目标。'},{id:'interview',name:'面经',en:'INTERVIEW NOTES',icon:MessageSquare,description:'从真实问题与个人复盘，理解考查方向。'},{id:'learning',name:'在职经验',en:'WORK EXPERIENCE',icon:BookOpen,description:'从市场洞察到上市经营，理解实际工作中的方法与经验。'}]
-const selected=computed(()=>props.fixedKind ? (route.query.kind==='jd'?'jd':props.fixedKind) : (['overview','learning','glossary','book'].includes(String(route.query.kind))?String(route.query.kind):'overview'))
+const selected=computed(()=>props.fixedKind ? (route.query.kind==='jd'?'jd':props.fixedKind) : (['overview','learning','glossary','book','sop'].includes(String(route.query.kind))?String(route.query.kind):'overview'))
+const sopOpened=ref(selected.value==='sop')
+watch(selected,kind=>{if(kind==='sop')sopOpened.value=true})
 const filtered=computed(()=>items.value.filter(d=>!d.meta.demo))
 const columns=computed(()=>kinds.filter(k=>k.id===selected.value))
 const collection=computed(()=>selected.value==='learning'?String(route.query.collection || ''):'')
@@ -102,12 +105,14 @@ onBeforeUnmount(()=>{generation++})
     <button :class="{active:selected==='glossary'}" @click="choose('glossary')"><BookA :size="15"/>GTM 专有名词库</button>
     <button :class="{active:selected==='book'}" @click="choose('book')"><BookText :size="15"/>爆品操盘GTM</button>
     <button :class="{active:selected==='learning'}" @click="choose('learning')"><BookOpen :size="15"/>在职经验<span>{{count('learning')}}</span></button>
+    <button :class="{active:selected==='sop'}" @click="choose('sop')"><FolderOpen :size="15"/>SOP</button>
   </div>
   <div v-else class="gallery-tabs" aria-label="面试资料分类"><button :class="{active:selected==='interview'}" @click="choose('interview')"><MessageSquare :size="15"/>面经<span>{{count('interview')}}</span></button><button :class="{active:selected==='jd'}" @click="choose('jd')"><BriefcaseBusiness :size="15"/>岗位 JD<span>{{count('jd')}}</span></button></div>
   <GtmGlossaryPreview v-if="!fixedKind" v-show="selected==='glossary'"/>
   <GtmOverview v-if="!fixedKind" v-show="selected==='overview'"/>
   <GtmBook v-if="!fixedKind && selected==='book'"/>
-  <template v-if="selected!=='glossary' && selected!=='overview' && selected!=='book'">
+  <GtmSop v-if="!fixedKind && sopOpened" v-show="selected==='sop'"/>
+  <template v-if="selected!=='glossary' && selected!=='overview' && selected!=='book' && selected!=='sop'">
   <div ref="listTop" class="list-toolbar"><form class="search-field" @submit.prevent="search"><Search :size="17"/><input v-model="query" aria-label="搜索资料" placeholder="搜索主题、企业或关键词"><button>搜索</button></form><ContextPicker/></div>
   <div class="gallery-meta"><RouterLink v-if="collection" :to="{path:'/learn',query:{kind:'learning',page:route.query.page,q:route.query.q}}" class="text-link"><ArrowLeft :size="15"/>返回在职经验</RouterLink><span class="meta">{{collection?entries.length:sourceCards.length}} 份资料 · 每页 9 项</span><span v-if="deleting" class="meta" role="status">正在删除资料…</span></div>
   <LoadingState v-if="busy" label="正在加载资料…"/><p v-else-if="error" class="error" role="alert">{{error}}</p>

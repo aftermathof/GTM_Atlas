@@ -1,0 +1,254 @@
+{
+  "stages": [
+    {
+      "title": "规划与立项",
+      "description": "市场洞察、需求调研、早期量价预测"
+    },
+    {
+      "title": "拓展准备",
+      "description": "产品“五点三包”、预算制定、中期量价预测"
+    },
+    {
+      "title": "市场拓展",
+      "description": "样机准备、要货计划、操盘方案评审"
+    },
+    {
+      "title": "上市准备",
+      "description": "国家 4P 方案落地检查、订单交付保障"
+    },
+    {
+      "title": "上市销售",
+      "description": "竞争监控、VOC 监控、PSI 管理"
+    },
+    {
+      "title": "稳定销售",
+      "description": "首销复盘、滚动预测、下一代产品规划"
+    },
+    {
+      "title": "退市操盘",
+      "description": "清库计划、接续产品计划、生命周期复盘"
+    }
+  ],
+  "documents": [
+    {
+      "number": 1,
+      "title": "GTM定位",
+      "file": "GTM定位.xmind",
+      "group": "流程与职责",
+      "description": "认识统筹、协调与执行推动的职责。",
+      "page": "source-01.html",
+      "source": "originals/source-01.xmind",
+      "sha256": "74de9c3eedd7b6672d42788980f678452fcacab5cb86ac398fb3c04b9772e09f",
+      "node_count": 10
+    },
+    {
+      "number": 2,
+      "title": "GTM流程地图",
+      "file": "GTM流程地图.xlsx",
+      "group": "流程与职责",
+      "description": "从上市前 8 周到前 1 周，对齐跨部门动作。",
+      "page": "source-02.html",
+      "source": "originals/source-02.xlsx",
+      "sha256": "9aa2368a558e7f1af7c3dafc05d93c5f8762c1f8c7a6e1762e70fa849b1b48c4",
+      "sheet_count": 1,
+      "sheets": [
+        {
+          "name": "Sheet1",
+          "rows": 15,
+          "formulas": 0
+        }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "GTM-IPMS Checklist",
+      "file": "GTM-IPMS Checklist.xlsx",
+      "group": "流程与职责",
+      "description": "贯穿七阶段，核对角色、活动和核心交付件。",
+      "page": "source-03.html",
+      "source": "originals/source-03.xlsx",
+      "sha256": "0b1bb1009a5ea83d7a68799fba244fc2058c70ec8b5c8c91c3bfefc033b0b25b",
+      "sheet_count": 2,
+      "sheets": [
+        {
+          "name": "产品生命周期各阶段",
+          "rows": 8,
+          "formulas": 0
+        },
+        {
+          "name": "IPMS流程节点及核心交付件",
+          "rows": 104,
+          "formulas": 0
+        }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "市场洞察分析框架",
+      "file": "市场洞察分析框架.xmind",
+      "group": "规划与立项",
+      "description": "看市场与行业、竞争、用户和自己。",
+      "page": "source-04.html",
+      "source": "originals/source-04.xmind",
+      "sha256": "1ab42bf1ad657641159af69f5c6050993c25fe38f6f2c4db3e970399774821b2",
+      "node_count": 29
+    },
+    {
+      "number": 5,
+      "title": "竞品销量",
+      "file": "竞品销量.xmind",
+      "group": "规划与立项",
+      "description": "梳理竞品销量的信息来源与推算方法。",
+      "page": "source-05.html",
+      "source": "originals/source-05.xmind",
+      "sha256": "067d2a34af38d12a67c48400866607e660fdb85df502521ec5c4746549040971",
+      "node_count": 14
+    },
+    {
+      "number": 6,
+      "title": "产品上市方案计划",
+      "file": "产品上市方案计划.xmind",
+      "group": "拓展准备",
+      "description": "串起洞察、价格、渠道、营销、零售与服务策略。",
+      "page": "source-06.html",
+      "source": "originals/source-06.xmind",
+      "sha256": "0a1a4ccd9a01f32e297b281bac4041e63c29824a62d5d896cdc56eb010a109c7",
+      "node_count": 54
+    },
+    {
+      "number": 7,
+      "title": "价格策略",
+      "file": "价格策略.xmind",
+      "group": "拓展准备",
+      "description": "区分成本、竞争、价值定价及促销策略。",
+      "page": "source-07.html",
+      "source": "originals/source-07.xmind",
+      "sha256": "399fa3e5107ba198a7369b9f0bf0ab1fd5ee1a66820d855b9f98a719fd07b544",
+      "node_count": 9
+    },
+    {
+      "number": 8,
+      "title": "产品经营损益表",
+      "file": "产品经营损益表.xls",
+      "group": "拓展准备",
+      "description": "比较不同售价下的利润与生命周期损益。",
+      "page": "source-08.html",
+      "source": "originals/source-08.xls",
+      "sha256": "94118ac29db6cb94a2a716c78114e2fa4d4038f790f39f14c64bf4234c1e0121",
+      "sheet_count": 3,
+      "sheets": [
+        {
+          "name": "产品销毛测算-动态刷新",
+          "rows": 14,
+          "formulas": 36
+        },
+        {
+          "name": "产品生命周期损益测算-季度刷新",
+          "rows": 13,
+          "formulas": 56
+        },
+        {
+          "name": "BP数据-年度刷新",
+          "rows": 0,
+          "formulas": 0
+        }
+      ]
+    },
+    {
+      "number": 9,
+      "title": "产品上市方案策划",
+      "file": "产品上市方案策划.xmind",
+      "group": "市场拓展",
+      "description": "识别价值渠道、关键资源，制定拓展计划。",
+      "page": "source-09.html",
+      "source": "originals/source-09.xmind",
+      "sha256": "eb0ccb99843fcf65449dc040b31eac05bb21dea9acd9a04ca67a5636d533a1db",
+      "node_count": 28
+    },
+    {
+      "number": 10,
+      "title": "区域GTM新品上市关键动作",
+      "file": "区域GTM新品上市关键动作.xmind",
+      "group": "上市准备",
+      "description": "统筹产品包、上市方案、执行节点与区域协同。",
+      "page": "source-10.html",
+      "source": "originals/source-10.xmind",
+      "sha256": "d0c3438143c1ac711dad41a5e575a9259dc7504148dc8382b4a43c399a190249",
+      "node_count": 58
+    },
+    {
+      "number": 11,
+      "title": "PSI（进销存）管理表含解析",
+      "file": "PSI（进销存）管理表含解析.xlsx",
+      "group": "上市销售",
+      "description": "跟踪周度、月度进销存及库存周转。",
+      "page": "source-11.html",
+      "source": "originals/source-11.xlsx",
+      "sha256": "09ab4926266530d1f7513d05235319f8637671a3367b26675add01c5ee13ce2b",
+      "sheet_count": 1,
+      "sheets": [
+        {
+          "name": "PSI管理表",
+          "rows": 24,
+          "formulas": 39
+        }
+      ]
+    },
+    {
+      "number": 12,
+      "title": "经营分析：量价对标模板+",
+      "file": "经营分析：量价对标模板+.xlsx",
+      "group": "稳定销售",
+      "description": "对照销量、价格及促销降幅。",
+      "page": "source-12.html",
+      "source": "originals/source-12.xlsx",
+      "sha256": "d2ab4616904c5e41b71716f95bbadfaed607017140e70259d9a81c0b2bf5a2b6",
+      "sheet_count": 2,
+      "sheets": [
+        {
+          "name": "GFK-量价对标",
+          "rows": 9,
+          "formulas": 19
+        },
+        {
+          "name": "Sheet2",
+          "rows": 0,
+          "formulas": 0
+        }
+      ]
+    },
+    {
+      "number": 13,
+      "title": "销量下滑分析归因",
+      "file": "销量下滑分析归因.xmind",
+      "group": "稳定销售",
+      "description": "按市场、行业、客户、竞争和自身排查变化。",
+      "page": "source-13.html",
+      "source": "originals/source-13.xmind",
+      "sha256": "674388a97cb1556abde6b86afed0cc2920e33a117fa057dfd85ca09de34e10de",
+      "node_count": 39
+    },
+    {
+      "number": 14,
+      "title": "BP汇报框架",
+      "file": "BP汇报框架.xmind",
+      "group": "稳定销售",
+      "description": "连接经营复盘、内外部洞察与 BP 输出。",
+      "page": "source-14.html",
+      "source": "originals/source-14.xmind",
+      "sha256": "dd6d64f49ee5889ccc302abce2a8c99efb72955cab3f5a4674ef37d26a82d0e6",
+      "node_count": 6
+    },
+    {
+      "number": 15,
+      "title": "GTM的KPI",
+      "file": "GTM的KPI.xmind",
+      "group": "稳定销售",
+      "description": "对照经营、市场、周转和能力建设指标。",
+      "page": "source-15.html",
+      "source": "originals/source-15.xmind",
+      "sha256": "7bdc08cc3bc5e0e7fea912b2e30384eb274951e01030f8a6770dd9f5584b95cf",
+      "node_count": 23
+    }
+  ]
+}

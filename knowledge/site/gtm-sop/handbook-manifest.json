@@ -1,0 +1,192 @@
+{
+  "source_name": "GTM操盘手册.pdf",
+  "source_sha256": "1b9d41261ceeae8a2dfedc325e019c7aa04a23d145f363c229cbdc3a7e48cb62",
+  "source_pages": 61,
+  "author": "晴子西西",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "角色认知与经营责任",
+      "description": "理解“大脑、浆糊、鞭子”，把动作与经营结果连起来。",
+      "pages": [
+        4,
+        5,
+        6,
+        8,
+        9,
+        10
+      ],
+      "file": "handbook-chapter-01.html"
+    },
+    {
+      "number": 2,
+      "title": "生命周期与 SOP",
+      "description": "沿产品生命周期理解 IPMS、岗位分工和阶段输出。",
+      "pages": [
+        12,
+        13
+      ],
+      "file": "handbook-chapter-02.html"
+    },
+    {
+      "number": 3,
+      "title": "操盘必备的三套表",
+      "description": "把新品上市、进销存和产品经营连接为一套工作工具。",
+      "pages": [
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "file": "handbook-chapter-03.html"
+    },
+    {
+      "number": 4,
+      "title": "市场与渠道洞察",
+      "description": "看市场、竞争、用户和自己，把洞察变成可持续的月度动作。",
+      "pages": [
+        35,
+        36,
+        37,
+        38,
+        39
+      ],
+      "file": "handbook-chapter-04.html"
+    },
+    {
+      "number": 5,
+      "title": "定价与经营分析",
+      "description": "理解成本口径、定价方式、量价竞争和 BP 汇报。",
+      "pages": [
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48
+      ],
+      "file": "handbook-chapter-05.html"
+    },
+    {
+      "number": 6,
+      "title": "会议与协同机制",
+      "description": "用会议串联生命周期，明确主持角色和所需输入。",
+      "pages": [
+        50,
+        52,
+        54
+      ],
+      "file": "handbook-chapter-06.html"
+    },
+    {
+      "number": 7,
+      "title": "标准动作与交付节奏",
+      "description": "定人、定责、定时间，从月度管理推进到上市前八周。",
+      "pages": [
+        24,
+        25,
+        27,
+        58
+      ],
+      "file": "handbook-chapter-07.html"
+    },
+    {
+      "number": 8,
+      "title": "常用业务术语",
+      "description": "查阅跨境操盘中常见的产品、销售、零售和项目术语。",
+      "pages": [
+        60
+      ],
+      "file": "handbook-chapter-08.html"
+    }
+  ],
+  "omitted": [
+    {
+      "page": 1,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 2,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 3,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 11,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 14,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 34,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 40,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 49,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 55,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 59,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 61,
+      "reason": "封面、原目录、章节过渡或结束页"
+    },
+    {
+      "page": 7,
+      "reason": "重复内容已合并",
+      "merged_into": 6
+    },
+    {
+      "page": 26,
+      "reason": "重复内容已合并",
+      "merged_into": 25
+    },
+    {
+      "page": 51,
+      "reason": "重复内容已合并",
+      "merged_into": 50
+    },
+    {
+      "page": 53,
+      "reason": "重复内容已合并",
+      "merged_into": 52
+    },
+    {
+      "page": 56,
+      "reason": "重复内容已合并",
+      "merged_into": 24
+    },
+    {
+      "page": 57,
+      "reason": "重复内容已合并",
+      "merged_into": 25
+    }
+  ]
+}

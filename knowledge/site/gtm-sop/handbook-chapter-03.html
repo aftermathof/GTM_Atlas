@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="zh-CN" data-accent="ikb">
+<head>
+  <meta charset="utf-8">
+  <title>操盘必备的三套表 · GTM 操盘手册 · SOP</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    /* =========================================================
+       Swiss International — Social Card Seed Template
+       ---------------------------------------------------------
+       Three boards built in one HTML:
+         .poster.xhs      1080×1440  (3:4   小红书)
+         .poster.square   1080×1080  (1:1   微信方封面)
+         .poster.wide     2100× 900  (21:9  微信主封面)
+         .pair-preview                       21:9 + 1:1 配对预览
+
+       Accent switching via <html data-accent="…">:
+         ikb (Klein Blue) | lemon-yellow | lemon-green | safety-orange
+
+       Fill posters where marked <!-- POSTERS_HERE -->.
+       Each poster carries one Layout Recipe (S01-S12) from
+       references/layout-recipes.md.
+       ========================================================= */
+
+    /* ---------- 1. Accent palettes (4 mutually exclusive) ---------- */
+    :root,
+    [data-accent="ikb"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #002FA7;
+      --accent-on: #ffffff;
+    }
+    [data-accent="lemon-yellow"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #FFD500;
+      --accent-on: #0a0a0a;
+    }
+    [data-accent="lemon-green"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #C5E803;
+      --accent-on: #0a0a0a;
+    }
+    [data-accent="safety-orange"] {
+      --paper: #fafaf8;
+      --ink: #0a0a0a;
+      --grey-1: #f0f0ee;
+      --grey-2: #d4d4d2;
+      --grey-3: #737373;
+      --accent: #FF6B35;
+      --accent-on: #ffffff;
+    }
+
+    /* ---------- 2. Typography stack ---------- */
+    :root {
+      --sans:    "Inter", "Helvetica Neue", Helvetica, "Noto Sans SC",
+                 -apple-system, "PingFang SC", "Microsoft YaHei UI", sans-serif;
+      --sans-zh: "Noto Sans SC", -apple-system, "PingFang SC",
+                 "Microsoft YaHei UI", "Inter", sans-serif;
+      --mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Consolas, monospace;
+    }
+
+    /* ---------- 3. Spacing tokens (8/12/16/24/32/40/48/64/80/96/160) ---------- */
+    :root {
+      --sp-3:   8px;
+      --sp-4:  12px;
+      --sp-5:  16px;
+      --sp-6:  24px;
+      --sp-7:  32px;
+      --sp-8:  40px;
+      --sp-9:  48px;
+      --sp-10: 64px;
+      --sp-11: 80px;
+      --sp-12: 96px;
+      --sp-13:160px;
+    }
+
+    /* ---------- 4. Reset & sheet ---------- */
+    *,*::before,*::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: #1a1a1a;
+      font-family: var(--sans);
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding: 64px 32px;
+    }
+    .sheet {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
+    }
+
+    /* ---------- 5. Poster boards (fixed export sizes) ---------- */
+    .poster {
+      position: relative;
+      background: var(--paper);
+      color: var(--ink);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .poster.xhs    { width: 1080px; height: 1440px; }
+    .poster.square { width: 1080px; height: 1080px; }
+    .poster.wide   { width: 2100px; height:  900px; }
+    .poster figure { margin: 0; }
+
+    .poster.xhs    .content { padding: var(--sp-12) var(--sp-11); }
+    .poster.square .content { padding: var(--sp-11) var(--sp-11); }
+    .poster.wide   .content { padding: var(--sp-11) var(--sp-13); }
+    .content { position: relative; width: 100%; height: 100%; z-index: 2; }
+
+    /* Optional decorative layers — opt in per poster */
+    .dot-mat,
+    .ring-mat,
+    .cross-mat {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .dot-mat {
+      opacity: .08;
+      background-image: radial-gradient(var(--ink) 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+    }
+    .ring-mat {
+      opacity: .08;
+      background-image: radial-gradient(circle at 50% 50%, transparent 4px, var(--ink) 4.5px, var(--ink) 5px, transparent 5.5px);
+      background-size: 32px 32px;
+    }
+    .cross-mat {
+      opacity: .06;
+      background-image:
+        linear-gradient(var(--ink), var(--ink)),
+        linear-gradient(90deg, var(--ink), var(--ink));
+      background-size: 1px 14px, 14px 1px;
+      background-position: center, center;
+      background-repeat: repeat;
+    }
+
+    /* ---------- 6. Typography roles (Swiss extreme contrast) ----------
+       Hard rule: "the larger, the lighter"
+       ≥ 200px → weight 200 (ExtraLight)
+       Smaller text gets heavier weight (≥ 500). */
+    .h-hero {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 240px;
+      line-height: 1.02;
+      letter-spacing: -.02em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-statement {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 180px;
+      line-height: 1.05;
+      letter-spacing: -.015em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-xl {
+      font-family: var(--sans);
+      font-weight: 300;
+      font-size: 120px;
+      line-height: 1.08;
+      letter-spacing: -.01em;
+      margin: 0;
+      color: var(--ink);
+    }
+    .h-md {
+      font-family: var(--sans);
+      font-weight: 400;
+      font-size: 56px;
+      line-height: 1.18;
+      margin: 0;
+      color: var(--ink);
+    }
+    .lead {
+      font-family: var(--sans-zh);
+      font-weight: 400;
+      font-size: 30px;
+      line-height: 1.55;
+      color: var(--ink);
+      margin: 0;
+    }
+    .body {
+      font-family: var(--sans-zh);
+      font-weight: 400;
+      font-size: 26px;
+      line-height: 1.6;
+      color: var(--ink);
+      margin: 0;
+    }
+    .t-cat {
+      font-family: var(--sans);
+      font-weight: 600;
+      font-size: 22px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0;
+    }
+    .t-meta {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 20px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+    .num-mega {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 200px;
+      line-height: .92;
+      letter-spacing: -.03em;
+      color: var(--ink);
+      margin: 0;
+    }
+    .num-xl {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 144px;
+      line-height: .96;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .mono { font-family: var(--mono); }
+
+    /* XHS (3:4) boards: 1080×1440 has the tightest vertical budget,
+       so display sizes step down vs the .wide default. These caps
+       were validated by the smoke-ai-tools deck — 2-line h-xl @96px
+       leaves room for matrix + hero-stat-bottom inside 1440px. */
+    .poster.xhs .h-hero          { font-size: 168px; }
+    .poster.xhs .h-statement     { font-size: 124px; }
+    .poster.xhs .h-xl            { font-size: 96px; }
+    .poster.xhs .num-mega        { font-size: 168px; }
+    .poster.xhs .num-xl          { font-size: 120px; }
+
+    /* Square boards tighten scales */
+    .poster.square .h-hero       { font-size: 180px; }
+    .poster.square .h-statement  { font-size: 140px; }
+    .poster.square .h-xl         { font-size: 88px; }
+    .poster.square .num-mega     { font-size: 168px; }
+    .poster.square .num-xl       { font-size: 112px; }
+
+    /* Wide boards rely on horizontal real estate */
+    .poster.wide .h-hero         { font-size: 200px; }
+    .poster.wide .h-statement    { font-size: 156px; }
+    .poster.wide .h-xl           { font-size: 104px; }
+
+    /* ---------- 7. Layout primitives ---------- */
+    .stack    { display: flex; flex-direction: column; }
+    .row      { display: flex; flex-direction: row; }
+    .gap-3    { gap: var(--sp-3); }
+    .gap-4    { gap: var(--sp-4); }
+    .gap-5    { gap: var(--sp-5); }
+    .gap-6    { gap: var(--sp-6); }
+    .gap-7    { gap: var(--sp-7); }
+    .gap-8    { gap: var(--sp-8); }
+    .gap-9    { gap: var(--sp-9); }
+    .gap-10   { gap: var(--sp-10); }
+    .grow     { flex: 1; }
+    .grid-12  { display: grid; grid-template-columns: repeat(12, 1fr); gap: var(--sp-7); }
+    .grid-2-9 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+    .grid-3   { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-7); }
+    .grid-4   { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-6); }
+    .span-2   { grid-column: span 2; }
+    .span-3   { grid-column: span 3; }
+    .span-4   { grid-column: span 4; }
+    .span-6   { grid-column: span 6; }
+    .span-8   { grid-column: span 8; }
+    .span-9   { grid-column: span 9; }
+    .span-12  { grid-column: span 12; }
+    .center   { text-align: center; }
+    .right    { text-align: right; }
+    .uppercase{ text-transform: uppercase; }
+    .hr-hairline {
+      height: 1px;
+      background: var(--grey-2);
+      border: 0;
+      margin: 0;
+    }
+    .hr-accent {
+      height: 3px;
+      background: var(--accent);
+      border: 0;
+      width: 96px;
+      margin: 0;
+    }
+
+    /* ---------- 8. Card fills (mutually exclusive — pick ONE) ----------
+       Hard rule: never combine card-ink/card-accent/card-fill/card-outlined
+       on the same node. Multi-card grids must use the same class. */
+    .card-ink {
+      background: var(--ink);
+      color: var(--paper);
+      padding: var(--sp-8);
+    }
+    .card-ink .t-cat,
+    .card-ink .t-meta,
+    .card-ink .lead,
+    .card-ink .body,
+    .card-ink .h-md { color: var(--paper); }
+    .card-accent {
+      background: var(--accent);
+      color: var(--accent-on);
+      padding: var(--sp-8);
+    }
+    .card-accent .t-cat,
+    .card-accent .t-meta,
+    .card-accent .lead,
+    .card-accent .body,
+    .card-accent .h-md { color: var(--accent-on); }
+    .card-fill {
+      background: var(--grey-1);
+      color: var(--ink);
+      padding: var(--sp-8);
+    }
+    .card-outlined {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--grey-2);
+      padding: var(--sp-8);
+    }
+
+    /* ---------- 9. Frame containers (image holders) ---------- */
+    .frame-img {
+      position: relative;
+      overflow: hidden;
+      background: var(--grey-1);
+      display: block;
+      margin: 0;
+    }
+    .frame-img img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      display: block;
+    }
+    .frame-img.fit-contain img { object-fit: contain; background: var(--paper); }
+    .frame-img.r-3x4   { aspect-ratio: 3 / 4; }
+    .frame-img.r-1x1   { aspect-ratio: 1 / 1; }
+    .frame-img.r-4x3   { aspect-ratio: 4 / 3; }
+    .frame-img.r-16x9  { aspect-ratio: 16 / 9; }
+    .frame-img.r-16x10 { aspect-ratio: 16 / 10; }
+    .frame-img.r-21x9  { aspect-ratio: 21 / 9; }
+    .swiss-img-caption {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin-top: var(--sp-5);
+    }
+
+    /* ---------- 9b. Screenshot treatment (.frame-shot) ---------- */
+    /* Swiss is stricter than Editorial: corners default square, shadows default
+       none. Override only when the shot must literally float off the page.   */
+    .frame-shot {
+      position: relative;
+      overflow: hidden;
+      display: block;
+      margin: 0;
+      background: var(--grey-1);
+      border-radius: 0;
+    }
+    .frame-shot.corners-sq { border-radius: 0; }
+    .frame-shot.corners-sm { border-radius: 4px; }
+    .frame-shot.corners-md { border-radius: 10px; }
+
+    /* Swiss shadows are flat — only the subtle outline scrim is welcome */
+    .frame-shot.shadow-soft { box-shadow: 0 12px 28px -16px rgba(0,0,0,.18); }
+    .frame-shot.shadow-ed   { box-shadow: 0 20px 40px -20px rgba(0,0,0,.22), 0 0 0 1px var(--grey-2); }
+
+    /* background tones — pure / dot / grid only. No accent colour fills. */
+    .frame-shot.bg-paper    { background: var(--paper); }
+    .frame-shot.bg-grey-1   { background: var(--grey-1); }
+    .frame-shot.bg-ink      { background: var(--ink); }
+    .frame-shot.bg-grid     {
+      background-color: var(--paper);
+      background-image:
+        linear-gradient(to right, var(--grey-2) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--grey-2) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .frame-shot.bg-dot {
+      background-color: var(--paper);
+      background-image: radial-gradient(var(--grey-2) 1px, transparent 1px);
+      background-size: 18px 18px;
+    }
+
+    /* asset backgrounds — ported from PPT skill, real texture for screenshot wells.
+       Use ONLY when current accent matches the asset's accent (don't mix oranges and IKB). */
+    .frame-shot.bg-asset-ikb-dot          { background: #0c1a3a url("../assets/screenshot-backgrounds/style-b/ikb-dot-gradient.webp")       center/cover no-repeat; }
+    .frame-shot.bg-asset-lemon-green-dot  { background: #d6e08a url("../assets/screenshot-backgrounds/style-b/lemon-green-dot-shadow.webp") center/cover no-repeat; }
+    .frame-shot.bg-asset-lemon-grid       { background: #e6e9b8 url("../assets/screenshot-backgrounds/style-b/lemon-grid.webp")             center/cover no-repeat; }
+    .frame-shot.bg-asset-safety-orange    { background: #ff5b1f url("../assets/screenshot-backgrounds/style-b/safety-orange-halftone.webp") center/cover no-repeat; }
+
+    .frame-shot.inset-none > img,
+    .frame-shot.inset-none > .shot-body { padding: 0; }
+    .frame-shot.inset-sub  { padding: 20px; }
+    .frame-shot.inset-bal  { padding: 48px; }
+
+    .frame-shot.r-3x4   { aspect-ratio: 3 / 4; }
+    .frame-shot.r-1x1   { aspect-ratio: 1 / 1; }
+    .frame-shot.r-4x3   { aspect-ratio: 4 / 3; }
+    .frame-shot.r-16x9  { aspect-ratio: 16 / 9; }
+    .frame-shot.r-16x10 { aspect-ratio: 16 / 10; }
+    .frame-shot.r-21x9  { aspect-ratio: 21 / 9; }
+    .frame-shot.r-3x2   { aspect-ratio: 3 / 2; }
+
+    .frame-shot > img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      border-radius: inherit;
+    }
+    .frame-shot.fit-cover > img { object-fit: cover; }
+
+    /* device chrome — CSS-only, no SVG */
+    .device-browser {
+      position: relative;
+      background: var(--paper);
+      border: 1px solid var(--grey-2);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .device-browser::before {
+      content: '';
+      display: block;
+      height: 32px;
+      background: var(--grey-1);
+      border-bottom: 1px solid var(--grey-2);
+      background-image:
+        radial-gradient(circle at 16px 16px, var(--grey-3) 4px, transparent 4.5px),
+        radial-gradient(circle at 34px 16px, var(--grey-3) 4px, transparent 4.5px),
+        radial-gradient(circle at 52px 16px, var(--grey-3) 4px, transparent 4.5px);
+    }
+    .device-browser > .frame-shot,
+    .device-browser > img {
+      border-radius: 0;
+      display: block;
+      width: 100%;
+    }
+    .device-phone {
+      position: relative;
+      background: var(--ink);
+      border-radius: 28px;
+      padding: 12px;
+      box-shadow: 0 16px 36px -18px rgba(0,0,0,.32);
+    }
+    .device-phone > .frame-shot,
+    .device-phone > img {
+      border-radius: 18px;
+      display: block;
+      width: 100%;
+    }
+
+    /* ---------- 9c. Map block (.map-block) ---------- */
+    /* Static map for Swiss decks. Pins are pure HTML, no SVG text.
+       Use accent sparingly: at most one accent pin per board. */
+    .map-block {
+      position: relative;
+      background: var(--grey-1);
+      overflow: hidden;
+      aspect-ratio: 4 / 3;
+      width: 100%;
+    }
+    .map-block.r-16x10 { aspect-ratio: 16 / 10; }
+    .map-block.r-16x9  { aspect-ratio: 16 / 9; }
+    .map-block.r-1x1   { aspect-ratio: 1 / 1; }
+    .map-block.r-3x4   { aspect-ratio: 3 / 4; }
+    .map-block > img,
+    .map-block > svg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+    .map-block > img { object-fit: cover; }
+    /* desaturated tile filter to keep Swiss strict tone */
+    .map-block.tone-paper > img { filter: saturate(0) contrast(1.05) brightness(1.02); }
+    .map-block.tone-ink > img   { filter: saturate(0) brightness(.58); }
+    /* schematic SVG defaults */
+    .map-block > svg .map-coast { fill: none; stroke: var(--grey-2); stroke-width: .4; }
+    .map-block > svg .map-road  { fill: none; stroke: var(--grey-3); stroke-width: .28; stroke-dasharray: 1.2 .8; opacity: .7; }
+    .map-block > svg .map-water { fill: var(--grey-1); }
+    .map-block > svg .map-grid  { stroke: var(--grey-2); stroke-width: .15; opacity: .5; }
+
+    .map-pin {
+      position: absolute;
+      width: 0; height: 0;
+      transform: translate(-50%, -50%);
+    }
+    .map-pin .dot {
+      position: absolute;
+      left: -6px; top: -6px;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: var(--ink);
+      border: 2px solid var(--paper);
+      box-shadow: 0 1px 3px rgba(0,0,0,.22);
+    }
+    .map-pin.accent .dot { background: var(--accent); }
+    .map-pin .line {
+      position: absolute;
+      left: 7px; top: 0;
+      width: 28px; height: 1px;
+      background: var(--ink);
+      opacity: .55;
+    }
+    .map-pin.left .line { left: auto; right: 7px; }
+    .map-pin .card {
+      position: absolute;
+      left: 38px; top: -20px;
+      min-width: 80px;
+      padding: 8px 10px;
+      background: rgba(250,250,248,.94);
+      box-shadow: 0 0 0 1px var(--grey-2);
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+    .map-pin.left .card { left: auto; right: 38px; }
+    .map-pin .card .name {
+      font-family: var(--sans-zh), var(--sans);
+      font-weight: 500;
+      font-size: 15px;
+      line-height: 1.1;
+      color: var(--ink);
+    }
+    .map-pin .card .meta {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+    }
+    .map-pin.accent .card .name { color: var(--accent); }
+
+    .map-legend {
+      position: absolute;
+      left: 14px; bottom: 14px;
+      z-index: 3;
+      background: rgba(250,250,248,.94);
+      padding: 8px 12px;
+      box-shadow: 0 0 0 1px var(--grey-2);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+    }
+    .map-legend.tr { left: auto; right: 14px; top: 14px; bottom: auto; }
+
+    /* ---------- 10. Swiss-specific components ---------- */
+
+    /* S08 Image Hero (port of S22) */
+    .image-hero {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: var(--sp-7);
+      height: 100%;
+    }
+    .image-hero .hero-img-wrap {
+      position: relative;
+      overflow: hidden;
+      background: var(--grey-1);
+    }
+    .image-hero .hero-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      display: block;
+    }
+    .image-hero .hero-overlay-block {
+      position: absolute;
+      left: 0;
+      top: 0;
+      background: var(--paper);
+      padding: var(--sp-7) var(--sp-8);
+      max-width: 60%;
+    }
+    .image-hero .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--sp-8);
+      align-items: end;
+      border-top: 1px solid var(--grey-2);
+      padding-top: var(--sp-7);
+    }
+    .image-hero .hero-stats .stat-block .num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 96px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      color: var(--ink);
+      margin: 0 0 var(--sp-4);
+    }
+    .image-hero .hero-stats .stat-block .lbl {
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+
+    /* S09 KPI Tower (port of S06) */
+    .kpi-tower-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--sp-7);
+      align-items: end;
+      height: 100%;
+    }
+    .kpi-tower-row .tower-col {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-5);
+      align-items: flex-start;
+    }
+    .kpi-tower-row .tower-col .num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 112px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .kpi-tower-row .tower-col .lbl {
+      font-family: var(--mono);
+      font-size: 20px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin: 0;
+    }
+    .kpi-tower-row .tower-col .bar-tower {
+      width: 100%;
+      height: var(--h, 240px);
+      background: var(--accent);
+      transform-origin: bottom;
+    }
+    .kpi-tower-row .tower-col.muted .bar-tower {
+      background: var(--grey-2);
+    }
+    .poster.xhs .kpi-tower-row { grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+    .poster.square .kpi-tower-row { grid-template-columns: 1fr 1fr; gap: var(--sp-9); }
+
+    /* S10 H-Bar Chart (port of S07) */
+    .h-bar-chart {
+      display: grid;
+      gap: var(--sp-6);
+    }
+    .h-bar-chart .bar-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 120px;
+      gap: var(--sp-6);
+      align-items: center;
+    }
+    .h-bar-chart .bar-row .row-lbl {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 26px;
+      color: var(--ink);
+    }
+    .h-bar-chart .bar-row .row-track {
+      position: relative;
+      height: 28px;
+      background: var(--grey-1);
+    }
+    .h-bar-chart .bar-row .row-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: var(--w, 50%);
+      background: var(--accent);
+    }
+    .h-bar-chart .bar-row .row-val {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 26px;
+      letter-spacing: .04em;
+      text-align: right;
+      color: var(--ink);
+    }
+    /* On portrait the labels move above the track */
+    .poster.xhs .h-bar-chart .bar-row {
+      grid-template-columns: 1fr;
+      gap: var(--sp-4);
+    }
+    .poster.xhs .h-bar-chart .bar-row .row-val {
+      text-align: left;
+    }
+
+    /* S11 Stacked Ledger (port of S20) */
+    .stacked-ledger {
+      display: flex;
+      flex-direction: column;
+    }
+    .stacked-ledger .ledger-row {
+      display: grid;
+      grid-template-columns: 280px 1fr auto;
+      gap: var(--sp-7);
+      align-items: baseline;
+      padding: var(--sp-7) 0;
+      border-bottom: 1px solid var(--grey-2);
+    }
+    .stacked-ledger .ledger-row:first-child { padding-top: 0; }
+    .stacked-ledger .ledger-row:last-child  { border-bottom: 0; }
+    .stacked-ledger .ledger-num {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: 112px;
+      line-height: 1;
+      letter-spacing: -.02em;
+      margin: 0;
+    }
+    .stacked-ledger .ledger-lbl {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 30px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .stacked-ledger .ledger-lbl .sub {
+      display: block;
+      font-weight: 400;
+      font-size: 22px;
+      color: var(--grey-3);
+      margin-top: var(--sp-3);
+    }
+    .stacked-ledger .ledger-icn {
+      width: 56px;
+      height: 56px;
+      color: var(--accent);
+    }
+    .poster.square .stacked-ledger .ledger-num { font-size: 88px; }
+    .poster.square .stacked-ledger .ledger-row { grid-template-columns: 220px 1fr auto; }
+
+    /* S12 Matrix Fill (port of S15) */
+    .matrix-fill {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-auto-rows: 1fr;
+      gap: var(--sp-5);
+    }
+    .matrix-fill .matrix-cell {
+      background: var(--grey-1);
+      padding: var(--sp-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-4);
+      min-height: 160px;
+    }
+    .matrix-fill .matrix-cell .cell-nb {
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .12em;
+      color: var(--grey-3);
+    }
+    .matrix-fill .matrix-cell .cell-title {
+      font-family: var(--sans-zh);
+      font-weight: 500;
+      font-size: 26px;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+    .matrix-fill .matrix-cell.is-accent {
+      background: var(--accent);
+      color: var(--accent-on);
+    }
+    .matrix-fill .matrix-cell.is-accent .cell-nb,
+    .matrix-fill .matrix-cell.is-accent .cell-title { color: var(--accent-on); }
+    .hero-stat-bottom {
+      margin-top: var(--sp-9);
+      padding-top: var(--sp-7);
+      border-top: 1px solid var(--grey-2);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: var(--sp-7);
+    }
+    /* xhs uses 2 columns; up to 8 cells = 4 rows. Switch to min-content
+       so rows don't stretch and crowd out hero-stat-bottom (validated
+       in smoke-ai-tools/xhs-04). When pairing matrix-fill with
+       hero-stat-bottom inside .poster.xhs, prefer 6 cells (3 rows). */
+    .poster.xhs .matrix-fill {
+      grid-template-columns: repeat(2, 1fr);
+      grid-auto-rows: min-content;
+      gap: var(--sp-4);
+    }
+    .poster.xhs .matrix-fill .matrix-cell { min-height: 0; padding: var(--sp-5); }
+    .poster.xhs .matrix-fill .matrix-cell .cell-title { font-size: 24px; }
+    .poster.xhs .hero-stat-bottom {
+      margin-top: var(--sp-6);
+      padding-top: var(--sp-5);
+      align-items: center;
+    }
+    .poster.xhs .hero-stat-bottom .num-mega { font-size: 128px; line-height: 1; }
+    .poster.square .matrix-fill{ grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; }
+    .poster.square .matrix-fill .matrix-cell { min-height: 0; }
+
+    /* ---------- 11. Issue label + corner metadata ---------- */
+    .chrome-min {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--mono);
+      font-size: 18px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      padding-bottom: var(--sp-6);
+      border-bottom: 1px solid var(--grey-2);
+      margin-bottom: var(--sp-9);
+    }
+
+    /* ---------- 12. Pair preview frame ---------- */
+    .pair-preview {
+      width: 2400px;
+      min-height: 1180px;
+      background: var(--grey-1);
+      padding: var(--sp-9);
+      display: grid;
+      grid-template-columns: 2100px 1080px;
+      grid-template-rows: 900px 1080px;
+      gap: var(--sp-9);
+      align-content: center;
+      justify-content: center;
+    }
+    .pair-preview .preview-wide   { grid-column: 1; grid-row: 1 / span 2; align-self: center; }
+    .pair-preview .preview-square { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+    .pair-preview .preview-label {
+      font-family: var(--mono);
+      font-weight: 500;
+      font-size: 18px;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--grey-3);
+      margin-bottom: var(--sp-5);
+    }
+
+    /* ---------- 13. Hard rules (visual guard rails) ----------
+       Swiss style refuses these — uncomment to find offenders.
+    .poster *[style*="border-radius"],
+    .poster *[style*="box-shadow"],
+    .poster *[style*="linear-gradient"] { outline: 4px solid red !important; }
+    */
+  </style>
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="handbook.css"><script src="reader.js" defer></script></head>
+<body class="handbook"><a class="skip" href="#content">跳到正文</a><header class="top"><a class="brand" href="index.html">GTM Atlas <span>/ SOP</span></a><a href="handbook-index.html">操盘手册总览 ↗</a></header><div class="layout"><aside class="sidebar"><details class="directory" open><summary>操盘手册 · 8 章</summary><nav aria-label="操盘手册章节目录"><a class="contents-home" href="index.html">← 返回 SOP</a><a class="handbook-link" href="handbook-index.html">操盘手册总览 ↗</a><a class="chapter-link" href="handbook-chapter-01.html"><span>01</span>角色认知与经营责任</a><a class="chapter-link" href="handbook-chapter-02.html"><span>02</span>生命周期与 SOP</a><a class="chapter-link" href="handbook-chapter-03.html" aria-current="page"><span>03</span>操盘必备的三套表</a><a class="chapter-link" href="handbook-chapter-04.html"><span>04</span>市场与渠道洞察</a><a class="chapter-link" href="handbook-chapter-05.html"><span>05</span>定价与经营分析</a><a class="chapter-link" href="handbook-chapter-06.html"><span>06</span>会议与协同机制</a><a class="chapter-link" href="handbook-chapter-07.html"><span>07</span>标准动作与交付节奏</a><a class="chapter-link" href="handbook-chapter-08.html"><span>08</span>常用业务术语</a></nav></details></aside><main id="content" class="handbook-prose" tabindex="-1"><div class="document-heading"><p class="eyebrow">GTM PLAYBOOK / 03</p><h1 class="h-xl">操盘必备的三套表</h1><p class="lead">把新品上市、进销存和产品经营连接为一套工作工具。</p></div><nav class="sheet-links" aria-label="本章主题"><a href="#page-15">三套表分别解决什么问题</a><a href="#page-16">新品上市管理表的四个部分</a><a href="#page-17">产品路标的三种作用</a><a href="#page-18">按价格带和促销节奏安排产品路标</a><a href="#page-19">产品路标示例：理想汽车</a><a href="#page-20">用路标安排上下市与资源准备</a><a href="#page-21">产品路标管理表示例</a><a href="#page-22">竞争力分析与价值表达</a><a href="#page-23">新品上市准备 Checklist</a><a href="#page-28">新品首销复盘与关键指标</a><a href="#page-29">销售、交付、采购的 PSI 逻辑</a><a href="#page-30">进销存表的信息结构</a><a href="#page-31">预测准确率与供销互锁</a><a href="#page-32">短期价格与损益测算</a><a href="#page-33">生命周期损益与预算</a></nav><section class="handbook-topic" id="page-15"><h2>三套表分别解决什么问题</h2><div class="prose"><div class="table-scroll" role="region" tabindex="0" aria-label="GTM 运作的三套表"><table><caption>GTM 运作的三套表</caption><thead><tr><th scope="col">工具</th><th scope="col">要回答的问题</th><th scope="col">组成</th></tr></thead><tbody><tr><td>新品上市管理表</td><td>怎样让新品上市与上量衔接？</td><td>产品组合与路标管理、竞争力分析、上市准备 Checklist、首销复盘。</td></tr><tr><td>PSI 管理表</td><td>怎样随市场变化调整销售与库存？</td><td>销售管理、库存管理、长周期采购管理。</td></tr><tr><td>产品经营表</td><td>怎样围绕利润做资源决策？</td><td>单品测算、单品生命周期测算、多品类 BP 汇总。</td></tr></tbody></table></div></div></section><section class="handbook-topic" id="page-16"><h2>新品上市管理表的四个部分</h2><div class="prose"><p>1、新品上市管理表：</p><p>（1）产品组合与路标管理表： 讲清楚产品价格档位，接续关系，新老品切换时间。</p><p>（2）竞争分析表： 讲清楚各档位产品的竞争对位，规格分析以及量价趋势。</p><p>（3）上市IPMS表：确定操盘方案后，从项目经理角度，确认各项工作的负责人和完成时间。</p><p>（4）首销复盘表：执行复盘，营销投放ROI，经验沉淀以及后续计划。</p></div></section><section class="handbook-topic" id="page-17"><h2>产品路标的三种作用</h2><div class="prose"><p>产品路标有什么作用？</p><p>产品路标管理表： 讲清楚产品价格档位，接续关系，新老品切换时间。</p><p>（1）作战地图：（产品路标可以使新品上下市更为规范地运作）</p><p>（2）规划地图：（产品路标可以让各部门有充分的时间，去做相应的准备动作）</p><p>（3）经验总结：（产品路标可以培养GTM的经验主义）</p></div></section><section class="handbook-topic" id="page-18"><h2>按价格带和促销节奏安排产品路标</h2><div class="prose"><div class="table-scroll" role="region" tabindex="0" aria-label="按价格带和促销节奏安排产品路标表格1"><table><caption>按价格带和促销节奏安排产品路标</caption><tbody><tr><th rowspan="2" scope="col">产品定位</th><th rowspan="2" scope="col">价格段</th><th colspan="4" scope="col">Q1</th><th colspan="3" scope="col">Q2</th><th colspan="3" scope="col">Q3</th><th colspan="4" scope="col">Q4</th></tr><tr><td colspan="2">1月</td><td>2月</td><td>3月</td><td>4月</td><td>5月</td><td>6月</td><td>7月</td><td>8月</td><td>9月</td><td>10月</td><td>11月</td><td colspan="2">12月</td></tr><tr><td colspan="2">促销节点</td><td colspan="2"></td><td>情人节</td><td>Spring Sale</td><td></td><td></td><td></td><td>Prime Day</td><td>返校季</td><td></td><td>Prime Day</td><td>黑五</td><td colspan="2">圣诞</td></tr><tr><td>旗舰产品</td><td>5000+</td><td colspan="2">产品A： 价格，主要卖点，上市时间策略。</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>产品A1： 价格，主要卖点，上市时间策略。</td><td>，</td><td></td><td colspan="2"></td></tr><tr><td>轻奢产品</td><td>3000+</td><td colspan="2"></td><td></td><td></td><td>产品B： 价格，主要卖点，上市时间策略。</td><td></td><td></td><td></td><td></td><td>产品B1： 价格，主要卖点，上市时间策略</td><td>，</td><td></td><td colspan="2"></td></tr><tr><td>中端产品</td><td>2000+</td><td colspan="2"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td colspan="2"></td></tr><tr><td>精品</td><td>1000+</td><td colspan="2">产品C： 价格，主要卖点，上市时间策略</td><td></td><td></td><td></td><td></td><td>产品C1： 价格，主要卖点， 上市时间， 策略</td><td></td><td></td><td></td><td>产品C2： 价格，主要卖点， 上市时间， 策略</td><td></td><td colspan="2"></td></tr><tr><td>入门级</td><td>500+</td><td colspan="2"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td colspan="2"></td></tr><tr><td rowspan="2"></td><td rowspan="2"></td><td colspan="2" rowspan="2"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td colspan="2" rowspan="2"></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>性价比</td><td>200+</td><td></td><td></td><td>路标：</td><td>讲清楚产</td><td>“价格品</td><td>档</td><td>位、接</td><td>续关系</td><td>、新</td><td>老品切</td><td>换时间</td><td>”</td><td></td><td></td></tr><tr><td rowspan="2"></td><td rowspan="2"></td><td colspan="2" rowspan="2"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>走量款</td><td>100+</td><td colspan="2"></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td colspan="2"></td></tr></tbody></table></div><figure><a href="images/handbook-page-18.png" target="_blank" rel="noopener"><img src="images/handbook-page-18.png" alt="按价格带和促销节奏安排产品路标图表" width="2007" height="963" loading="lazy"></a><figcaption>按价格带和促销节奏安排产品路标 · 原资料第 18 页 · 点击查看大图</figcaption></figure></div></section><section class="handbook-topic" id="page-19"><h2>产品路标示例：理想汽车</h2><div class="prose"><p>举例：理想汽车产品路标管理</p><div class="table-scroll" role="region" tabindex="0" aria-label="产品路标示例：理想汽车表格1"><table><caption>产品路标示例：理想汽车</caption><tbody><tr><th scope="col"></th><th scope="col"></th><th colspan="5" scope="col">2022年</th><th colspan="6" scope="col">2023年</th><th scope="col"></th><th scope="col"></th></tr><tr><td>系列</td><td>价格段市场空间</td><td>8月</td><td>9月</td><td>10月</td><td>11月</td><td>12月</td><td>1月</td><td colspan="2">2月</td><td>…</td><td>23年8月</td><td>…</td><td>24年3月</td><td></td></tr><tr><td>Mega</td><td>XX万 XX辆</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>Mega 59.98万</td><td></td></tr><tr><td rowspan="2">L9</td><td></td><td>L9 Max 45.98万</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>L9 Pro 42.98万</td><td></td><td></td><td></td></tr><tr><td rowspan="3">L8</td><td></td><td></td><td></td><td></td><td>L8 Max 39.98</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td>L8 Pro 35.98</td><td></td><td></td><td></td><td>L7 Max 37.98</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>L8 Air 33.98</td><td>L7 Pro 33.98</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>L7</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>L7 Air 31.98</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>L6</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table></div><p>这是原手册中的历史产品路标示例，用于观察系列、价格段、上市时间与接续关系。</p><figure><a href="images/handbook-page-19.png" target="_blank" rel="noopener"><img src="images/handbook-page-19.png" alt="产品路标示例：理想汽车图表" width="2007" height="963" loading="lazy"></a><figcaption>产品路标示例：理想汽车 · 原资料第 19 页 · 点击查看大图</figcaption></figure></div></section><section class="handbook-topic" id="page-20"><h2>用路标安排上下市与资源准备</h2><div class="prose"><p>作战地图：（产品路标可以使新品上下市更为规范地运作）</p><p>老品什么时候退市：1）销售/毛利低于多少，开始启动退市；</p><p>2）启动退市，保证库存顺利清完，不亏钱，不滞库；</p><p>3）如何借助老品Listing热度，养新品Listing；</p><p>新品什么时候上市：1）运营、流量要在何时，完成哪些输出件；</p><p>2）供应链什么时候要确保货物发出，库存ready；</p><p>3）平销期如何通过较少投入“养肥”Listing，为大促积累热度；</p><p>规划地图：（产品路标可以让各部门有充分的时间，去做相应的准备动作）</p><p>预算制定：1）根据路标上的产品，规划财务预算（人力、运营、营销费用）；</p><p>后端准备：1）供应商采购；2）规划物流交付；3）规划接续产品</p><p>经验总结：（产品路标可以培养GTM的经验主义）</p><p>什么级别的节促，要打什么价格，拿什么打？什么产品，应该定什么价？</p></div></section><section class="handbook-topic" id="page-21"><h2>产品路标管理表示例</h2><div class="prose"><div class="table-scroll" role="region" tabindex="0" aria-label="产品路标管理表示例表格1"><table><caption>产品路标管理表示例</caption><tbody><tr><th scope="col"></th><th scope="col"></th><th colspan="3" scope="col">Q1</th><th colspan="3" scope="col">Q2</th><th colspan="3" scope="col">Q3</th><th colspan="3" scope="col">Q4</th></tr><tr><td>产品定位</td><td>价格段</td><td>1月</td><td>2月</td><td>3月</td><td>4月</td><td>5月</td><td>6月</td><td>7月</td><td>8月</td><td>9月</td><td>10月</td><td>11月</td><td>12月</td></tr><tr><td></td><td></td><td></td><td>情人节</td><td></td><td></td><td></td><td></td><td>Prime Day</td><td>返校季</td><td></td><td></td><td>黑五</td><td>圣诞</td></tr><tr><td>旗舰产品</td><td>5000+</td><td></td><td>产品A：价格，主要卖点，上市时间策略</td><td>，</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>轻奢产品</td><td>3000+</td><td></td><td></td><td></td><td>产品B：价格，主要卖点，上市时间， 策略</td><td></td><td></td><td></td><td></td><td>产品B：价格，主要卖点，上市时间，策略</td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>中端产品</td><td>2000+</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>腰部产品</td><td>1000+</td><td>产品C：价格，主要卖点，上市时间，策略</td><td></td><td></td><td></td><td></td><td>产品C：价格，主要卖点，上市时间策略</td><td>，</td><td></td><td></td><td>产品C：价格，主要卖点，上市时间，策略</td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>入门精品</td><td>500+</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>性价比款式</td><td>200+</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>走量款</td><td>100+</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table></div><figure><a href="images/handbook-page-21.png" target="_blank" rel="noopener"><img src="images/handbook-page-21.png" alt="产品路标管理表示例图表" width="2007" height="963" loading="lazy"></a><figcaption>产品路标管理表示例 · 原资料第 21 页 · 点击查看大图</figcaption></figure></div></section><section class="handbook-topic" id="page-22"><h2>竞争力分析与价值表达</h2><div class="prose"><p>竞争力分析需要把价格、规格参数与 ID 图／CMF 放在一起比较，再形成面向消费者的价值表达。手册中的示例包括“花得更少，买得更好”“年轻人的第一部互联网手机”，以及限定价格带内的功能卖点表达。</p><figure><a href="images/handbook-page-22.png" target="_blank" rel="noopener"><img src="images/handbook-page-22.png" alt="竞争力分析与价值表达图表" width="2007" height="963" loading="lazy"></a><figcaption>竞争力分析与价值表达 · 原资料第 22 页 · 点击查看大图</figcaption></figure></div></section><section class="handbook-topic" id="page-23"><h2>新品上市准备 Checklist</h2><div class="prose"><div class="table-scroll" role="region" tabindex="0" aria-label="新品上市准备 Checklist表格1"><table><caption>新品上市准备 Checklist</caption><tbody><tr><th scope="col">阶段</th><th scope="col">角色</th><th scope="col">活动名称</th><th scope="col">核心交付件</th><th scope="col">备注</th></tr><tr><td>1 - 规划与立项</td><td>GTM</td><td>市场洞察</td><td>输出市场洞察报告</td><td>包含不同国家市场大盘、渠道类型、价格段市场空间、竞品分布、 消费者购物习惯等信息。</td></tr><tr><td>1 - 规划与立项</td><td>GTM</td><td>沟通各国需求</td><td>输出产品需求清单</td><td>包含不同区域、重点国家针对产品、零售、营销的差异化需求， 针对竞品的应对策略。</td></tr><tr><td>1 - 规划与立项</td><td>GTM</td><td>输出产品生命周期销量预测</td><td>产品生命周期销量预测</td><td>早期销量预测，根据旧品历史销量数据，结合增长目标预测。</td></tr><tr><td>1 - 规划与立项</td><td>营销经理</td><td>调研消费者用户画像</td><td>用户画像</td><td>/</td></tr><tr><td>1 - 规划与立项</td><td>产品线-MO</td><td>调研消费者对产品功能卖点需求</td><td>/</td><td>/</td></tr><tr><td>1 - 规划与立项</td><td>电商经理</td><td>调研电商消费者需求</td><td>/</td><td>/</td></tr><tr><td>1 - 规划与立项</td><td>服务经理</td><td>收集服务需求</td><td>/</td><td>/</td></tr><tr><td>1 - 规划与立项</td><td>渠道经理</td><td>收集渠道反馈</td><td>/</td><td>/</td></tr><tr><td>1 - 规划与立项</td><td>财务经理</td><td>输出产品生命周期财务概算</td><td>产品生命周期财务概算</td><td>结合GTM给出的量价预测，以及成本经理给出的成本预测，进行概算。</td></tr><tr><td>1 - 规划与立项</td><td>GTM</td><td>召开区域PCT启动会（Kick Off）</td><td>项目维度：PCT成员名单、IPMS Checklist 产品维度：五点三包的预计输出时间</td><td>/</td></tr><tr><td>1 - 规划与立项</td><td>PCT团队</td><td>评审GR1</td><td>评审结论</td><td>/</td></tr><tr><td>1 - 规划与立项</td><td>IPMS-MT委员</td><td>决策CDCP</td><td>决策结论</td><td>/</td></tr><tr><td>2 - 拓展准备</td><td>产品线-MO</td><td>提供产品功能卖点概述</td><td>产品功能卖点概述</td><td>/</td></tr><tr><td>2 - 拓展准备</td><td>GTM</td><td>制定区域产品上市策略纲要</td><td>区域产品上市策略纲要</td><td>产品介绍、竞争分析、BP任务分解</td></tr><tr><td>2 - 拓展准备</td><td>产品线-MO</td><td>提供产品具体功能卖点及技术支撑点</td><td>产品功能卖点及技术支撑点</td><td>/</td></tr><tr><td>2 - 拓展准备</td><td>GTM</td><td>输出产品卖点排序及产品拓展材料初稿</td><td>产品卖点排序及产品拓展材料初稿</td><td>属于五点三包中的交付件</td></tr><tr><td>2 - 拓展准备</td><td>营销经理</td><td>制定营销策略纲要及营销预算</td><td>营销策略纲要及营销预算</td><td>/</td></tr></tbody></table></div><p><a href="source-03.html">打开完整 IPMS Checklist →</a></p><details class="source-proof"><summary>查看原表图示</summary><figure><a href="images/handbook-page-23.png" target="_blank" rel="noopener"><img src="images/handbook-page-23.png" alt="新品上市准备 Checklist图表" width="2007" height="963" loading="lazy"></a><figcaption>新品上市准备 Checklist · 原资料第 23 页 · 点击查看大图</figcaption></figure></details></div></section><section class="handbook-topic" id="page-28"><h2>新品首销复盘与关键指标</h2><div class="prose"><p>关键事件：从关键数据的异常中，定位操盘上市的过程中，出现的关键失误/成功点；</p><p>定位原因：根据时间，定位和判断失误、成功的原因。</p><p>不需要每个产品都管理得这么细，只选择每半年、每季度最重要的新品进行管理即可。</p><div class="table-scroll" role="region" tabindex="0" aria-label="新品首销复盘与关键指标表格1"><table><caption>新品首销复盘与关键指标</caption><tbody><tr><th colspan="2" scope="col">产品A生命周期关键指标监控</th><th colspan="4" scope="col">4周复盘（积累热度）</th><th colspan="4" scope="col">8周复盘（稳定销售）</th><th colspan="4" scope="col">12周复盘（总结打法）</th></tr><tr><td></td><td></td><td>W01</td><td>W02</td><td>W03</td><td>W04</td><td>W05</td><td>W06</td><td>W07</td><td>W08</td><td>W09</td><td>W10</td><td>W11</td><td>W12</td></tr><tr><td rowspan="4">库存周转</td><td>价格</td><td></td><td></td><td>400</td><td>400</td><td>400</td><td>400</td><td>349</td><td>339</td><td>339</td><td>339</td><td></td><td></td></tr><tr><td>销量</td><td></td><td></td><td>50</td><td></td><td></td><td></td><td>150</td><td>250</td><td>250</td><td>250</td><td></td><td></td></tr><tr><td>库存</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>周转（DOS）</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td rowspan="4">投放维度</td><td>投放额</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>曝光量</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>销额</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>转化率</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td rowspan="5">财务维度</td><td>价格</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>销量</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>销额</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>投入</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>实际利润</td><td></td><td></td><td>100</td><td>100</td><td>100</td><td>100</td><td>100</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td rowspan="4">竞品监控</td><td>价格</td><td></td><td>350</td><td>350</td><td>350</td><td>350</td><td>350</td><td>350</td><td>339</td><td>339</td><td>339</td><td></td><td></td></tr><tr><td>销量</td><td></td><td>100</td><td>100</td><td>100</td><td>100</td><td>100</td><td>100</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>库存</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>周转（DOS）</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody></table></div><details class="source-proof"><summary>查看原表图示</summary><figure><a href="images/handbook-page-28.png" target="_blank" rel="noopener"><img src="images/handbook-page-28.png" alt="新品首销复盘与关键指标图表" width="2007" height="963" loading="lazy"></a><figcaption>新品首销复盘与关键指标 · 原资料第 28 页 · 点击查看大图</figcaption></figure></details></div></section><section class="handbook-topic" id="page-29"><h2>销售、交付、采购的 PSI 逻辑</h2><div class="prose"><p>PSI：PSI是Purchase/Sell Out/Inventory的缩写，在华为GTM会通过PSI表来管理产品销售过程中的“偏差”，如：库存问题、周转问题、销售问题，找到关键指标存在问题后，立刻组织团队内部的同事，去找核心原因。举例：（库存偏高，找影响销量的原因，从流量、运营入手，查看Listing是否被竞争对手影响，找到关键因素后，进行整改。）</p><p>在实际amazon商品操盘过程中，需要捋清楚“销售、交付、采购”这三张表的逻辑。</p><p>1）PSI-销量：要看到以下关键信息：产品历史销量，当期销量，未来销量预估（作为交付、采购的重要输入）。GTM要做好销售预估，预估要充分考虑到我们自己安排的价促、平台统一规划的节促（如Prime Day、黑五、Spring Sale等）。</p><p>2）PSI-交付：要梳理清楚端到端库存，结合当期库存，根据GTM对于未来12周的销售预测，判断当期需要发货的数量。每周对重要产品的周转天数进行管理，在平台级大促前，需要确保库存万无一失地全部到FBA仓库。</p><p>3）PSI-采购：相比于销售和交付，采购需要看到更长期的需求量。采购表要根据当期库存，以及交付端提供的中长期需求数量，与供应商沟通下单计划。</p><p>打一个比喻，GTM做销售预测，要看清未来4周的销量，交付则要提前准备好8周库存，而采购则至少需12周来完成与供应商从采购。</p></div></section><section class="handbook-topic" id="page-30"><h2>进销存表的信息结构</h2><div class="prose"><div class="table-scroll" role="region" tabindex="0" aria-label="进销存表的信息结构表格1"><table><caption>进销存表的信息结构</caption><tbody><tr><th scope="col">产品信息</th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th></tr><tr><td colspan="10">产品信息</td></tr><tr><td>MSKU</td><td>FNSKU</td><td>店铺</td><td>国家（地区）</td><td>品名</td><td>SKU</td><td>标签</td><td>开售时间</td><td>开售天数</td><td>负责人</td></tr></tbody></table></div><div class="table-scroll" role="region" tabindex="0" aria-label="进销存表的信息结构表格2"><table><caption>进销存表的信息结构 · 表 2</caption><tbody><tr><th scope="col">销售</th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th></tr><tr><td colspan="5">实际销售数据（手动+公式）</td><td colspan="5">月度历史参考数据</td><td colspan="5">季度历史参考数据</td></tr><tr><td>日均销量</td><td>日均差异</td><td>趋势值（%）</td><td>日均趋势（%）</td><td>运营预估</td><td>全站点日销</td><td>3天日均 7</td><td>天日均</td><td>14天日均</td><td>30天日均</td><td>3月销量</td><td>4月销量</td><td>5月销量</td><td>趋势值</td><td>近3个月月度趋势</td></tr></tbody></table></div><div class="table-scroll" role="region" tabindex="0" aria-label="进销存表的信息结构表格3"><table><caption>进销存表的信息结构 · 表 3</caption><tbody><tr><th scope="col">库存</th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th></tr><tr><td colspan="4">端到端库存</td><td colspan="5">周转（公式）</td></tr><tr><td>海外仓库存</td><td>FBA在途</td><td>FBA库存</td><td>总库存</td><td>海外库存可售天数</td><td>FBA库存可售天数</td><td>海外库存可售天数</td><td>总库存可售天数（除待总备交付）</td><td>货库存可售天数</td></tr></tbody></table></div><div class="table-scroll" role="region" tabindex="0" aria-label="进销存表的信息结构表格4"><table><caption>进销存表的信息结构 · 表 4</caption><tbody><tr><th scope="col">采购</th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th><th scope="col"></th></tr><tr><td colspan="7">采购周期</td><td></td><td colspan="5">采购量</td></tr><tr><td>采购计划天数</td><td>采购交期</td><td>质检天数</td><td>本地仓至 FBA时效(海派)</td><td>安全天数</td><td>采购频率</td><td>总备货时长</td><td>总备货时长-缺口数</td><td>未来15天采购量</td><td>采购间隔时间</td><td>最近一次采购时间</td><td>近30天采购次数</td><td>最小起订量</td></tr></tbody></table></div><details class="source-proof"><summary>查看原表图示</summary><figure><a href="images/handbook-page-30.png" target="_blank" rel="noopener"><img src="images/handbook-page-30.png" alt="进销存表的信息结构图表" width="2007" height="963" loading="lazy"></a><figcaption>进销存表的信息结构 · 原资料第 30 页 · 点击查看大图</figcaption></figure></details></div></section><section class="handbook-topic" id="page-31"><h2>预测准确率与供销互锁</h2><div class="prose"><p>GTM如何管理好进销存表？</p><p>1、GTM应当综合各方面信息，做好销售预测，给交付（供应链）代表一个准确的输入；每个月月初，至少要刷新未来4周的销量预测，最好能更新未来8周的销量。</p><p>2、交付代表，需要审视GTM的预测准确率。例如，每个月月初，交付代表检查过去4周的预测准确度，发现实际销售量和GTM的预测量有20%的偏差（多了/或者少了），那么对于未来4-8周的预测销量，我不能按照GTM给的销售数100%地发货，我应该根据过去的预测准确率，对备货、发货的量进行调整。采购代表的采购量下单逻辑，同交付代表。</p><p>3、GTM应该组织好两个会议：SMR（Sales Management Review 销售复盘会） /计委会（计划委员会），SMR看的是销售预测的准确率，与供应链代表互锁交付量，计委会由GTM牵头，根据过去的历史销量和对未来一段时间的销售预测，与供应链和采购代表共同决策更长周期内的采购量。</p><details class="source-proof"><summary>查看原表图示</summary><figure><a href="images/handbook-page-31.png" target="_blank" rel="noopener"><img src="images/handbook-page-31.png" alt="预测准确率与供销互锁图表" width="2007" height="963" loading="lazy"></a><figcaption>预测准确率与供销互锁 · 原资料第 31 页 · 点击查看大图</figcaption></figure></details></div></section><section class="handbook-topic" id="page-32"><h2>短期价格与损益测算</h2><div class="prose"><p>短期测算：基于短期的竞争，测算某一价格对应的销毛</p><p>不同街价，对应的销毛和净利润；</p><p>当前成本下，产品生命周期最低能支撑做什么街价？</p><p>过程中，面对价格竞争，我们短期内可以做到什么价格？</p><div class="table-scroll" role="region" tabindex="0" aria-label="短期价格与损益测算表格1"><table><caption>短期价格与损益测算</caption><tbody><tr><th scope="col">产品</th><th scope="col">RRP</th><th scope="col">VAT</th><th scope="col">前向</th><th scope="col">后向</th><th scope="col">毛收入</th><th scope="col">营销费用</th><th scope="col">产品净收入</th><th scope="col">产品成本</th><th scope="col">销售毛利率</th><th scope="col">分摊费用</th><th scope="col">净利润</th><th scope="col">净利润率</th></tr><tr><td>产品A</td><td>999</td><td>20%</td><td>15%</td><td>10%</td><td>637</td><td>5%</td><td>605</td><td>500</td><td>21%</td><td>50</td><td>55</td><td>11%</td></tr><tr><td>产品A</td><td>949</td><td>20%</td><td>15%</td><td>10%</td><td>605</td><td>5%</td><td>575</td><td>500</td><td>15%</td><td>50</td><td>25</td><td>5%</td></tr><tr><td>产品A</td><td>899</td><td>20%</td><td>15%</td><td>10%</td><td>573</td><td>5%</td><td>544</td><td>500</td><td>9%</td><td>50</td><td>-6</td><td>-1%</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>产品B</td><td>699</td><td>20%</td><td>15%</td><td>10%</td><td>446</td><td>5%</td><td>423</td><td>300</td><td>41%</td><td>50</td><td>73</td><td>24%</td></tr><tr><td>产品B</td><td>599</td><td>20%</td><td>15%</td><td>10%</td><td>382</td><td>5%</td><td>363</td><td>300</td><td>21%</td><td>50</td><td>13</td><td>4%</td></tr><tr><td>产品B</td><td>549</td><td>20%</td><td>15%</td><td>10%</td><td>350</td><td>5%</td><td>332</td><td>300</td><td>11%</td><td>50</td><td>-18</td><td>-6%</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>产品C</td><td>499</td><td>20%</td><td>15%</td><td>10%</td><td>318</td><td>5%</td><td>302</td><td>200</td><td>51%</td><td>50</td><td>52</td><td>26%</td></tr><tr><td>产品C</td><td>449</td><td>20%</td><td>15%</td><td>10%</td><td>286</td><td>5%</td><td>272</td><td>200</td><td>36%</td><td>50</td><td>22</td><td>11%</td></tr><tr><td>产品C</td><td>399</td><td>20%</td><td>15%</td><td>10%</td><td>254</td><td>5%</td><td>242</td><td>200</td><td>21%</td><td>50</td><td>-8</td><td>-4%</td></tr></tbody></table></div><details class="source-proof"><summary>查看原表图示</summary><figure><a href="images/handbook-page-32.png" target="_blank" rel="noopener"><img src="images/handbook-page-32.png" alt="短期价格与损益测算图表" width="2007" height="963" loading="lazy"></a><figcaption>短期价格与损益测算 · 原资料第 32 页 · 点击查看大图</figcaption></figure></details></div></section><section class="handbook-topic" id="page-33"><h2>生命周期损益与预算</h2><div class="prose"><p>中长期测算：基于生命周期的价格策略，测算产品生命周期的销毛和利润</p><p>月度预算：测算周期可到周。例如：XX价格做10天，对应销量XX，销额XX；XX价格做5天，对应销量XX，销额XX；卷积成一个月的销毛，测算这个价格策略，对应的利润情况。</p><p>季度预算、半年度测算、年度测算也是同理。</p><div class="table-scroll" role="region" tabindex="0" aria-label="生命周期损益与预算表格1"><table><caption>生命周期损益与预算</caption><tbody><tr><th scope="col">产品</th><th scope="col">RRP</th><th scope="col">VAT</th><th scope="col">前向</th><th scope="col">后向</th><th scope="col">毛收入</th><th scope="col">营销费用</th><th scope="col">产品净收入</th><th scope="col">产品成本</th><th scope="col">销售毛利率</th><th scope="col">分摊费用</th><th scope="col">净利润</th><th scope="col">净利润率</th><th scope="col">销量</th><th scope="col">销额汇总</th><th scope="col">净利润汇总</th></tr><tr><td>产品A</td><td>999</td><td>20%</td><td>15%</td><td>10%</td><td>637</td><td>5%</td><td>605</td><td>500</td><td>21%</td><td>50</td><td>55</td><td>11%</td><td>400</td><td>242008</td><td>22008</td></tr><tr><td>产品A</td><td>869</td><td>20%</td><td>15%</td><td>10%</td><td>554</td><td>5%</td><td>526</td><td>500</td><td>5%</td><td>50</td><td>-24</td><td>-5%</td><td>600</td><td>315773</td><td>-14227</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>产品B</td><td>999</td><td>20%</td><td>15%</td><td>10%</td><td>637</td><td>5%</td><td>605</td><td>300</td><td>102%</td><td>50</td><td>255</td><td>85%</td><td>400</td><td>242008</td><td>102008</td></tr><tr><td>产品B</td><td>869</td><td>20%</td><td>15%</td><td>10%</td><td>554</td><td>5%</td><td>526</td><td>300</td><td>75%</td><td>50</td><td>176</td><td>59%</td><td>600</td><td>315773</td><td>105773</td></tr><tr><td>产品B</td><td>739</td><td>20%</td><td>15%</td><td>10%</td><td>471</td><td>5%</td><td>448</td><td>300</td><td>49%</td><td>50</td><td>98</td><td>33%</td><td>800</td><td>358046</td><td>78046</td></tr><tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>产品C</td><td>999</td><td>20%</td><td>15%</td><td>10%</td><td>637</td><td>5%</td><td>605</td><td>200</td><td>203%</td><td>50</td><td>355</td><td>178%</td><td>400</td><td>242008</td><td>142008</td></tr><tr><td>产品C</td><td>869</td><td>20%</td><td>15%</td><td>10%</td><td>554</td><td>5%</td><td>526</td><td>200</td><td>163%</td><td>50</td><td>276</td><td>138%</td><td>600</td><td>315773</td><td>165773</td></tr><tr><td>产品C</td><td>739</td><td>20%</td><td>15%</td><td>10%</td><td>471</td><td>5%</td><td>448</td><td>200</td><td>124%</td><td>50</td><td>198</td><td>99%</td><td>800</td><td>358046</td><td>158046</td></tr></tbody></table></div><details class="source-proof"><summary>查看原表图示</summary><figure><a href="images/handbook-page-33.png" target="_blank" rel="noopener"><img src="images/handbook-page-33.png" alt="生命周期损益与预算图表" width="2007" height="963" loading="lazy"></a><figcaption>生命周期损益与预算 · 原资料第 33 页 · 点击查看大图</figcaption></figure></details></div></section><nav class="pager" aria-label="前后章节"><a href="handbook-chapter-02.html">← 生命周期与 SOP</a><a href="handbook-chapter-04.html">市场与渠道洞察 →</a></nav></main></div><footer class="site-footer">GTM 操盘手册 · 原作者：晴子西西</footer></body></html>
