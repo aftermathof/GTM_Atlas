@@ -32,6 +32,9 @@ limitations:
 - 所列竞品的选取与均值范围不统一，品牌溢价率缺少估计方法。
 - 评分中含价格，再反推价格存在循环计量问题，不能称为公允价值模型。
 - 已核对第4至7张关键原图，OCR有符号与数字错误，以上矛盾由视觉确认，并非仅OCR问题。
+author_collection_id: xhs-5c034bb50000000007017333
+author_collection_title: 地球超市薯达人-GTM
+source_author_id: 5c034bb50000000007017333
 ---
 # GTM屡试不爽的“竞品对标”模版
 

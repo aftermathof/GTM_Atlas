@@ -29,9 +29,12 @@ limitations:
 - 图片3、4为备忘录截图，未展示完整术语体系或上下文。
 - 作者个人经验及方法效果未经独立核验，不代表企业统一制度或通用岗位标准。
 - 本篇为独立研究整理，不是原帖逐字全文；未读取评论，未处理视频。
-content_notice: 基于公开图文的原创研究整理，作者观点与效果未经独立核验；非原帖逐字转载。
+content_notice: ''
 collection: 地球超市薯达人-GTM 图文补充 2026-10-27
 source_file_sha256: 6024f641986a8ef00dfae38fbca287839d06c54bf7cee6b6f064c6dabd8950b7
+author_collection_id: xhs-5c034bb50000000007017333
+author_collection_title: 地球超市薯达人-GTM
+source_author_id: 5c034bb50000000007017333
 ---
 # 为什么 GTM 在过零售指标时要看「上架率」？
 
@@ -73,19 +76,3 @@ source_file_sha256: 6024f641986a8ef00dfae38fbca287839d06c54bf7cee6b6f064c6dabd89
 ![原帖图4：为什么 GTM 在过零售指标时要看「上架率」？](/xhs-author-assets/ce14f56a9230b80800e8ec42.webp)
 
 图4补充信息：列出第1至15项术语，包括Kick off meeting、GPR、BP、Portfolio、Flash sale、Allocation、AATP、Pricing、Purchase order、Shipment、Sell In、Sell Through、Sell Out、PSI、Stock。
-
-## 整理者建议
-
-以下为整理者建议，不是作者原话或经验证的业务结果。
-
-- 可把上架率与Sell Out、PSI、DOS等指标组合成渠道健康度观察框架，但需补充数据来源与统计周期。
-- 术语清单适合作为团队内部对齐用词，实际使用时应结合具体渠道口径确认定义。
-
-## 阅读边界与核对说明
-
-- 图片核对：共 4 张；保留 2 张，正文或图片重复 2 张，无关 0 张，无法辨认 0 张。
-- 上架率示例为作者自述的说明性案例，未提供渠道数据来源或核验信息。
-- 术语清单仅列名称与中文释义，未展开各指标的计算口径和适用场景。
-- 图片3、4为备忘录截图，未展示完整术语体系或上下文。
-- 作者个人经验及方法效果未经独立核验，不代表企业统一制度或通用岗位标准。
-- 本篇为独立研究整理，不是原帖逐字全文；未读取评论，未处理视频。

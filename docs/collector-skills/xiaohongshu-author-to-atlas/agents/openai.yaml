@@ -1,0 +1,4 @@
+interface:
+  display_name: "小红书博主图文入库"
+  short_description: "指定博主全量图文、增量去重、图片筛选与 GTM Atlas 入库验收"
+  default_prompt: "使用 $xiaohongshu-author-to-atlas 采集指定博主的公开图文，跳过已有来源，将独立研究笔记和有增量信息的相关图片接入 GTM Atlas。"

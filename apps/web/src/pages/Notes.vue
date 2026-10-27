@@ -7,6 +7,8 @@ import Markdown from '../components/Markdown.vue'
 import ChatPanel from '../components/ChatPanel.vue'
 import NoteEditor from '../components/NoteEditor.vue'
 import NoteMark from '../components/NoteMark.vue'
+import CardPagination from '../components/CardPagination.vue'
+import { cardPage } from '../resourceGallery'
 import { warmNote } from '../preload'
 import { cachedNotes, cachedNote, fetchNotes, fetchNote, cacheSavedNote, deleteNote, forgetNote, type Note } from '../notesStore'
 
@@ -55,6 +57,11 @@ const editing = computed(() => !!id.value)
 const dirty = computed(() => editing.value && JSON.stringify([title.value, body.value]) !== original.value)
 const words = computed(() => body.value.replace(/\s/g, '').length)
 const numbers = computed(() => new Map([...cards.value].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)).map((card, index) => [card.id, 'N' + String(index + 1).padStart(2, '0')])))
+const pagination = computed(() => cardPage(cards.value, route.query.page))
+async function changePage(page: number) {
+  await router.replace({query: {...route.query, page: String(page)}})
+  await nextTick(); document.querySelector('.collection-line')?.scrollIntoView({block:'start'})
+}
 const date = (value: string) => new Date(value).toLocaleString('zh-CN', {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false})
 let generation = 0
 async function load() {
@@ -127,8 +134,9 @@ function keydown(event: KeyboardEvent) {
       <div class="collection-line"><span>我的笔记 <b>{{ cards.length.toString().padStart(2, '0') }}</b></span><span>仅自己可见 · AI 可参考已保存内容</span></div>
       <p v-if="loading" class="note-message" role="status">正在整理你的笔记…</p>
       <p v-if="error" class="error" role="alert">{{ error }} <button @click="load">重新加载</button></p>
-      <div v-if="!loading && cards.length" class="note-grid"><article v-for="card in cards" :key="card.id" class="note-card"><RouterLink :to="'/notes/' + card.id" class="note-card-link" @mouseenter="warmNote(card.id,true)" @focus="warmNote(card.id,true)"><div class="note-cover"><span class="eyebrow">LEARNING NOTES</span><NoteMark/><span class="note-number">{{ numbers.get(card.id) }}</span></div><div class="note-card-content"><h2>{{ card.title }}</h2><div class="note-card-footer"><time :datetime="card.updated_at">{{ date(card.updated_at) }}</time><ArrowUpRight :size="18" aria-hidden="true"/></div></div></RouterLink><button class="note-card-delete" :aria-label="'删除笔记：'+card.title" @click="requestDelete(card,$event)"><Trash2 :size="14"/>删除</button></article></div>
+      <div v-if="!loading && cards.length" class="note-grid"><article v-for="card in pagination.items" :key="card.id" class="note-card"><RouterLink :to="'/notes/' + card.id" class="note-card-link" @mouseenter="warmNote(card.id,true)" @focus="warmNote(card.id,true)"><div class="note-cover"><span class="eyebrow">LEARNING NOTES</span><NoteMark/><span class="note-number">{{ numbers.get(card.id) }}</span></div><div class="note-card-content"><h2>{{ card.title }}</h2><div class="note-card-footer"><time :datetime="card.updated_at">{{ date(card.updated_at) }}</time><ArrowUpRight :size="18" aria-hidden="true"/></div></div></RouterLink><button class="note-card-delete" :aria-label="'删除笔记：'+card.title" @click="requestDelete(card,$event)"><Trash2 :size="14"/>删除</button></article></div>
       <div v-else-if="!loading && !error" class="notes-empty"><BookOpen :size="34" :stroke-width="1"/><h2>留一页，给新的理解。</h2><p>从一次学习、一个想法，或一场复盘开始。</p><RouterLink to="/notes/new" class="text-link">写下第一篇笔记 <ArrowUpRight :size="15"/></RouterLink></div>
+      <CardPagination v-if="!loading" :page="pagination.page" :pages="pagination.pages" :total="pagination.total" @change="changePage"/>
     </template>
     <template v-else>
       <div class="editor-top"><RouterLink to="/notes" class="back-link"><ArrowLeft :size="15"/>全部笔记</RouterLink><div class="note-actions"><span class="save-status" role="status">{{ saving ? '正在保存…' : dirty ? '有未保存的修改' : note ? '已保存 · ' + date(note.updated_at) : '新笔记' }}</span><button v-if="note" class="icon-button" aria-label="删除笔记" :disabled="saving || loading" @click="remove"><Trash2 :size="17"/></button><button class="button primary" :disabled="saving || loading || !title.trim() || (!!note && !dirty)" @click="save"><Save :size="16"/>保存笔记</button></div></div>

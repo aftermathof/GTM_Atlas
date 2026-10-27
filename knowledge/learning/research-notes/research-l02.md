@@ -31,6 +31,9 @@ limitations:
 - 图片多为其他帖子的概览截图，未呈现的脑图分支或Excel文件内容没有补写。
 - KPI权重、岗位首责及生命周期划分因公司而异，不应直接照搬。
 - 已核对节点和生命周期原图；所谓PDCP节点未见定义，本笔记没有擅自扩展。
+author_collection_id: xhs-5c034bb50000000007017333
+author_collection_title: 地球超市薯达人-GTM
+source_author_id: 5c034bb50000000007017333
 ---
 # GTM 经理核心能力总结
 
