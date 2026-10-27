@@ -8,6 +8,7 @@ import Career from './pages/Career.vue'
 import Utility from './pages/Utility.vue'
 import Glossary from './pages/Glossary.vue'
 import EmailConfirmed from './pages/EmailConfirmed.vue'
+import Notes from './pages/Notes.vue'
 import { installAuthGuard } from './authNavigation'
 import './style.css'
 
@@ -19,7 +20,7 @@ const router = createRouter({ history: createWebHistory(), scrollBehavior: (to, 
   { path: '/', component: Home },
   { path: '/auth/confirmed', component: EmailConfirmed },
   { path: '/glossary', component: Glossary },
-  { path: '/notes/:id?', component: () => import('./pages/Notes.vue') },
+  { path: '/notes/:id?', component: Notes },
   { path: '/learn/:slug?', component: Learn },
   { path: '/library', redirect: '/learn' },
   { path: '/jobs', redirect: '/interviews?kind=jd' },

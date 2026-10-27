@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ArrowUpRight, Plus, ArrowLeft, Save, Trash2, BookOpen, Bold, Italic, Heading2, List, Code2, Link, Quote, Pencil, Eye } from 'lucide-vue-next'
 import { api, state } from '../state'
 import Markdown from '../components/Markdown.vue'
 import ChatPanel from '../components/ChatPanel.vue'
-import NoteEditor from '../components/NoteEditor.vue'
+import type NoteEditorType from '../components/NoteEditor.vue'
+import LoadingState from '../components/LoadingState.vue'
+const NoteEditor=defineAsyncComponent({loader:()=>import('../components/NoteEditor.vue'),loadingComponent:LoadingState,delay:0})
 import NoteMark from '../components/NoteMark.vue'
 import CardPagination from '../components/CardPagination.vue'
 import { cardPage } from '../resourceGallery'
@@ -16,7 +18,7 @@ const route = useRoute(), router = useRouter()
 const cards = ref<Note[]>([]), note = ref<Note | null>(null)
 const title = ref(''), body = ref(''), original = ref(''), error = ref(''), loading = ref(false), saving = ref(false)
 const mode = ref<'live' | 'edit' | 'preview'>('live'), showAI = ref(false)
-const editor = ref<InstanceType<typeof NoteEditor>>()
+const editor = ref<InstanceType<typeof NoteEditorType>>()
 const pendingDelete = ref<Note | null>(null), deleting = ref(false), deleteError = ref(''), cancelDelete = ref<HTMLButtonElement>()
 const deleteDialog = ref<HTMLElement>()
 let deleteTrigger: HTMLElement | undefined
