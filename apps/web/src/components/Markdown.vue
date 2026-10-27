@@ -31,6 +31,7 @@ onMounted(render); onUpdated(render)
 </script>
 <template><div ref="host" class="prose" @click="followCitation" v-html="html"></div></template>
 <style scoped>
+.prose :deep(img){display:block;max-width:100%;height:auto;margin:24px auto}
 .prose :deep(.inline-citation){display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;margin:0 3px;padding:0 6px;border-radius:6px;background:var(--gray);color:var(--muted);font:11px/1 var(--sans);text-decoration:none;vertical-align:super;white-space:nowrap}
 .prose :deep(.inline-citation:hover),.prose :deep(.inline-citation:focus-visible){color:var(--blue);background:#2446eb0d;outline:1px solid currentColor;outline-offset:2px}
 </style>

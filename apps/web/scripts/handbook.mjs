@@ -19,7 +19,12 @@ for (const fullPath of await files(root)) {
   const id = content.match(/^id: ([\w-]+)$/m)?.[1]
   if (!id) throw new Error('Knowledge document requires a safe unique id')
   const file = id+'.md'
-  await writeFile(path.join('handbook/articles', file), content)
+  // Reuse the workbench's shared public images without importing a second asset copy.
+  const page = content.replace(/!\[([^\]]*)\]\((\/xhs-author-assets\/[a-f0-9]{24}\.(?:webp|png|jpg))\)/g, (_, alt, src) => {
+    const label = alt.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    return `<img :src="'${src}'" alt="${label}" loading="lazy">`
+  })
+  await writeFile(path.join('handbook/articles', file), page)
   generated.push(file)
   const title = content.match(/^# (.+)$/m)?.[1] || file
   links.push(`- [${title}](./articles/${file.replace('.md', '')})`)

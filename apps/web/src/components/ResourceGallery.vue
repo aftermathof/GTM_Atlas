@@ -22,9 +22,17 @@ async function load(){
   const own=++generation, queryString=new URLSearchParams({limit:'100',q:query.value,role:state.context.role,industry:state.context.industry}).toString()
   error.value=''
   const cached=peekKnowledge('/knowledge/documents?'+queryString)
-  if(cached){items.value=cached.items;busy.value=false;return}
+  if(cached && cached.items.length>=cached.total){items.value=cached.items;busy.value=false;return}
   busy.value=true
-  try{const r=await knowledgeDocuments(queryString);if(own===generation)items.value=r.items}
+  try{
+    const r=cached || await knowledgeDocuments(queryString), rows=[...r.items]
+    for(let offset=100;offset<r.total;offset+=100){
+      if(own!==generation)return
+      const page=await knowledgeDocuments(queryString+'&offset='+offset)
+      rows.push(...page.items)
+    }
+    if(own===generation)items.value=rows
+  }
   catch(e:any){if(own===generation)error.value=e.message}
   finally{if(own===generation)busy.value=false}
 }

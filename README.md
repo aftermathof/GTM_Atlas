@@ -58,7 +58,7 @@ GTM 概览已从前端的 `public` 目录移到知识资料区；网页地址仍
 
 面经统一在 `/interviews` 的「面经与 Mock」中展示。JD、面经、在职经验共用文章目录和正文阅读布局；资料卡片不展示预计阅读时长。
 
-目前正式 Markdown 知识库包含 **10 份岗位 JD、30 篇面经研究笔记和 30 篇学习/在职经验笔记**。三类资料均使用 `research-notes/research-jNN.md`、`research-iNN.md`、`research-lNN.md` 单篇结构；JD 直接匹配与相关职能扩展的边界保留在各单篇中。研究笔记不等于原帖逐字全文，也不代表企业官方结论。合成资料仅保留在 `tests/fixtures/`，不进入正式知识库。
+目前正式 Markdown 知识库包含 **10 份岗位 JD、30 篇面经研究笔记和 167 篇学习/在职经验笔记**。本轮新增「地球超市薯达人-GTM」137 篇公开图文的独立研究整理（L31—L167），已跳过原有10篇及26篇视频；保留428张与GTM相关且补充正文信息的图片，图片维护于 `knowledge/site/xhs-author-assets/`，非GTM主题随笔已标明阅读边界。三类资料均使用 `research-notes/research-jNN.md`、`research-iNN.md`、`research-lNN.md` 单篇结构；JD 直接匹配与相关职能扩展的边界保留在各单篇中。研究笔记不等于原帖逐字全文，也不代表企业官方结论。合成资料仅保留在 `tests/fixtures/`，不进入正式知识库。
 
 ### 学习笔记
 
