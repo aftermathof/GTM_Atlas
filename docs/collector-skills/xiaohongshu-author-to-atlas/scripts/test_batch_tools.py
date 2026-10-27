@@ -166,6 +166,41 @@ class BatchTests(unittest.TestCase):
         self.original.write_text(self.original.read_text(encoding='utf-8').replace('https://www.xiaohongshu.com/explore/', 'https://example.org/'), encoding='utf-8')
         self.assertEqual(scan_project(self.project)['existing_xhs_ids'], [])
 
+    def concise_note(self):
+        file = self.batch / 'notes/research-l08.md'
+        raw = file.read_text(encoding='utf-8')
+        raw = raw.replace('## 阅读边界与核对说明\n\n作者自述未独立核实。\n', '')
+        parts = raw.split('---', 2)
+        meta = yaml.safe_load(parts[1])
+        meta.update(content_notice='', source_author_id='c' * 24,
+                    author_collection_id='xhs-' + 'c' * 24, author_collection_title='示例博主')
+        file.write_text('---\n' + yaml.safe_dump(meta, allow_unicode=True) + '---' + parts[2], encoding='utf-8')
+        self.manifest.update(content_format='concise', author_profile_id='c' * 24, author_collection_id='xhs-' + 'c' * 24)
+        self.write_manifest()
+        return file
+
+    def test_concise_notes_allow_two_sections_without_notice(self):
+        self.concise_note()
+        self.assertEqual(validate_batch(self.batch, self.project)['errors'], [])
+
+    def test_concise_notes_reject_removed_sections(self):
+        file = self.concise_note()
+        for heading in ['整理者建议', '阅读边界与核对说明']:
+            original = file.read_text(encoding='utf-8')
+            file.write_text(original + '\n## ' + heading + '\n不应显示。\n', encoding='utf-8')
+            self.assertTrue(validate_batch(self.batch)['errors'])
+            file.write_text(original, encoding='utf-8')
+
+    def test_concise_notes_reject_notice_banner_content(self):
+        file = self.concise_note()
+        file.write_text(file.read_text(encoding='utf-8').replace("content_notice: ''", 'content_notice: 多余提示条'), encoding='utf-8')
+        self.assertTrue(validate_batch(self.batch)['errors'])
+
+    def test_concise_notes_require_matching_collection_identity(self):
+        file = self.concise_note()
+        file.write_text(file.read_text(encoding='utf-8').replace('author_collection_id: xhs-' + 'c' * 24, 'author_collection_id: another-author'), encoding='utf-8')
+        self.assertTrue(validate_batch(self.batch)['errors'])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -24,7 +24,7 @@ export const state = reactive({
   roles: [] as any[], industries: [] as any[], health: null as any,
   assistant: false, assistantBusy: false, assistantRequest: null as { question: string } | null,
   scope: 'global', documentId: '', careerId: '', notice: '', historyRevision: 0,
-  notesRevision: 0, notesDeleteError: ''
+  notesRevision: 0, notesDeleteError: '', knowledgeRevision: 0
 })
 
 export function saveSession(value: any, renewal=false) {
@@ -47,6 +47,7 @@ export function clearSession() {
 }
 
 window.addEventListener('storage', event => {
+  if(event.storageArea===localStorage && event.key==='atlas-knowledge-revision'){knowledgeCache.clear();state.knowledgeRevision++;return}
   if (event.storageArea !== localStorage || (event.key !== 'atlas-token' && event.key !== null)) return
   sessionGeneration++
   deletedHistory.clear()
@@ -223,11 +224,11 @@ export async function deleteHistoryRecord(item: {id:string;kind:string}) {
 }
 
 function prime(cache: Map<string,CachedResult>, path: string, value: any) {
-  cache.set(state.token+'\n'+path,{expires:Infinity,value,pending:Promise.resolve(value)})
+  cache.set(state.token+'\n'+path,{expires:cache===knowledgeCache?Date.now()+30000:Infinity,value,pending:Promise.resolve(value)})
 }
 export async function preloadDocuments() {
   const path='/knowledge/preload', key=state.token+'\n'+path
-  const pending=cachedList(path,Infinity,knowledgeCache), entry=knowledgeCache.get(key)
+  const pending=cachedList(path,30000,knowledgeCache), entry=knowledgeCache.get(key)
   const result=await pending
   if(knowledgeCache.get(key)!==entry)return
   for(const document of result.items) prime(knowledgeCache,'/knowledge/documents/'+encodeURIComponent(document.id),document)
@@ -272,10 +273,22 @@ async function cachedList(path: string, ttl: number, cache = listCache) {
   }
 }
 
-export function knowledgeDocuments(query: string) { return cachedList('/knowledge/documents?' + query, Infinity, knowledgeCache) }
-export function knowledgeDocument(id: string) { return cachedList('/knowledge/documents/' + encodeURIComponent(id), Infinity, knowledgeCache) }
-export function peekKnowledge(path: string) { return knowledgeCache.get(state.token + '\n' + path)?.value }
+export function knowledgeDocuments(query: string) { return cachedList('/knowledge/documents?' + query, 30000, knowledgeCache) }
+export function knowledgeDocument(id: string) { return cachedList('/knowledge/documents/' + encodeURIComponent(id), 30000, knowledgeCache) }
+export function peekKnowledge(path: string) { const cached=knowledgeCache.get(state.token + '\n' + path);return cached && cached.expires>Date.now()?cached.value:undefined }
 export function refreshKnowledge() { knowledgeCache.clear() }
+function knowledgeChanged(){
+  refreshKnowledge();state.knowledgeRevision++
+  localStorage.setItem('atlas-knowledge-revision',crypto.randomUUID())
+}
+export async function editKnowledgeDocument(id:string, data:{title:string;excerpt:string;body:string;expected_sha256:string}){
+  try{const result=await api('/knowledge/documents/'+encodeURIComponent(id),{method:'PUT',body:JSON.stringify(data)});knowledgeChanged();return result}
+  catch(error){refreshKnowledge();throw error}
+}
+export async function deleteKnowledgeDocument(id:string, expected:string){
+  try{await api('/knowledge/documents/'+encodeURIComponent(id)+'?expected_sha256='+encodeURIComponent(expected),{method:'DELETE'});knowledgeChanged()}
+  catch(error){refreshKnowledge();throw error}
+}
 export async function historyRecords() { return decorateHistory((await api('/history')).filter((row:any)=>!isHistoryDeleted(row.id))) }
 export function peekHistoryRecords() {
   const rows = peekHistory('/history')

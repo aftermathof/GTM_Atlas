@@ -21,6 +21,7 @@ from services.api.routes_mock import router as mock_router
 from services.api.routes_career import router as career_router
 from services.api.routes_auth import router as auth_router
 from services.api.routes_notes import router as notes_router
+from services.api.routes_knowledge_management import router as knowledge_management_router
 from packages.rag.knowledge import ingest
 from packages.agent_core.registry import catalog, skills
 from packages.agent_core.providers import LLMProvider
@@ -196,7 +197,7 @@ def create_app(url=None):
     def registry():
         return [{k: v for k, v in s.items() if k != "instructions"} for s in skills()]
 
-    for router in [knowledge_router, mock_router, career_router, auth_router, notes_router]:
+    for router in [knowledge_router, mock_router, career_router, auth_router, notes_router, knowledge_management_router]:
         app.include_router(router)
     from services.api.config import ROOT
     from fastapi.responses import FileResponse

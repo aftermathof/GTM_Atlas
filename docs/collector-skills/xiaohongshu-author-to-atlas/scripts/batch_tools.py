@@ -129,6 +129,13 @@ def validate_batch(batch, project=None, published=False):
     prefix = manifest.get('asset_url_prefix', '/xhs-author-assets/')
     if not re.fullmatch(r'/[A-Za-z0-9_/-]+/', prefix) or '..' in prefix:
         errors.append('invalid asset_url_prefix')
+    content_format = manifest.get('content_format', 'legacy')
+    if content_format not in {'legacy', 'concise'}:
+        errors.append('unknown content_format')
+    if content_format == 'concise':
+        profile_id = str(manifest.get('author_profile_id', ''))
+        if not ID.fullmatch(profile_id) or manifest.get('author_collection_id') != 'xhs-' + profile_id:
+            errors.append('missing or invalid author collection identity')
     posts = manifest.get('posts', [])
     allowed = {'staged', 'existing_skipped', 'video_skipped', 'excluded', 'failed', 'pending'}
     for post in posts:
@@ -174,7 +181,19 @@ def validate_batch(batch, project=None, published=False):
                 raise ValueError('metadata lists are not lists')
             if not str(meta['excerpt']).strip() or len(re.findall(r'^# ', body, re.M)) != 1:
                 raise ValueError('missing summary or invalid top-level heading count')
-            for heading in ['## 内容概述', '## 来源内容整理', '## 阅读边界与核对说明']:
+            headings = ['## 内容概述', '## 来源内容整理']
+            if content_format == 'legacy':
+                headings.append('## 阅读边界与核对说明')
+            else:
+                if str(meta['content_notice'] or '').strip():
+                    raise ValueError('concise content must not include a notice banner')
+                if re.search(r'^#{1,6}\s+(?:整理者建议|阅读边界与核对说明)\s*$', body, re.M):
+                    raise ValueError('concise content contains a removed section')
+                if (str(meta.get('source_author_id', '')) != str(manifest.get('author_profile_id', ''))
+                        or meta.get('author_collection_id') != manifest.get('author_collection_id')
+                        or not str(meta.get('author_collection_title') or '').strip()):
+                    raise ValueError('missing or inconsistent author collection metadata')
+            for heading in headings:
                 if heading not in body:
                     raise ValueError('missing required body section')
             if TOKEN.search(raw):

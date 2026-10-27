@@ -184,5 +184,5 @@ async def transcribe(request: Request, file: UploadFile = File(...), language_hi
 def reindex(request: Request, user=Depends(current_user)):
     if user.email != os.getenv("ADMIN_EMAIL"):
         raise HTTPException(403, "需要管理员权限")
-    with request.app.state.db() as db:
+    with request.app.state.mutation_lock, request.app.state.db() as db:
         return ingest(db)

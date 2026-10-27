@@ -7,10 +7,11 @@ from pathlib import Path
 import yaml
 from sqlalchemy import select, delete, text
 from sqlalchemy.orm import load_only, defer
-from services.api.db import Document, Chunk
+from services.api.db import Document, Chunk, Record
 from services.api.config import ROOT
 from packages.agent_core.providers import EmbeddingProvider
 from packages.rag.reference_sources import reference_documents
+from packages.rag.managed_knowledge import editable_learning, managed_source
 
 # MVP deliberately indexes only public_display. Other licenses require separate grants.
 PUBLIC = "public_display"
@@ -20,6 +21,33 @@ def terms(value):
     english = re.findall(r"[a-z0-9&]+", value.lower())
     chinese = re.findall(r"[\u4e00-\u9fff]+", value)
     return english + [word[i:i + 2] for word in chinese for i in range(max(1, len(word) - 1))]
+
+
+def index_document(db, did, meta, body, path, digest, provider=None):
+    provider = provider if provider is not None else EmbeddingProvider()
+    old = db.get(Document, did)
+    embedding_model = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small") if provider.enabled else None
+    sections = re.split(r"(?m)^(?=#{1,3} )", body)
+    units = []
+    for section in sections:
+        if not section.strip():
+            continue
+        heading = section.splitlines()[0].lstrip("# ")
+        for start in range(0, len(section), 1800):
+            units.append((heading, section[start:start + 1800]))
+    embeddings = provider.embed([u[1] for u in units]) if provider.enabled else [None] * len(units)
+    if len(embeddings) != len(units):
+        raise ValueError("Incomplete embeddings")
+    db.execute(delete(Chunk).where(Chunk.doc_id == did))
+    meta = {k: str(v) if hasattr(v, "isoformat") else v for k, v in meta.items()}
+    document = old or Document(id=did)
+    document.title, document.kind, document.body = str(meta["title"]), meta["kind"], body
+    document.meta, document.sha256, document.path = meta, digest, path
+    db.add(document)
+    db.flush()
+    for index, ((heading, content), vector) in enumerate(zip(units, embeddings)):
+        db.add(Chunk(id=f"{did}:{index}", doc_id=did, heading=heading, body=content, embedding=vector, embedding_model=embedding_model))
+    return document
 
 
 def ingest(db, root=None, reference_root=None):
@@ -36,6 +64,8 @@ def ingest(db, root=None, reference_root=None):
         sources.append((file.relative_to(root).as_posix(), file.read_text(encoding="utf-8")))
     if reference_root is not None:
         sources.extend(reference_documents(reference_root))
+    overrides = {row.data['document_id']: row.data for row in db.scalars(
+        select(Record).where(Record.kind == 'knowledge_override'))}
     for path, raw in sources:
         pieces = raw.split("---", 2)
         if len(pieces) != 3 or pieces[0].strip():
@@ -57,6 +87,14 @@ def ingest(db, root=None, reference_root=None):
             continue
         body = pieces[2].strip()
         digest = hashlib.sha256(raw.encode()).hexdigest()
+        change = overrides.get(did) if editable_learning(meta) else None
+        if change and change.get('deleted'):
+            db.execute(delete(Chunk).where(Chunk.doc_id == did))
+            db.execute(delete(Document).where(Document.id == did))
+            report['skipped'] += 1
+            continue
+        if change:
+            meta, body, digest = managed_source(meta, change)
         body_hash = hashlib.sha256(body.encode()).hexdigest()
         if body_hash in hashes:
             raise ValueError("Duplicate document content")
@@ -67,25 +105,7 @@ def ingest(db, root=None, reference_root=None):
         if old and old.sha256 == digest and old_chunk and old_chunk.embedding_model == embedding_model:
             old.path = path
             continue
-        db.execute(delete(Chunk).where(Chunk.doc_id == did))
-        # Convert YAML date scalars to JSON-safe values.
-        meta = {k: str(v) if hasattr(v, "isoformat") else v for k, v in meta.items()}
-        document = old or Document(id=did)
-        document.title, document.kind, document.body = str(meta["title"]), meta["kind"], body
-        document.meta, document.sha256, document.path = meta, digest, path
-        db.add(document)
-        db.flush()
-        sections = re.split(r"(?m)^(?=#{1,3} )", body)
-        units = []
-        for section in sections:
-            if not section.strip():
-                continue
-            heading = section.splitlines()[0].lstrip("# ")
-            for start in range(0, len(section), 1800):
-                units.append((heading, section[start:start + 1800]))
-        embeddings = provider.embed([u[1] for u in units]) if provider.enabled else [None] * len(units)
-        for index, ((heading, content), vector) in enumerate(zip(units, embeddings)):
-            db.add(Chunk(id=f"{did}:{index}", doc_id=did, heading=heading, body=content, embedding=vector, embedding_model=embedding_model))
+        index_document(db, did, meta, body, path, digest, provider)
         report["indexed"] += 1
     for old in db.scalars(select(Document)).all():
         if old.id not in found:

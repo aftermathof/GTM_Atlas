@@ -7,6 +7,7 @@ export type ResourceCard = {
   private?: boolean
   folder?: boolean
   postCount?: number
+  displayNumber?: number
 }
 
 export function cardPage<T>(items: T[], requested: unknown) {
@@ -19,9 +20,10 @@ export function cardPage<T>(items: T[], requested: unknown) {
 export function galleryCards(items: ResourceCard[]): ResourceCard[] {
   const folders = new Map<string, ResourceCard>()
   const cards: ResourceCard[] = []
+  let number = 0
   for (const item of items) {
     const key = item.kind === 'learning' && item.meta.author_collection_id
-    if (!key) { cards.push(item); continue }
+    if (!key) { cards.push({...item, displayNumber: ++number}); continue }
     let folder = folders.get(key)
     if (!folder) {
       folder = {
@@ -34,7 +36,7 @@ export function galleryCards(items: ResourceCard[]): ResourceCard[] {
     }
     folder.postCount!++
   }
-  return cards
+  return [...cards.filter(item => item.folder), ...cards.filter(item => !item.folder)]
 }
 
 function postTime(item: ResourceCard) {
@@ -50,4 +52,15 @@ function postTime(item: ResourceCard) {
 
 export function oldestFirst(items: ResourceCard[]) {
   return [...items].sort((a, b) => postTime(a) - postTime(b) || a.id.localeCompare(b.id, 'zh-CN', { numeric: true }))
+}
+
+
+export function collectionCards(items: ResourceCard[]) {
+  return oldestFirst(items).map((item, index) => ({...item, displayNumber: index + 1}))
+}
+
+export function pageToJump(value: string, pages: number): number | null {
+  if (!/^\d+$/.test(value.trim())) return null
+  const page = Number(value)
+  return Number.isInteger(page) && page >= 1 && page <= pages ? page : null
 }

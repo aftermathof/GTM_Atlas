@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { cardPage, galleryCards, oldestFirst } from '../src/resourceGallery.ts'
+import { cardPage, galleryCards, oldestFirst, collectionCards, pageToJump } from '../src/resourceGallery.ts'
 const make=(id,meta={})=>({id,title:id,kind:'learning',meta})
 test('explicit author collections become one folder and ordinary posts stay single',()=>{
   const docs=[make('one'),make('a',{author_collection_id:'author-1',author_collection_title:'某设计博主'}),make('b',{author_collection_id:'author-1'}),make('two',{source_author:'另一个博主'})]
@@ -35,4 +35,31 @@ test('pagination counts folder cards, not hidden posts',()=>{
   assert.equal(page.total,21)
   assert.equal(page.pages,3)
   assert.equal(page.items.length,3)
+})
+
+
+test('folders precede files and outer file numbering starts at one without changing source IDs',()=>{
+  const a=make('research-l31',{source_note_id:'L31'}),b=make('research-l100',{source_note_id:'L100'})
+  const rows=galleryCards([a,make('inside',{author_collection_id:'author'}),b])
+  assert.equal(rows[0].folder,true)
+  assert.deepEqual(rows.filter(x=>!x.folder).map(x=>x.displayNumber),[1,2])
+  assert.deepEqual(rows.filter(x=>!x.folder).map(x=>x.meta.source_note_id),['L31','L100'])
+  assert.equal(a.displayNumber,undefined)
+})
+test('collection numbering is chronological, crosses pages, and closes gaps after deletion',()=>{
+  const rows=Array.from({length:19},(_,i)=>make('p'+i,{published_at:`2024-01-${String(i+1).padStart(2,'0')}T00:00:00Z`}))
+  const numbered=collectionCards([...rows].reverse())
+  assert.deepEqual(cardPage(numbered,2).items.map(x=>x.displayNumber),[10,11,12,13,14,15,16,17,18])
+  const remaining=collectionCards(rows.filter(x=>x.id!=='p2'))
+  assert.deepEqual(remaining.map(x=>x.displayNumber),Array.from({length:18},(_,i)=>i+1))
+  assert.equal(remaining[2].id,'p3')
+})
+test('filtered results keep full-list numbering',()=>{
+  const full=collectionCards(Array.from({length:19},(_,i)=>make('p'+i,{published_at:`2024-01-${String(i+1).padStart(2,'0')}T00:00:00Z`})))
+  assert.deepEqual(full.filter(x=>['p1','p9','p17'].includes(x.id)).map(x=>x.displayNumber),[2,10,18])
+})
+test('page jump accepts only whole integers in range',()=>{
+  assert.equal(pageToJump('17',17),17)
+  assert.equal(pageToJump(' 2 ',17),2)
+  for(const value of ['', '0', '-1', '2.5','18','abc','1e1'])assert.equal(pageToJump(value,17),null)
 })

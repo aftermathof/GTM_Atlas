@@ -30,7 +30,10 @@ displayed_date: null
 excerpt: 以独立语言概括具体情境、信息价值和适用边界。
 limitations:
   - 作者自述未独立核实。
-content_notice: 原创研究整理，非原帖逐字全文，不含评论。
+content_notice: ''
+source_author_id: aaaaaaaaaaaaaaaaaaaaaaaa
+author_collection_id: xhs-aaaaaaaaaaaaaaaaaaaaaaaa
+author_collection_title: 示例博主
 ---
 # 示例业务复盘
 
@@ -42,10 +45,12 @@ content_notice: 原创研究整理，非原帖逐字全文，不含评论。
 
 按独立主题写来源支持的情境、步骤、交付物和局限。
 
-## 阅读边界与核对说明
+## 图片补充与保留图表
 
-标明自述性质、模糊/缺失媒体与核验边界。
+仅在有 keep 原图时提供；每张图配简短标题和必要说明，不把正文再重复一次。无图时省略本节。
 ```
+
+新批次默认精简正文，具体页面布局与合集展示编号见 [前端页面与内容格式](frontend.md)。稳定 L 编号不从 1 重置；author_collection_id 由平台及核验后的作者 ID 构成，不能使用易变昵称或批次日期。上述 ID 均为示例。
 
 ## 辅助工具与批次 schema
 
@@ -56,6 +61,9 @@ Python 需 PyYAML；Pillow 用于图片解码校验。优先使用已有项目�
 ```json
 {
   "author": "示例博主",
+  "author_profile_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+  "author_collection_id": "xhs-aaaaaaaaaaaaaaaaaaaaaaaa",
+  "content_format": "concise",
   "asset_url_prefix": "/xhs-author-assets/",
   "inventory_file": "work/inventory.json",
   "snapshot_file": "project-scan.json",
@@ -81,7 +89,7 @@ inventory.json 为对象数组，每项含 id 或 source_id，列出全部发现
 
 scan 扫描现存知识、来源和编号，--git-history 纳入 Git 删除/历史编号，--reserved 可纳入一个旧 manifest 中的 source_note_id、numbers、reserved_numbers。多个历史批次先汇总预留清单。history_checked=false 不能当作已核验。
 
-validate 检查身份、元数据、编号/来源冲突、原始文件哈希、图像哈希/解码/引用和清单对账；--published 检查项目副本完全一致。退出码 0 是结构无错误，complete=false 仍代表有失败或待处理。即便 complete=true 也不证明浏览器清单真的全量或语义审图正确。
+validate 检查身份、元数据、编号/来源冲突、原始文件哈希、图像哈希/解码/引用和清单对账；concise 模式还检查作者合集身份、空 content_notice 及不含两个已移除章节。未指定 content_format 的旧批次保持 legacy 规则（包括旧阅读边界章节），不要漏写字段导致精简稿误走旧规则。--published 检查项目副本完全一致。退出码 0 是结构无错误，complete=false 仍代表有失败或待处理。即便 complete=true 也不证明浏览器清单真的全量或语义审图正确。
 
 先校验，新增文件写临时文件再原子改名，不覆盖既有文件；只导入 keep 资源，已有同名资源先比较哈希。不要把临时/原始目录整体复制进去。更新旧文档另走项目更新流程。
 
