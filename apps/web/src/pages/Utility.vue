@@ -2,7 +2,7 @@
 import LoadingState from '../components/LoadingState.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowUpRight, ArrowLeft, Search, LogOut, Trash2 } from 'lucide-vue-next'
+import { ArrowUpRight, ArrowLeft, Search, LogOut, Trash2, Eye, EyeOff } from 'lucide-vue-next'
 import { api, post, state, saveSession, clearSession, logoutSession, historyRecords, peekHistoryRecords, deleteHistoryRecord, isHistoryDeleted } from '../state'
 import ConfirmDelete from '../components/ConfirmDelete.vue'
 import ContextPicker from '../components/ContextPicker.vue'
@@ -117,7 +117,7 @@ watch(()=>route.hash,readRecoveryLink);onMounted(readRecoveryLink)
         <fieldset :disabled="busy" aria-describedby="auth-description">
           <legend class="sr-only">{{resetting?'新密码':recovering?'注册邮箱':'账号信息'}}</legend>
           <div v-if="!resetting" class="auth-field"><label for="auth-email">邮箱</label><input id="auth-email" v-model="email" name="email" required type="email" autocomplete="email" inputmode="email" autocapitalize="none" :spellcheck="false" placeholder="you@example.com"></div>
-          <div v-if="!recovering" class="auth-field"><div class="auth-field-heading"><label for="auth-password">{{resetting?'新密码':'密码'}}</label><button v-if="!register && !resetting" type="button" class="auth-inline-link" @click="forgotPassword">忘记密码？</button></div><div class="auth-password"><input id="auth-password" v-model="password" name="password" required :type="showPassword?'text':'password'" :autocomplete="register || resetting?'new-password':'current-password'" :placeholder="resetting?'请输入新密码':'请输入密码'"><button type="button" class="auth-password-toggle" :aria-label="showPassword?'隐藏密码':'显示密码'" :aria-pressed="showPassword" aria-controls="auth-password" @click="showPassword=!showPassword">{{showPassword?'隐藏':'显示'}}</button></div></div>
+          <div v-if="!recovering" class="auth-field"><div class="auth-field-heading"><label for="auth-password">{{resetting?'新密码':'密码'}}</label><button v-if="!register && !resetting" type="button" class="auth-inline-link" @click="forgotPassword">忘记密码？</button></div><div class="auth-password"><input id="auth-password" v-model="password" name="password" required :type="showPassword?'text':'password'" :autocomplete="register || resetting?'new-password':'current-password'" :placeholder="resetting?'请输入新密码':'请输入密码'"><button type="button" class="auth-password-toggle" :aria-label="showPassword?'隐藏密码':'显示密码'" :aria-pressed="showPassword" aria-controls="auth-password" @mousedown.prevent @click="showPassword=!showPassword"><Eye v-if="!showPassword" :size="20" aria-hidden="true"/><EyeOff v-else :size="20" aria-hidden="true"/></button></div></div>
           <div v-if="resetting" class="auth-field"><label for="auth-confirm-password">确认新密码</label><input id="auth-confirm-password" v-model="confirmPassword" name="confirm-password" required type="password" autocomplete="new-password" placeholder="再次输入新密码"></div>
           <p v-if="success" class="notice auth-feedback" role="status">{{success}}</p><p v-if="error" class="error auth-feedback" role="alert">{{error}}</p>
           <button type="submit" class="primary auth-submit" :disabled="busy">{{busy?(resetting?'正在更新…':recovering?'正在发送…':register?'正在注册…':'正在登录…'):resetting?'确认新密码':recovering?'发送重置链接':register?'创建账号':'登录'}}<ArrowUpRight v-if="!busy" :size="16" aria-hidden="true"/><span v-else class="auth-loading" aria-hidden="true"></span></button>
@@ -160,8 +160,9 @@ watch(()=>route.hash,readRecoveryLink);onMounted(readRecoveryLink)
 .auth-inline-link:hover:not(:disabled){text-decoration:underline}
 .auth-inline-link:active:not(:disabled){transform:translateY(1px)}
 .auth-password{position:relative}
-.auth-password input{padding-right:64px}
-.auth-password-toggle{position:absolute;inset:0 0 0 auto;border:0;min-width:64px;padding:8px 12px;color:var(--muted);font-size:12px;line-height:16px}
+.auth-password input{padding-right:52px}
+.auth-password input::-ms-reveal,.auth-password input::-ms-clear{display:none}
+.auth-password-toggle{position:absolute;inset:0 0 0 auto;border:0;min-width:44px;display:grid;place-items:center;padding:8px;color:var(--muted);font-size:12px;line-height:16px}
 .auth-password-toggle:hover:not(:disabled){color:var(--blue)}
 .auth-password-toggle:focus-visible{outline-offset:-4px}
 .auth-form .auth-submit{width:100%;min-height:48px;margin:8px 0 0;padding:8px 12px;font-size:16px;font-weight:600;line-height:24px;transition:transform .3s cubic-bezier(.22,1,.36,1),opacity .3s cubic-bezier(.22,1,.36,1)}

@@ -1,5 +1,5 @@
 import { api, preloadDocuments, preloadHistory, knowledgeDocuments, knowledgeDocument, peekKnowledge, peekHistory, state } from './state'
-import { cachedNotes, cachedNote, fetchNotes, fetchNote } from './features/notes/notesStore'
+import { cachedNotes, cachedNote, cachedNoteFolders, fetchNoteFolders, fetchNotes, fetchNote } from './features/notes/notesStore'
 import { warmOverview } from './features/knowledge/publicLearning'
 
 let activeKey = '', activeRun: Promise<void> | undefined
@@ -75,6 +75,7 @@ export function preloadWorkspace() {
       catalog(),
       schedule('documents','all',preloadDocuments,false),
       schedule('overview','all',warmOverview,false),
+      cachedNoteFolders() || fetchNoteFolders(),
       Promise.resolve(cachedNotes() || fetchNotes()).then(notes=>current()?Promise.all(notes.map(note=>warmNote(note.id))):undefined),
       preloadHistory().then(records=>{
         if(!current())return

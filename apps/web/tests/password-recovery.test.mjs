@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import vm from 'node:vm'
 import ts from 'typescript'
-import {parse,compileScript} from '@vue/compiler-sfc'
+import {parse,compileScript,compileTemplate} from '@vue/compiler-sfc'
 import * as vue from 'vue'
 
 function recovery(options={}) {
@@ -21,6 +21,31 @@ function recovery(options={}) {
   vm.runInContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,context)
   return {component:context.exports.default.setup({},{expose(){}}),requests,navigations,state,get cleared(){return cleared}}
 }
+
+test('password visibility uses one persistent icon button and supports repeated toggles',()=>{
+  const source=readFileSync(new URL('../src/pages/Utility.vue',import.meta.url),'utf8')
+  const {descriptor}=parse(source)
+  const field=descriptor.template.content.match(/<div class="auth-password">[\s\S]*?<\/div>/)[0]
+  const compiled=compileTemplate({source:field,filename:'password-toggle.vue',id:'password-toggle-test'})
+  const context=vm.createContext({exports:{},require:()=>({...vue,resolveComponent:name=>name,withDirectives:node=>node})})
+  vm.runInContext(ts.transpileModule(compiled.code,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,context)
+  const c=recovery().component, ctx=vue.proxyRefs(c)
+  c.password.value='keep-this-password'
+  function nodes(node) { return [node,...(Array.isArray(node.children)?node.children.flatMap(child=>typeof child==='object'?nodes(child):[]):[])] }
+  for(let index=0;index<8;index++){
+    const tree=nodes(context.exports.render(ctx,[]))
+    const button=tree.find(node=>node.type==='button'),input=tree.find(node=>node.type==='input')
+    assert.ok(button)
+    assert.equal(button.props.type,'button')
+    assert.equal(button.props['aria-label'],index%2?'隐藏密码':'显示密码')
+    assert.equal(input.props.type,index%2?'text':'password')
+    assert.ok(tree.some(node=>node.type==='Eye' || node.type==='EyeOff'))
+    assert.equal(tree.some(node=>typeof node.children==='string' && /^(显示|隐藏)$/.test(node.children)),false)
+    button.props.onClick()
+    assert.equal(c.password.value,'keep-this-password')
+  }
+  assert.match(descriptor.styles.map(style=>style.content).join('\n'),/::-ms-reveal/)
+})
 
 test('forgot password opens email-only recovery and sends no existing password',async()=>{
   const app=recovery(), c=app.component

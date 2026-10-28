@@ -11,21 +11,33 @@
 | 知识学习 | `/learn`：GTM 概览、在职经验、名词库、《爆品操盘GTM》与 SOP；卡片、博主合集、搜索、分页与全文阅读 | `apps/web/src/features/knowledge/`、`knowledge/` |
 | 岗位与面试 | `/interviews`：岗位 JD、面经与 Mock；自定义题数、回答、追问、反馈、复盘及历史恢复 | `apps/web/src/pages/Interviews.vue`、`packages/mock/` |
 | 简历工作台 | `/career`：目标 JD、原件提取、事实核对、诊断、分段授权改写、版本、TeX/PDF 导出 | `apps/web/src/features/career/`、`packages/career/`、`templates/latex/` |
-| 学习笔记 | `/notes`：创建文件夹、文件夹内新增笔记、Markdown 编辑与实时预览、保存和删除 | `apps/web/src/features/notes/`、`services/api/routes_notes.py` |
-| AI 问答 | 全局、文章、笔记、Mock 与简历场景；多轮历史、句内编号引用、可选语音输入 | `apps/web/src/features/ai/`、`packages/learning/`、`packages/rag/` |
-| 账号与历史 | 邮箱登录、验证、找回密码、会话恢复、历史管理与账号隔离 | `apps/web/src/features/auth/`、`services/api/routes_auth.py`、`services/api/supabase.py` |
+| 学习笔记 | `/notes`：文件夹与独立编号、Markdown 编辑／实时预览、缓存直开、笔记与文件夹确认删除 | `apps/web/src/features/notes/`、`services/api/routes_notes.py` |
+| AI 问答 | 全局、文章、笔记、Mock 与简历场景；统一流式输出、多轮历史、句内编号引用、可选语音输入 | `apps/web/src/features/ai/`、`packages/learning/`、`packages/rag/` |
+| 账号与历史 | 邮箱登录／注册、密码眼睛显隐、邮箱验证、找回密码、会话恢复与账号隔离 | `apps/web/src/features/auth/`、`services/api/routes_auth.py`、`services/api/supabase.py` |
 
 应用页面要求登录，未登录进入登录／注册页。常用辅助入口为 `/history`、`/settings`、`/glossary`；后端交互文档为 `/docs`，健康接口为 `/api/v1/health`。
+
+### AI 回答与 Mock
 
 Mock 不要求在固定答题步数内结束，也不限制每题的追问次数。模型根据回答和前序对话判断是否继续追问；信息充分、不再需要追问时进入下一题，全部题目完成后生成复盘。
 
 AI 回答统一采用真实流式输出：全局、文章、笔记与简历助手逐段显示正文，简历诊断、分块改写以及 Mock 出题／评价显示生成预览。结构化结果须在完整接收并校验后才回填或推进状态；改写仍需用户确认。连接中断会保留输入和已显示预览，不自动重发生成请求；未收到最终结果时应刷新历史确认保存状态。检索、文件提取或模型尚未开始输出时仍会等待。
 
+### 学习笔记与文件夹
+
 学习笔记首页和每个文件夹分别从 **N01** 编号，按各自笔记创建顺序生成展示编号，分页接续；不同文件夹互不影响。原有笔记保留在首页，编辑笔记会保留其文件夹归属。文件夹和笔记随账号保存到 `business_records`，分别使用 `note_folder`、`learning_note`，沿用现有表，无需新增建表 SQL。
 
 笔记支持 Ctrl / ⌘ + S 保存、撤销与未保存离开提醒，通过版本号防止多页面覆盖。AI 只检索当前账号已保存的笔记，相关片段随请求发送至配置的模型；删除笔记不删除既有聊天中的引用快照。
 
+文件夹卡片提供独立的删除按钮，点击后立即弹出确认框。确认后立即从界面和缓存移除文件夹及其中笔记；后端在同一事务中删除当前账号的目标文件夹和对应笔记，不影响首页笔记、其他文件夹或其他账号。请求失败会恢复本地显示并提示错误，已有聊天中的引用快照保留。
+
+### 缓存与账号
+
 登录后按账号预加载资料、笔记及历史，后台正文请求最多同时 3 个；退出或切换账号后旧缓存不可用。资料管理接口会检查维护权限，允许修改、删除符合条件的公共在职经验研究笔记，并使相关缓存与检索失效。
+
+笔记文件夹、列表和正文共用当前页面会话内的缓存。返回笔记页或切换文件夹时同步显示已有内容，不再先清空列表并等待文件夹请求；仅未缓存的内容需要首次加载。新建／删除文件夹和保存／删除笔记同步更新缓存；后台请求晚到不会覆盖正在输入的笔记，删除的内容不会被旧请求重新放回。缓存只存在于当前页面会话，刷新网页重新获取数据；需要其他设备的最新修改时刷新页面。
+
+登录、注册及新密码输入框只保留一个眼睛按钮，可反复切换明文／密文，切换不会清空密码或让按钮消失。浏览器自带的重复显隐按钮已隐藏，页面通过辅助标签区分“显示密码”和“隐藏密码”。
 
 ## 按功能找文件
 
@@ -34,11 +46,11 @@ GTM desk/
 ├─ apps/web/                    # Vue 3 + TypeScript 前端
 │  ├─ src/
 │  │  ├─ features/
-│  │  │  ├─ ai/                 # 引用编号与 AI 文本处理
+│  │  │  ├─ ai/                 # 流式响应读取、引用编号与 AI 文本处理
 │  │  │  ├─ auth/               # 登录路由守卫
 │  │  │  ├─ career/             # 简历显示文本处理
 │  │  │  ├─ knowledge/          # 资料卡片、排序、分页、概览预加载
-│  │  │  └─ notes/              # 笔记缓存、Markdown 编辑、文件夹编号
+│  │  │  └─ notes/              # 文件夹／笔记缓存、编辑、独立编号与删除
 │  │  ├─ pages/                 # 路由页面
 │  │  ├─ components/            # 阅读器、编辑器、助手与共享界面
 │  │  ├─ content/               # 引用根目录知识源的前端入口
@@ -49,7 +61,7 @@ GTM desk/
 │  └─ handbook/                 # 手册配置、索引与生成文章
 ├─ services/api/                # FastAPI 路由、鉴权、存储和数据模型
 ├─ packages/
-│  ├─ agent_core/               # 模型适配、Skill 注册、检查点
+│  ├─ agent_core/               # 模型适配、请求级流式进度、Skill 与检查点
 │  ├─ rag/                      # 公共知识索引、私有笔记与参考资料检索
 │  ├─ learning/                 # 知识问答流程
 │  ├─ mock/                     # 面试规划和评价
@@ -116,7 +128,8 @@ npm --prefix apps/web run build
 正式方案是 **Vercel 前端 + Docker API／隔离 PDF Worker + Supabase Auth／PostgreSQL／私有 Storage**。无服务器时可用本机 Docker 配合 Cloudflare 临时隧道联调；本机休眠或隧道退出会影响访问。
 
 - 后端 `.env` 保存数据库、Supabase 和模型配置；Vercel 仅需要公开的 `VITE_API_BASE_URL`。
-- 文本模型使用 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`；STT、Vision、Embedding 按需独立配置。
+- 文本模型使用 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`，服务需支持 OpenAI 兼容的 `stream: true`；STT、Vision、Embedding 按需独立配置。
+- 公网网关需转发 SSE，关闭响应缓冲与重新压缩；API 提供十秒心跳，配置方法见部署指南。
 - 未配置 Embedding 时使用词法检索；向量固定为 1536 维，换维度需要改代码、迁移及重建索引。
 - renderer 不持有模型或数据库密钥，通过文件队列编译 TeX 并检查 PDF；API 的 `RENDER_ENABLED=false` 不表示 Worker 停止。
 - 私有笔记使用关键词与中文词组检索，每次最多 6 个相关片段，不额外生成公共向量。
@@ -129,7 +142,24 @@ docker compose -f infra/compose.production.yaml up -d --build
 Invoke-RestMethod http://127.0.0.1:8000/api/v1/health
 ```
 
-修改前端需重新发布前端；修改 API 或知识源需重建 API；修改 PDF 编译环境才需要重建 renderer。文件夹功能发布时同时更新前端和 API。现有数据库升级不能靠重复执行初始化 SQL。
+### 更新现有部署
+
+| 本次修改内容 | 需要更新 |
+| --- | --- |
+| 笔记缓存、密码显隐、页面样式 | 重新部署前端 |
+| 统一流式回答、文件夹删除接口 | 同步部署前端并重建 Docker API |
+| 知识资料源 | 重新构建前端与 API，更新静态资料和索引 |
+| PDF 编译器、字体或 Worker 环境 | 重建 renderer |
+
+最近的流式回答和文件夹删除包含后端改动。在项目根目录执行以下命令更新 API，然后重新部署 Vercel 前端：
+
+```powershell
+docker compose -f infra/compose.production.yaml up -d --build api
+docker compose -f infra/compose.production.yaml ps api
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/health
+```
+
+以上功能不需要重建 PDF renderer、升级 Docker Desktop 或重跑 Supabase 建表 SQL。只有前端缓存或眼睛图标改动时，重新发布前端即可。代码提交、构建通过与线上部署是不同步骤，线上行为以实际发布版本为准。现有数据库升级应使用对应迁移，不能重复执行初始化 SQL。
 
 ## 测试与验收
 
@@ -156,7 +186,7 @@ npm --prefix apps/web run build
 | `dist/`、手册生成文章、VitePress 缓存 | 可构建重建；本机预览使用最新构建 |
 | 历史方案、截图与导入依据 | 放入 `docs/archive/`，与当前操作文档分开 |
 
-2026-10-28 的目录整理与验证范围见 [整理说明](docs/maintenance/2026-10-28-workspace-organization.md)。本机详细移动和清理清单、保护文件哈希位于 `.data/maintenance/`。
+当前的目录整理与验证范围见 [整理说明](docs/maintenance/2026-10-28-workspace-organization.md)。本机详细移动和清理清单、保护文件哈希位于 `.data/maintenance/`。
 
 ## 维护文档
 
@@ -167,5 +197,3 @@ npm --prefix apps/web run build
 - [知识内容与模板维护](docs/CONTENT_GUIDE.md)
 - [功能验收](docs/ACCEPTANCE.md)
 - [后续云服务器方案](docs/CLOUD_HOSTING_PLAN.md)
-
-目前仍使用单机文件队列与进程内限流；未实现多人笔记协作、企业身份体系与分布式队列。扩容和模板调整需要相应的运行与 PDF 排版验证。

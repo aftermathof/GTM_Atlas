@@ -10,15 +10,27 @@ import LoadingState from '../components/LoadingState.vue'
 const NoteEditor=defineAsyncComponent({loader:()=>import('../components/NoteEditor.vue'),loadingComponent:LoadingState,delay:0})
 import NoteMark from '../components/NoteMark.vue'
 import CardPagination from '../components/CardPagination.vue'
+import ConfirmDelete from '../components/ConfirmDelete.vue'
 import { cardPage } from '../features/knowledge/resourceGallery'
 import { warmNote } from '../preload'
-import { cachedNotes, cachedNote, fetchNotes, fetchNote, cacheSavedNote, deleteNote, forgetNote, type Note } from '../features/notes/notesStore'
+import { cachedNotes, cachedNote, cachedNoteFolders, fetchNoteFolders, fetchNotes, fetchNote, cacheSavedNote, cacheSavedNoteFolder, deleteNoteFolder, deleteNote, forgetNote, type Note } from '../features/notes/notesStore'
 
 import { folderNotes, noteNumbers, type NoteFolder } from '../features/notes/noteFolders'
 
 const route = useRoute(), router = useRouter()
 const folders = ref<NoteFolder[]>([]), folderTitle = ref(''), creatingFolder = ref(false), folderForm = ref(false)
 const folderInput = ref<HTMLInputElement>()
+const pendingFolderDelete=ref<NoteFolder | null>(null)
+function requestFolderDelete(folder: NoteFolder) { pendingFolderDelete.value=folder }
+async function removeFolder() {
+  if(!pendingFolderDelete.value)return
+  const selected=pendingFolderDelete.value
+  pendingFolderDelete.value=null
+  const pending=deleteNoteFolder(selected)
+  folders.value=cachedNoteFolders() || folders.value.filter(folder=>folder.id!==selected.id)
+  cards.value=cachedNotes() || cards.value.filter(note=>note.folder_id!==selected.id)
+  try {await pending} catch { /* The shared store restores the folder and its notes. */ }
+}
 const folderId = computed(() => typeof route.query.folder === 'string' ? route.query.folder : '')
 const currentFolder = computed(() => folders.value.find(folder => folder.id === (note.value?.folder_id || folderId.value)))
 const listLocation = computed(() => ({path:'/notes', query:currentFolder.value ? {folder:currentFolder.value.id} : {}}))
@@ -34,7 +46,8 @@ async function createFolder() {
   try {
     const folder: NoteFolder = await api('/notes/folders', {method:'POST', body:JSON.stringify({title:folderTitle.value.trim()})})
     if (account !== state.user?.id || current !== generation) return
-    folders.value = [...folders.value, folder]; folderTitle.value = ''; folderForm.value = false
+    cacheSavedNoteFolder(folder)
+    folders.value = cachedNoteFolders() || [...folders.value, folder]; folderTitle.value = ''; folderForm.value = false
     await router.push({path:'/notes', query:{folder:folder.id}})
   } catch (e: any) { if (account === state.user?.id && current === generation) error.value = e.message }
   finally { creatingFolder.value = false }
@@ -93,25 +106,31 @@ let generation = 0
 async function load() {
   const current = ++generation
   loading.value = true; error.value = ''; showAI.value = false; note.value = null
-  pendingDelete.value = null
+  pendingDelete.value = null; pendingFolderDelete.value=null
   title.value = ''; body.value = ''; original.value = JSON.stringify(['', ''])
   try {
     folders.value = []; cards.value = []; folderForm.value = false; folderTitle.value = ''
     if (!state.user) { cards.value = []; return }
-    const folderRows = await api('/notes/folders')
+    const cachedFolders = cachedNoteFolders(), cachedCards = cachedNotes()
+    const cachedRow = id.value && id.value !== 'new' ? cachedNote(id.value) : null
+    folders.value = cachedFolders || []; cards.value = cachedCards || []
+    if (cachedRow) {
+      note.value = cachedRow; title.value = cachedRow.title; body.value = cachedRow.body
+      original.value = JSON.stringify([title.value, body.value])
+    }
+    loading.value = id.value ? id.value !== 'new' && !cachedRow : !cachedCards
+    const [folderRows, row] = await Promise.all([
+      cachedFolders || fetchNoteFolders(),
+      !id.value ? cachedCards || fetchNotes() : id.value === 'new' ? null : cachedRow || fetchNote(id.value),
+    ])
     if (current !== generation) return
     folders.value = folderRows
     if (folderId.value && !folders.value.some(folder => folder.id === folderId.value)) throw new Error('文件夹不存在或无权访问')
     if (!id.value) {
-      const cached = cachedNotes()
       error.value = state.notesDeleteError
-      if (cached) { cards.value = cached; loading.value = false }
-      const rows = cached || await fetchNotes()
-      if (current === generation) cards.value = rows
-    } else {
-      const row: Note | null = id.value === 'new' ? null : cachedNote(id.value) || await fetchNote(id.value)
-      if (current !== generation) return
-      note.value = row; title.value = row?.title || ''; body.value = row?.body || ''
+      cards.value = cachedNotes() || row as Note[]
+    } else if (id.value !== 'new' && !cachedRow) {
+      note.value = row as Note | null; title.value = note.value?.title || ''; body.value = note.value?.body || ''
       original.value = JSON.stringify([title.value, body.value])
     }
   } catch (e: any) { if (current === generation) error.value = e.message }
@@ -140,6 +159,7 @@ function remove(event: Event) {
 }
 watch(() => state.notesRevision, () => {
   cards.value = cachedNotes() || cards.value
+  folders.value = cachedNoteFolders() || folders.value
   error.value = state.notesDeleteError
 })
 function canLeave() { return !saving.value && (!dirty.value || window.confirm('笔记尚未保存，确定离开并放弃修改？')) }
@@ -164,7 +184,7 @@ function keydown(event: KeyboardEvent) {
       <div class="notes-hero"><div><span class="eyebrow">YOUR PERSONAL KNOWLEDGE</span><h1>学习笔记</h1><p>把读过的知识，写成自己的理解。</p></div><div class="notes-create-actions"><button v-if="!folderId" class="button secondary" @click="openFolderForm"><FolderPlus :size="17"/>新建文件夹</button><RouterLink :to="newLocation" class="button primary"><Plus :size="17"/>新建笔记</RouterLink></div></div>
       <form v-if="folderForm" class="folder-form" @submit.prevent="createFolder"><label for="folder-title">文件夹名称</label><input id="folder-title" ref="folderInput" v-model="folderTitle" maxlength="160" placeholder="例如：产品营销" :disabled="creatingFolder" @keydown.esc="folderForm=false"/><button class="button primary" :disabled="creatingFolder || !folderTitle.trim()">{{ creatingFolder ? '创建中…' : '创建文件夹' }}</button><button type="button" class="text-link" :disabled="creatingFolder" @click="folderForm=false">取消</button></form>
       <nav v-if="folderId" class="folder-breadcrumb" aria-label="笔记位置"><RouterLink to="/notes"><ArrowLeft :size="15"/>全部笔记</RouterLink><span>/</span><span>{{ currentFolder?.title }}</span></nav>
-      <div v-if="!loading && !folderId && folders.length" class="folder-grid"><RouterLink v-for="folder in folders" :key="folder.id" :to="{path:'/notes',query:{folder:folder.id}}" class="folder-card"><Folder :size="26" :stroke-width="1.3"/><span>{{ folder.title }}</span><small>{{ folderNotes(cards, folder.id).length }} 篇笔记</small><ArrowUpRight :size="16"/></RouterLink></div>
+      <div v-if="!loading && !folderId && folders.length" class="folder-grid"><article v-for="folder in folders" :key="folder.id" class="folder-card"><RouterLink :to="{path:'/notes',query:{folder:folder.id}}" class="folder-card-link"><Folder :size="26" :stroke-width="1.3"/><span>{{ folder.title }}</span><small>{{ folderNotes(cards, folder.id).length }} 篇笔记</small><ArrowUpRight :size="16"/></RouterLink><button class="folder-delete" :aria-label="'删除文件夹：'+folder.title" @click="requestFolderDelete(folder)"><Trash2 :size="14"/>删除</button></article></div>
       <div class="collection-line"><span>{{ currentFolder?.title || '我的笔记' }} <b>{{ visibleCards.length.toString().padStart(2, '0') }}</b></span><span>仅自己可见 · AI 可参考已保存内容</span></div>
       <p v-if="loading" class="note-message" role="status">正在整理你的笔记…</p>
       <p v-if="error" class="error" role="alert">{{ error }} <button @click="load">重新加载</button></p>
@@ -191,6 +211,7 @@ function keydown(event: KeyboardEvent) {
         <section v-if="note" v-show="showAI" class="note-assistant"><h2>从记录，到理解。</h2><p>AI 检索已保存笔记的相关片段；较长笔记建议按章节提问，全站助手也可参考。</p><ChatPanel :key="note.id" scope="notes" :document-id="note.id"/></section>
       </template>
     </template>
+    <ConfirmDelete v-if="pendingFolderDelete" title="删除这个文件夹？" :name="pendingFolderDelete.title" :description="'文件夹及其中 '+folderNotes(cards,pendingFolderDelete.id).length+' 篇笔记将一并删除，无法恢复。已有聊天中的引用快照会保留。'" @cancel="pendingFolderDelete=null" @confirm="removeFolder"/>
     <div v-if="pendingDelete" class="note-delete-backdrop" @click.self="closeDelete">
       <section ref="deleteDialog" class="note-delete-dialog" role="alertdialog" aria-modal="true" :aria-busy="deleting" aria-labelledby="delete-note-title" aria-describedby="delete-note-description" tabindex="-1" @keydown="trapDelete">
         <span class="eyebrow">MANAGE YOUR NOTES</span><h2 id="delete-note-title">删除这篇笔记？</h2>
@@ -203,7 +224,7 @@ function keydown(event: KeyboardEvent) {
 </template>
 
 <style scoped>
-.notes-create-actions{display:flex;gap:12px;flex-wrap:wrap}.folder-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:28px;padding:20px;border:1px solid var(--line)}.folder-form label{font-size:13px}.folder-form input{flex:1;min-width:140px}.folder-breadcrumb{display:flex;gap:12px;align-items:center;font-size:13px;margin-bottom:24px;overflow-wrap:anywhere}.folder-breadcrumb a{display:inline-flex;align-items:center;gap:6px;color:var(--blue)}.folder-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:32px}.folder-card{display:flex;align-items:center;gap:14px;padding:24px;border:1px solid var(--line);min-width:0}.folder-card:hover{border-color:var(--blue)}.folder-card svg{color:var(--blue);flex-shrink:0}.folder-card span{flex:1;overflow-wrap:anywhere}.folder-card small{color:var(--muted);white-space:nowrap;font-size:11px}
+.notes-create-actions{display:flex;gap:12px;flex-wrap:wrap}.folder-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:28px;padding:20px;border:1px solid var(--line)}.folder-form label{font-size:13px}.folder-form input{flex:1;min-width:140px}.folder-breadcrumb{display:flex;gap:12px;align-items:center;font-size:13px;margin-bottom:24px;overflow-wrap:anywhere}.folder-breadcrumb a{display:inline-flex;align-items:center;gap:6px;color:var(--blue)}.folder-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:32px}.folder-card{display:flex;align-items:center;gap:14px;padding:24px;border:1px solid var(--line);min-width:0}.folder-card-link{display:flex;align-items:center;gap:14px;flex:1;min-width:0}.folder-delete{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;padding:6px;color:var(--muted);font-size:11px}.folder-delete:hover{color:#a52c2c;background:#a52c2c08}.folder-card:hover{border-color:var(--blue)}.folder-card svg{color:var(--blue);flex-shrink:0}.folder-card span{flex:1;overflow-wrap:anywhere}.folder-card small{color:var(--muted);white-space:nowrap;font-size:11px}
 @media(max-width:1050px){.folder-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.notes-hero{flex-wrap:wrap}.notes-create-actions{width:100%}.notes-create-actions .button{margin-top:0!important}.folder-grid{grid-template-columns:1fr}.folder-card{padding:20px}}
 

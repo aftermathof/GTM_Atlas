@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from services.api.auth import current_user
 from services.api.db import Record, now
 from services.api.store import owned, save, expose
@@ -41,6 +41,16 @@ def create_folder(body: FolderInput, request: Request, user=Depends(current_user
         row = save(db, user.id, 'note_folder', body.model_dump())
         db.commit()
         return expose(row)
+
+
+@router.delete('/folders/{fid}')
+def delete_folder(fid: str, request: Request, user=Depends(current_user)):
+    with request.app.state.mutation_lock, request.app.state.db() as db:
+        folder = owned(db, fid, user.id, 'note_folder', lock=True)
+        db.execute(delete(Record).where(Record.owner == user.id, Record.kind == 'learning_note', Record.data['folder_id'].as_string() == fid))
+        db.delete(folder)
+        db.commit()
+        return {'deleted': True}
 
 
 @router.get('')

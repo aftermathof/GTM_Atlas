@@ -100,3 +100,31 @@ def test_ai_uses_current_owned_notes_and_never_indexes_publicly(client, monkeypa
     assert client.post('/api/v1/ai/chat', json=selected, headers=a).status_code == 404
     client.post('/api/v1/ai/chat', json={'message': '北极星试点', 'scope': 'global'}, headers=a)
     assert not any(e['kind'] == 'note' for e in payloads[-1]['evidence'])
+
+
+def test_deleting_folder_removes_only_owned_folder_and_its_notes(client):
+    a, b = account(client, 'folder-delete-a'), account(client, 'folder-delete-b')
+    folder = client.post('/api/v1/notes/folders', json={'title': '待删除'}, headers=a).json()
+    other = client.post('/api/v1/notes/folders', json={'title': '保留'}, headers=a).json()
+    children = [client.post('/api/v1/notes', json={'title': f'笔记 {i}', 'folder_id': folder['id']}, headers=a).json() for i in range(2)]
+    root = client.post('/api/v1/notes', json={'title': '首页笔记'}, headers=a).json()
+    kept = client.post('/api/v1/notes', json={'title': '其他目录笔记', 'folder_id': other['id']}, headers=a).json()
+    foreign = client.post('/api/v1/notes', json={'title': '其他账号笔记'}, headers=b).json()
+    endpoint = '/api/v1/notes/folders/' + folder['id']
+    assert client.delete(endpoint).status_code == 401
+    assert client.delete(endpoint, headers=b).status_code == 404
+    assert len(client.get('/api/v1/notes', headers=a).json()) == 4
+    assert client.delete(endpoint, headers=a).status_code == 200
+    assert [row['id'] for row in client.get('/api/v1/notes/folders', headers=a).json()] == [other['id']]
+    assert {row['id'] for row in client.get('/api/v1/notes', headers=a).json()} == {root['id'], kept['id']}
+    for note in children:
+        assert client.get('/api/v1/notes/' + note['id'], headers=a).status_code == 404
+    assert client.get('/api/v1/notes/' + foreign['id'], headers=b).status_code == 200
+    assert client.delete(endpoint, headers=a).status_code == 404
+
+
+def test_empty_note_folder_can_be_deleted(client):
+    headers = account(client, 'empty-folder-delete')
+    folder = client.post('/api/v1/notes/folders', json={'title': '空文件夹'}, headers=headers).json()
+    assert client.delete('/api/v1/notes/folders/' + folder['id'], headers=headers).status_code == 200
+    assert client.get('/api/v1/notes/folders', headers=headers).json() == []
