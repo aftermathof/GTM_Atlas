@@ -26,6 +26,7 @@
 | --- | --- |
 | 页面路由、导航与全局助手容器 | [main.ts](../apps/web/src/main.ts)、[App.vue](../apps/web/src/App.vue) |
 | AI 引用与文本 | [features/ai/](../apps/web/src/features/ai/)、[ChatPanel.vue](../apps/web/src/components/ChatPanel.vue)、[Markdown.vue](../apps/web/src/components/Markdown.vue) |
+| AI 流式协议与预览 | [streaming.ts](../apps/web/src/features/ai/streaming.ts)、[AIStreamPreview.vue](../apps/web/src/components/AIStreamPreview.vue)、[路由流式封装](../services/api/streaming.py)、[请求级进度](../packages/agent_core/streaming.py) |
 | 账号与登录 | [features/auth/](../apps/web/src/features/auth/)、[Utility.vue](../apps/web/src/pages/Utility.vue)、[EmailConfirmed.vue](../apps/web/src/pages/EmailConfirmed.vue) |
 | 资料卡片、博主合集、分页与预加载 | [features/knowledge/](../apps/web/src/features/knowledge/)、[ResourceGallery.vue](../apps/web/src/components/ResourceGallery.vue) |
 | 知识正文阅读和管理 | [Learn.vue](../apps/web/src/pages/Learn.vue)、[KnowledgeEditor.vue](../apps/web/src/components/KnowledgeEditor.vue)、[routes_knowledge_management.py](../services/api/routes_knowledge_management.py) |

@@ -122,6 +122,14 @@ Worker 无网络、不含 Supabase/数据库密钥，只挂载 artifacts 和队�
 
 此功能增加了 API 接口，发布前端的同时需更新 API；不涉及数据库 SQL 或 renderer。
 
+## AI 流式响应
+
+发布流式功能须同时部署前端和 API；不涉及数据库 SQL 或 renderer。模型服务需要支持 OpenAI 兼容的 `stream: true`。前端向原有 AI POST 接口发送 `Accept: text/event-stream`，API 保持原有校验和事务，逐段转发可读内容，最后发送业务结果。
+
+反向代理必须关闭 SSE 缓冲，保留 `Content-Type: text/event-stream`；不要对其重新压缩或缓存。API 已发送 `X-Accel-Buffering: no`、`Content-Encoding: identity` 和 `Cache-Control: no-store, no-transform`，并每十秒发送心跳。使用额外网关时检查其流式转发规则和读取超时，建议至少 120 秒；Nginx 可在对应 API location 使用 `proxy_buffering off`，Caddy 可按需在 `reverse_proxy` 设置 `flush_interval -1`。
+
+验收时观察首段文字在整个请求完成前出现，分别测试全局／文章／笔记助手、简历诊断与改写、Mock 出题与反馈。断网或网关中断不能显示成功或自动重发生成请求；完整结果未送达时刷新历史确认保存状态。离线分包测试不等同于真实服务商与公网代理验收。
+
 ## 环境变量与模型接口
 
 

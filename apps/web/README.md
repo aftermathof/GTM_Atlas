@@ -15,7 +15,7 @@ npm --prefix apps/web run build
 
 | 路径 | 职责 |
 | --- | --- |
-| `src/features/ai/` | 句内引用与来源编号、AI 文本清理 |
+| `src/features/ai/` | 句内引用与来源编号、AI 文本清理、统一 SSE 读取 |
 | `src/features/auth/` | 登录恢复与路由守卫 |
 | `src/features/career/` | 简历和诊断文本显示处理 |
 | `src/features/knowledge/` | 资料卡片、合集、排序、分页与概览预加载 |
@@ -40,5 +40,7 @@ npm --prefix apps/web run build
 `node_modules/` 是依赖环境。`dist/`、`handbook/articles/`、`handbook/.generated.json` 和 VitePress 缓存是生成内容，修改正文应回到知识源；完整构建会重建前端和手册。`npm run handbook` 先生成文章，再启动手册开发服务。
 
 学习笔记：`pages/Notes.vue` 负责页面，`features/notes/` 负责缓存、编辑与编号，`components/NoteEditor.vue` 负责 CodeMirror 编辑器。文件夹和笔记保存到 API，不能用浏览器临时数据代替持久化。
+
+AI 生成调用使用 `post(path, body, onProgress, signal?)`。有进度回调时请求同一路径的 SSE 响应，`state.ts` 处理最终业务结果与缓存，`features/ai/streaming.ts` 处理分包、心跳和中断。聊天直接增量渲染 Markdown；结构化任务使用 `components/AIStreamPreview.vue`，收到最终校验结果前不回填、不推进。失败时保留输入，离开页面取消请求。
 
 部署见 [部署指南](../../docs/DEPLOYMENT.md)，全项目目录见 [维护入口](../../docs/README.md)。

@@ -23,7 +23,9 @@ from packages.career.photo import extract_photo
 from packages.career.retrieval import career_evidence
 from packages.agent_core.registry import catalog
 
-router = APIRouter(prefix="/api/v1/career")
+from services.api.streaming import AIStreamingRoute
+
+router = APIRouter(prefix="/api/v1/career", route_class=AIStreamingRoute)
 logger = logging.getLogger(__name__)
 
 

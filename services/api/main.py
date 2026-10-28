@@ -71,7 +71,7 @@ def create_app(url=None):
         response.headers["X-Request-ID"] = request_id
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "same-origin"
-        response.headers["Cache-Control"] = "no-store"
+        response.headers["Cache-Control"] = "no-store, no-transform" if response.headers.get('content-type', '').startswith('text/event-stream') else "no-store"
         return response
 
     # CORS must wrap limits so browsers can read early 413/429 responses.

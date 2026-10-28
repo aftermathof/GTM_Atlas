@@ -104,7 +104,8 @@ function historyPath(path: string) {
     /^\/career\/sessions\/[^/?]+(?:\/versions|\/editing-blocks(?:\?[^#]*)?)?$/.test(path)
 }
 export function peekHistory(path: string) { return privateHistoryCache.get(state.token + '\n' + path)?.value }
-export function api(path: string, options: RequestInit = {}): Promise<any> {
+type AIRequestOptions = RequestInit & { onAIProgress?: (progress: import('./features/ai/streaming').AIProgress) => void }
+export function api(path: string, options: AIRequestOptions = {}): Promise<any> {
   return (options.method || 'GET').toUpperCase() === 'GET' && historyPath(path)
     ? cachedList(path, Infinity, privateHistoryCache) : requestApi(path, options)
 }
@@ -122,13 +123,15 @@ function invalidateHistory(path: string) {
         (career && careerId && (cachedPath === '/career/sessions/'+careerId || cachedPath.startsWith('/career/sessions/'+careerId+'/')))) privateHistoryCache.delete(key)
   }
 }
-async function requestApi(path: string, options: RequestInit = {}): Promise<any> {
+async function requestApi(path: string, options: AIRequestOptions = {}): Promise<any> {
   const ownerToken=state.token
   const ownerSession=sessionGeneration
   const rewriting = path.endsWith('/block-dialogue')
   let r: Response
-  try { r = await authorizedFetch('/api/v1' + path, options) }
+  const {onAIProgress, ...requestOptions} = options
+  try { r = await authorizedFetch('/api/v1' + path, requestOptions) }
   catch (error: any) {
+    if (onAIProgress && error?.name === 'TypeError') throw new Error('回答连接中断，未收到完整结果；当前输入已保留，请重试。')
     if (rewriting && error?.name === 'TypeError') throw new Error('改写请求的网络连接中断，未收到生成结果；当前输入已保留，请重试。')
     throw error
   }
@@ -149,13 +152,22 @@ async function requestApi(path: string, options: RequestInit = {}): Promise<any>
     throw new Error(`请求失败 (${r.status})，请检查输入`)
   }
   const mutation=(options.method || 'GET').toUpperCase() !== 'GET'
-  const previousHistory=peekHistory('/history')
-  if (mutation) {
+  const streaming=!!onAIProgress && !!r.headers?.get('content-type')?.includes('text/event-stream')
+  let previousHistory=peekHistory('/history')
+  function invalidateMutation() {
+    if(!mutation || ownerSession!==sessionGeneration)return
     listCache.clear(); invalidateHistory(path)
     if (path.startsWith('/career/job-descriptions') || path.startsWith('/knowledge/')) knowledgeCache.clear()
   }
+  invalidateMutation()
   try {
-    let value=await r.json()
+    let value=streaming
+      ? await (await import('./features/ai/streaming')).readAIStream(r, progress => { if(ownerSession===sessionGeneration) onAIProgress!(progress) })
+      : await r.json()
+    if(streaming) {
+      previousHistory=peekHistory('/history') || previousHistory
+      invalidateMutation()
+    }
     if(mutation && ownerToken===state.token && path.startsWith('/career/sessions') && value.id && Array.isArray(value.facts) && !path.endsWith('/approve-rewrite')) {
       prime(privateHistoryCache,'/career/sessions/'+value.id,value)
       if(previousHistory) prime(privateHistoryCache,'/history',[
@@ -182,7 +194,9 @@ async function requestApi(path: string, options: RequestInit = {}): Promise<any>
     }
     return value
   }
-  catch (error) {
+  catch (error: any) {
+    if(streaming)invalidateMutation()
+    if(error?.aiStream || error?.name === 'AbortError') throw error
     if (rewriting) throw new Error('改写结果读取失败，连接可能中断；当前输入已保留，请重试。')
     throw error
   }
@@ -321,7 +335,9 @@ function decorateHistory(rows: any[]) {
   return rows.map((row: any) => names.has(row.id) ? { ...row, display_name: names.get(row.id) } : row)
 }
 
-export function post(path: string, body: any) { return api(path, { method: 'POST', body: JSON.stringify(body) }) }
+export function post(path: string, body: any, onAIProgress?: AIRequestOptions['onAIProgress'], signal?: AbortSignal) {
+  return api(path, {method:'POST', body:JSON.stringify(body), ...(onAIProgress ? {headers:{Accept:'text/event-stream'}, onAIProgress} : {}), ...(signal ? {signal} : {})})
+}
 let restoringProfile: Promise<void> | null = null
 export async function restoreSession() {
   if (state.user || !state.token) return

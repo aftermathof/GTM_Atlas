@@ -37,6 +37,16 @@ Vercel 托管前端和 VitePress 手册，Docker 承载 API 与 Worker。前端�
 
 前端业务辅助模块按功能归位；页面和跨功能组件维持统一入口，避免复制共享组件。后端模块导入和根目录配置路径保持稳定。
 
+## 统一 AI 流式输出
+
+同一 AI POST 接口通过 `Accept: text/event-stream` 使用 SSE；原有 JSON 调用保留。`services/api/streaming.py` 复用原始路由的参数校验、权限、流程与事务；`packages/agent_core/streaming.py` 用请求级 ContextVar 传递进度，Provider 直接读取上游 OpenAI 兼容流，不在完整回答后模拟分段。
+
+协议为 `start`、`sources`、`delta`／`replace`、最终 `result` 或 `error`。结构化任务只增量展示可读字符串，原始 JSON 仍由原有业务代码完整校验；只有成功的最终结果更新业务界面。引用以最终校验结果为准，预览不能绕过授权或直接应用到简历。
+
+前端 `features/ai/streaming.ts` 共用 UTF-8 与 SSE 分包解析，`state.ts` 复用认证和缓存失效，`AIStreamPreview.vue` 展示结构化任务预览，ChatPanel 渲染聊天正文。页面离开时取消对应生成请求，账号变化后的旧流不更新新界面。连接中断不自动重放 POST；若业务已完成但最终响应未送达，刷新历史确认状态。
+
+响应使用十秒心跳、禁用代理缓冲和压缩。模型无正文、连接非正常结束、结构化校验失败均不能作为成功结果；正常生成并完成业务事务后才发送 `result`。外部网关仍须正确转发流式响应。
+
 ## 内容与检索
 
 `knowledge/` 保存公共 Markdown、HTML、JSON 与配图。前端构建静态页面和手册；API 启动增量检查知识源并构建索引。显示和检索遵循许可及标签，公共参考资料通过 `packages/rag/reference_sources.py` 提取。
@@ -59,7 +69,7 @@ PDF Worker 使用无网络、非 root、只读根目录与资源限制，通过�
 
 - 仍使用单 API 进程限流与单 Worker 文件队列，多副本需要共享限流和任务系统。
 - OCR、模型服务、邮件及云端权限依赖实际提供方配置，离线替身不证明真实效果。
-- 当前无通用 SSE 流式回答、多人笔记协作、收藏进度或企业 SSO。
+- 当前无多人笔记协作、收藏进度或企业 SSO。
 - 知识去重与排序不是语义去重或 reranker；检索评测是小型回归集。
 - 模板、字体和 PDF 内容调整应查看实际产物；接口成功不等于版式正确。
 

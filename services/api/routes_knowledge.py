@@ -10,8 +10,9 @@ from services.api.store import owned, save, trace, expose
 from packages.rag.knowledge import search, ingest
 from packages.learning.graph import answer_question
 from packages.agent_core.providers import SpeechToTextProvider
+from services.api.streaming import AIStreamingRoute
 
-router = APIRouter(prefix="/api/v1")
+router = APIRouter(prefix="/api/v1", route_class=AIStreamingRoute)
 
 
 @router.get('/knowledge/preload')

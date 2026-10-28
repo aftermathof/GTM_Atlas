@@ -9,7 +9,9 @@ from services.api.store import owned, save, expose, trace
 from packages.mock.graph import plan_interview, evaluate_answer
 from packages.agent_core.checkpoints import SQLCheckpointer
 
-router = APIRouter(prefix="/api/v1/mock")
+from services.api.streaming import AIStreamingRoute
+
+router = APIRouter(prefix="/api/v1/mock", route_class=AIStreamingRoute)
 
 
 @router.post("/sessions")

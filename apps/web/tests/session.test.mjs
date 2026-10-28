@@ -192,6 +192,11 @@ function load(localStorage = storage(), sessionStorage = storage(), fetch = asyn
     exports: {}, localStorage, sessionStorage, fetch, Headers, FormData, Date: clock,
     window: { addEventListener: (name, handler) => listeners.set(name, handler) },
     require: name => {
+      if(name==='./features/ai/streaming') {
+        const helper=vm.createContext({exports:{},TextDecoder,Error})
+        vm.runInContext(ts.transpileModule(readFileSync(new URL('../src/features/ai/streaming.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,helper)
+        return helper.exports
+      }
       assert.equal(name, 'vue')
       return { reactive: value => value }
     }
@@ -561,4 +566,67 @@ test('preloaded resume versions and editing blocks open without extra requests',
   assert.equal(calls,1)
   app.clearSession()
   assert.equal(app.peekHistory(base+'/editing-blocks'),undefined)
+})
+
+
+test('AI POST requests a real SSE response and waits for the final result',async()=>{
+  const encoder=new TextEncoder(),updates=[]
+  let controller,accept
+  const body=new ReadableStream({start(value){controller=value}})
+  const app=load(storage({'atlas-token':'alice'}),storage(),async(url,options)=>{
+    accept=options.headers.get('Accept')
+    return new Response(body,{headers:{'Content-Type':'text/event-stream'}})
+  })
+  const pending=app.post('/ai/chat',{message:'你好'},progress=>updates.push(progress.text))
+  controller.enqueue(encoder.encode('data: {"type":"delta","text":"逐段文字"}\n\n'))
+  while(!updates.length)await new Promise(resolve=>setTimeout(resolve,0))
+  assert.equal(updates[0],'逐段文字')
+  assert.equal(accept,'text/event-stream')
+  controller.enqueue(encoder.encode('data: {"type":"result","value":{"answer":"完整回答"}}\n\n'))
+  controller.close()
+  assert.equal((await pending).answer,'完整回答')
+})
+
+test('SSE errors are not replayed and old-account deltas cannot update the next account',async()=>{
+  const updates=[]
+  let calls=0
+  const app=load(storage({'atlas-token':'alice'}),storage(),async()=>{
+    calls++
+    return new Response('data: {"type":"delta","text":"旧账号内容"}\n\ndata: {"type":"delta","text":"后续内容"}\n\ndata: {"type":"error","detail":"模型连接中断","status":502}\n\n',{headers:{'Content-Type':'text/event-stream'}})
+  })
+  await assert.rejects(app.post('/ai/chat',{message:'问题'},progress=>{
+    updates.push(progress.text)
+    app.clearSession();app.saveSession({token:'bob'})
+  }),/模型连接中断/)
+  assert.equal(calls,1)
+  assert.deepEqual(updates,['旧账号内容'])
+  assert.equal(app.state.token,'bob')
+})
+
+
+test('stream final result invalidates snapshots read before the mutation commits',async()=>{
+  const encoder=new TextEncoder()
+  let controller,committed=false,historyCalls=0,progressSeen=false
+  const stream=new ReadableStream({start(value){controller=value}})
+  const app=load(storage({'atlas-token':'alice'}),storage(),async url=>{
+    if(url.endsWith('/confirm-facts'))return new Response(stream,{headers:{'Content-Type':'text/event-stream'}})
+    if(url.endsWith('/history?prefetch=true')){
+      historyCalls++
+      return new Response(JSON.stringify([{id:'resume',kind:'career',snapshot:{id:'resume',facts:[],diagnosis:{analysis:committed?'新诊断':'旧诊断'}},versions:[]}]))
+    }
+    throw new Error('Unexpected request '+url)
+  })
+  app.state.user={id:'alice'}
+  const pending=app.post('/career/sessions/resume/confirm-facts',{facts:[]},()=>{progressSeen=true})
+  controller.enqueue(encoder.encode('data: {"type":"delta","text":"生成中"}\n\n'))
+  while(!progressSeen)await new Promise(resolve=>setTimeout(resolve,0))
+  await app.preloadHistory()
+  assert.equal(app.peekHistory('/career/sessions/resume').diagnosis.analysis,'旧诊断')
+  committed=true
+  controller.enqueue(encoder.encode('data: {"type":"result","value":{"id":"resume","facts":[],"diagnosis":{"analysis":"新诊断"}}}\n\n'))
+  controller.close()
+  await pending
+  await app.preloadHistory()
+  assert.equal(historyCalls,2)
+  assert.equal(app.peekHistory('/career/sessions/resume').diagnosis.analysis,'新诊断')
 })

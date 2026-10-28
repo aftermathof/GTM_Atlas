@@ -4,14 +4,17 @@ import { ArrowLeft, Check } from 'lucide-vue-next'
 import { post } from '../state'
 import Composer from './Composer.vue'
 import Markdown from './Markdown.vue'
+import AIStreamPreview from './AIStreamPreview.vue'
 import { cleanAIText } from '../features/ai/aiText'
 const props = defineProps<{ block: any; sessionId: string; baseVersionId?: string; dialogue: { turns: any[]; draft: string; original: string } }>()
 const emit = defineEmits<{ close: []; accept: [text: string, original: string] }>()
 const busy = ref(false), error = ref(''), content = ref<HTMLElement>(), dialog = ref<HTMLElement>()
+const stream = ref<any>(null)
 let active = true
+let streamController: AbortController | undefined
 const previousOverflow = document.body.style.overflow
 onMounted(() => { document.body.style.overflow = 'hidden'; dialog.value?.focus() })
-onBeforeUnmount(() => { active = false; document.body.style.overflow = previousOverflow })
+onBeforeUnmount(() => { active = false; streamController?.abort(); document.body.style.overflow = previousOverflow })
 function trap(event: KeyboardEvent) {
   if (event.key === 'Escape' && !busy.value) emit('close')
   if (event.key !== 'Tab') return
@@ -25,15 +28,21 @@ async function ask() {
   if (busy.value || !props.dialogue.draft.trim()) return
   const message = props.dialogue.draft
   const turns = props.dialogue.turns
-  busy.value = true; error.value = ''
+  busy.value = true; error.value = ''; stream.value = null
+  streamController=typeof AbortController !== 'undefined' ? new AbortController() : undefined
   try {
     const result = await post(`/career/sessions/${props.sessionId}/block-dialogue`, {
       fact_ids: props.block.fact_ids, base_version_id: props.baseVersionId || null,
       draft_text: [...turns].reverse().find(t => t.text)?.text || props.dialogue.original,
       message, history: turns.slice(-12).map(t => ({ message:t.message, text:t.text, analysis:t.analysis, questions:t.questions }))
-    })
+    }, progress => {
+      if(active) {
+        stream.value=progress
+        void nextTick(() => { if(content.value) content.value.scrollTop=content.value.scrollHeight })
+      }
+    }, streamController?.signal)
     if (!active) return
-    turns.push({ message, ...result, text: cleanAIText(result.text) }); props.dialogue.draft = ''
+    turns.push({ message, ...result, text: cleanAIText(result.text) }); props.dialogue.draft = ''; stream.value=null
     await nextTick(); if (content.value) content.value.scrollTop = content.value.scrollHeight
   } catch(e:any) { if (active) error.value = e.message } finally { if (active) busy.value = false }
 }
@@ -52,7 +61,7 @@ async function ask() {
         <div v-if="turn.citations?.length" class="citations"><span class="eyebrow">岗位与知识参考</span><RouterLink v-for="c in turn.citations" :key="c.chunk_id" :to="c.url+'?heading='+encodeURIComponent(c.heading_path)" target="_blank">{{ c.title }} · {{ c.heading_path }} ↗</RouterLink></div>
         <div v-if="index===dialogue.turns.length-1 && turn.text" class="dialog-actions"><button class="text-link" :disabled="busy" @click="emit('close')">忽略</button><button class="primary" :disabled="busy" @click="emit('accept',turn.text,dialogue.original)"><Check :size="16"/>确认替换</button></div>
       </article>
-      <p v-if="busy" class="notice" role="status">正在检索岗位资料并生成改写建议…</p>
+      <AIStreamPreview :progress="stream" :busy="busy"/>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
     </div>
     <Composer v-model="dialogue.draft" :busy="busy" label="生成改写建议" placeholder="" @submit="ask"/>

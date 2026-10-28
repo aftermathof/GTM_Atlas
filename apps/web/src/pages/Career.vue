@@ -9,6 +9,12 @@ import ContextPicker from '../components/ContextPicker.vue'
 import ChatPanel from '../components/ChatPanel.vue'
 import BlockRewriteDialog from '../components/BlockRewriteDialog.vue'
 import Markdown from '../components/Markdown.vue'
+import AIStreamPreview from '../components/AIStreamPreview.vue'
+const stream = ref<any>(null)
+let aiGeneration=0
+let viewOwner=state.user?.id
+let aiController: AbortController | undefined
+onBeforeUnmount(() => { aiGeneration++; aiController?.abort() })
 const route = useRoute(), router = useRouter(), session = ref<any>(null), facts = ref<any[]>([]), draftFacts = ref<any[]>([]), versions = ref<any[]>([]), selectedVersion = ref<any>(null), artifacts = ref<any>(null), approved = ref<string[]>([]), busy = ref(false), error = ref(''), file = ref<File|null>(null), jd = ref(''), template = ref('gtm-original'), manual = ref(''), tab = ref('diagnosis')
 const parts = computed(() => (route.params.pathMatch as string[] || []).filter(Boolean))
 const blockRows = ref<any[]>([]), blocksLoading = ref(false), blocksError = ref(''), activeBlockId = ref('')
@@ -78,70 +84,95 @@ function resizeEditor(element: HTMLTextAreaElement) {
   element.style.height = element.scrollHeight + 2 + 'px'
 }
 const vAutosize = { mounted: resizeEditor, updated: resizeEditor }
-async function uploadJd(event:Event){const selected=(event.target as HTMLInputElement).files?.[0];if(!selected)return;uploadingJd.value=true;error.value='';try{const form=new FormData();form.append('file',selected);const result=await api('/career/job-descriptions',{method:'POST',body:form});targetJdId.value=result.id;jd.value=result.body;jdFilename.value=result.filename}catch(e:any){error.value=e.message}finally{uploadingJd.value=false}}
+async function uploadJd(event:Event){const selected=(event.target as HTMLInputElement).files?.[0];if(!selected)return;const current=aiGeneration,account=state.user?.id;uploadingJd.value=true;error.value='';try{const form=new FormData();form.append('file',selected);const result=await api('/career/job-descriptions',{method:'POST',body:form});if(current!==aiGeneration || account!==state.user?.id)return;targetJdId.value=result.id;jd.value=result.body;jdFilename.value=result.filename}catch(e:any){if(current===aiGeneration && account===state.user?.id)error.value=e.message}finally{if(current===aiGeneration)uploadingJd.value=false}}
 onBeforeUnmount(() => { if (pdfUrl.value) URL.revokeObjectURL(pdfUrl.value) })
 const sessionId = computed(() => ['review','editor'].includes(parts.value[0]) ? parts.value[1] : '')
 async function load() {
+  aiGeneration++; aiController?.abort(); stream.value=null; busy.value=false
+  const current=aiGeneration, account=state.user?.id
+  const isCurrent=()=>current===aiGeneration && account===state.user?.id
+  if(viewOwner!==account){jd.value='';targetJdId.value='';jdFilename.value='';file.value=null;manual.value='';viewOwner=account}
+  generating.value=false; uploadingJd.value=false
   sessionLoading.value=false
   versionError.value=''; versionNotice.value=''
   resetBlocks()
   error.value = ''; session.value = null; selectedVersion.value=null; artifacts.value=null; versions.value=[]; approved.value=[]
-  if (!sessionId.value) {if(route.query.jd_id && state.user){try{const r=await api('/knowledge/documents/'+route.query.jd_id);jd.value=r.body;targetJdId.value=r.id;jdFilename.value=r.title}catch(e:any){error.value=e.message}}return}
+  facts.value=[]; draftFacts.value=[]
+  if(pdfUrl.value){URL.revokeObjectURL(pdfUrl.value);pdfUrl.value=''}
+  if (!sessionId.value) {if(route.query.jd_id && state.user){try{const r=await api('/knowledge/documents/'+route.query.jd_id);if(!isCurrent())return;jd.value=r.body;targetJdId.value=r.id;jdFilename.value=r.title}catch(e:any){if(isCurrent())error.value=e.message}}return}
   const endpoint='/career/sessions/' + sessionId.value
   const cached=peekHistory(endpoint), cachedVersions=peekHistory(endpoint+'/versions')
   sessionLoading.value=!(cached && cachedVersions)
   try {
-    session.value = cached || await api(endpoint)
+    const row = cached || await api(endpoint)
+    if(!isCurrent())return
+    session.value = row
     state.careerId = sessionId.value; state.scope = 'career'
     facts.value = cloneFacts(session.value.facts).map(f=>({...f,section:f.section||session.value.structure?.assignments[f.id]||'other'})); draftFacts.value = cloneFacts(facts.value)
-    versions.value = cachedVersions || await api(endpoint+'/versions')
+    const rows = cachedVersions || await api(endpoint+'/versions')
+    if(!isCurrent())return
+    versions.value = rows
     const active = versions.value.find(v => v.id === session.value.active_version_id)
     tab.value = parts.value[0] === 'editor' ? 'editor' : 'diagnosis'
     sessionLoading.value=false
     if (active) await selectVersion(active)
-  } catch(e: any) { error.value = e.message } finally {sessionLoading.value=false}
+  } catch(e: any) { if(isCurrent())error.value = e.message } finally {if(isCurrent())sessionLoading.value=false}
 }
 async function upload() {
   if (!file.value) return
-  busy.value = true; error.value = ''
-  try { const form = new FormData(); form.append('file',file.value); const resume = await api('/career/resumes', {method:'POST',body:form}); const result = await post('/career/sessions', {...state.context,resume_id:resume.id,jd:jd.value,jd_id:targetJdId.value||null}); await router.push('/career/review/' + result.id) } catch(e: any) { error.value = e.message } finally {busy.value = false}
+  const current=aiGeneration, account=state.user?.id
+  aiController=typeof AbortController !== 'undefined' ? new AbortController() : undefined
+  busy.value = true; error.value = ''; stream.value=null
+  try { const form = new FormData(); form.append('file',file.value); const resume = await api('/career/resumes', {method:'POST',body:form}); if(current!==aiGeneration || account!==state.user?.id)return; const result = await post('/career/sessions', {...state.context,resume_id:resume.id,jd:jd.value,jd_id:targetJdId.value||null}, progress=>{if(current===aiGeneration && account===state.user?.id)stream.value=progress}, aiController?.signal); if(current!==aiGeneration || account!==state.user?.id)return; stream.value=null; await router.push('/career/review/' + result.id) } catch(e: any) { if(current===aiGeneration && account===state.user?.id)error.value = e.message } finally {if(current===aiGeneration)busy.value = false}
 }
 async function confirm() {
-  busy.value = true; error.value = ''
+  const current=aiGeneration, account=state.user?.id
+  aiController=typeof AbortController !== 'undefined' ? new AbortController() : undefined
+  busy.value = true; error.value = ''; stream.value=null
   try {
     if (!facts.value.length && manual.value.trim()) facts.value = manual.value.trim().split('\n').filter(Boolean).map((text,i) => ({id:'f'+i,text,locked:/教育|大学|本科/.test(text),confidence:1,page:1}))
-    session.value = await post(`/career/sessions/${sessionId.value}/confirm-facts`, {facts:facts.value})
+    const result = await post(`/career/sessions/${sessionId.value}/confirm-facts`, {facts:facts.value}, progress=>{if(current===aiGeneration && account===state.user?.id)stream.value=progress}, aiController?.signal)
+    if(current!==aiGeneration || account!==state.user?.id)return
+    session.value=result; stream.value=null
     draftFacts.value = cloneFacts(facts.value); selectedVersion.value=null; approved.value=[]
     resetBlocks()
-  } catch(e:any) {error.value=e.message} finally {busy.value=false}
+  } catch(e:any) {if(current===aiGeneration && account===state.user?.id)error.value=e.message} finally {if(current===aiGeneration)busy.value=false}
 }
 async function rewrite() {
   if (editorBusy.value) return
+  const current=aiGeneration, account=state.user?.id
+  const isCurrent=()=>current===aiGeneration && account===state.user?.id
   generating.value = true; error.value = ''; versionError.value=''; versionNotice.value=''
   try {
     const blocks = blockRows.value.filter(b => blockAuthorized(b) && b.text !== b.original).map(b=>({fact_ids:b.fact_ids,text:b.text}))
     if (!blocks.length) throw new Error('请修改已勾选授权的段落，随后再生成版本。')
     const result = await post(`/career/sessions/${sessionId.value}/approve-rewrite`, {blocks,approved_fact_ids:approved.value,template:template.value,base_version_id:selectedVersion.value?.id || null})
+    if(!isCurrent())return
     versions.value.unshift(result); approved.value=[]; versionNotice.value='已保存为新版本。可下载 TeX；PDF 编译状态见右侧。'
     try { await selectVersion(result) }
-    catch(e:any) { versionError.value='新版已保存，但下载信息暂时无法加载：'+e.message+'。可在右侧刷新编译状态，无需重复生成。' }
-  } catch(e:any) {versionError.value=e.message} finally {generating.value=false}
+    catch(e:any) { if(isCurrent())versionError.value='新版已保存，但下载信息暂时无法加载：'+e.message+'。可在右侧刷新编译状态，无需重复生成。' }
+  } catch(e:any) {if(isCurrent())versionError.value=e.message} finally {if(isCurrent())generating.value=false}
 }
 async function selectVersion(version:any) {
+  const current=aiGeneration, account=state.user?.id
+  const isCurrent=()=>current===aiGeneration && account===state.user?.id && selectedVersion.value?.id===version.id
   resetBlocks()
   facts.value=cloneFacts(version.facts); draftFacts.value=cloneFacts(version.facts); selectedVersion.value=version
   void loadBlocks()
-  artifacts.value=await api(`/career/versions/${version.id}/artifacts`)
+  const result=await api(`/career/versions/${version.id}/artifacts`)
+  if(!isCurrent())return
+  artifacts.value=result
   if (pdfUrl.value) { URL.revokeObjectURL(pdfUrl.value); pdfUrl.value='' }
-  if (artifacts.value.pdf) { const r = await authorizedFetch(artifacts.value.pdf); if(r.ok) pdfUrl.value=URL.createObjectURL(await r.blob()) }
+  if (artifacts.value.pdf) { const r = await authorizedFetch(artifacts.value.pdf); if(r.ok && isCurrent()){const blob=await r.blob();if(isCurrent())pdfUrl.value=URL.createObjectURL(blob)} }
 }
 async function exportFile(kind:string) {try {await download(`/api/v1/career/versions/${selectedVersion.value.id}/download/${kind}`, 'resume.'+kind)} catch(e:any) {error.value=e.message} }
 watch(() => [tab.value, session.value?.confirmed, selectedVersion.value?.id, sessionLoading.value], loadBlocks)
 onBeforeUnmount(resetBlocks)
-watch(() => route.fullPath,load); onMounted(load)
+watch(() => [route.fullPath,state.user?.id],load); onMounted(load)
 </script>
 <template>
   <div class="container">
+    <AIStreamPreview v-if="stream" :progress="stream" :busy="busy"/>
     <section v-if="!sessionId" class="page-hero"><div><p class="eyebrow">03 / TELL YOUR REAL STORY</p><h1 class="h-xl">让真实经历，<br>表达<span class="blue">你的价值。</span></h1><p class="lead">结合目标岗位与 JD，诊断表达、补充内容、打磨简历。<br>按你的反馈逐轮修改，每一处取舍都由你决定。</p></div><div class="hero-aside"><span class="large-number">03</span><p>从你的经历与需求出发。<br>让表达更贴近目标岗位。</p><RouterLink to="/history?kind=career" class="text-link">历史简历修改 <ArrowUpRight :size="17" /></RouterLink></div></section>
     <template v-if="!sessionId"><div v-if="!state.user" class="empty-state"><Lock :size="25" /><h2>为你的经历，留一个私有空间。</h2><p>登录后上传简历，原文件与修改版本仅对你可见。</p><RouterLink to="/login?next=/career" class="primary">登录 / 注册 <ArrowUpRight :size="16" /></RouterLink></div><form v-else class="setup-layout" @submit.prevent="upload"><div><p class="eyebrow">STEP 01 / YOUR TARGET</p><h2>先确定，想走向哪里。</h2><ContextPicker /><label>上传目标岗位 JD（选填）<input type="file" accept=".txt,.md,.pdf" :disabled="uploadingJd" @change="uploadJd"><span class="meta">{{ uploadingJd ? "正在读取 JD…" : jdFilename ? "已保存私有 JD："+jdFilename : "TXT / Markdown / 可读 PDF · 最大 2MB；也可直接粘贴" }}</span></label><label>目标岗位 JD（可校对）<textarea v-model="jd" rows="4" placeholder="粘贴真实岗位描述，明确要求优先于通用画像。"></textarea></label><p class="eyebrow space-top">STEP 02 / YOUR EXPERIENCE</p><label class="upload-area"><Upload :size="26" /><strong>{{ file?.name || '选择你的简历文件' }}</strong><span>PDF、PNG、JPG 或 TXT · 最大 10 MB / 10 页</span><input type="file" accept=".pdf,.png,.jpg,.jpeg,.txt" @change="file=($event.target as HTMLInputElement).files?.[0] || null"></label><p class="meta">可读 PDF/TXT 直接提取文字；扫描件和图片由支持图像输入的大模型识别。识别后请核对并确认事实。</p><p class="meta">上传后，简历文本将发送至配置的模型服务进行提取与诊断；图片或扫描页会发送至图像识别模型。</p><div class="career-submit"><button class="primary" :disabled="!file || busy || uploadingJd">{{ busy ? '解析与诊断中…' : '上传并开始诊断' }}<ArrowUpRight :size="16" /></button></div></div><aside class="info-aside"><p class="eyebrow">YOU STAY IN CONTROL</p><h3>从诊断开始。<br>是否改写，由你选择。</h3><ol><li>上传与识别</li><li>确认真实经历</li><li>查看诊断建议</li><li>授权段落并生成版本</li></ol><p class="meta">教育背景默认锁定。未经确认与授权，不会生成新版简历。</p></aside></form></template>
     <LoadingState v-else-if="sessionLoading" label="正在加载简历与修改记录…"/><template v-else-if="session"><RouterLink to="/career" class="back-link"><ArrowLeft :size="15" /> 简历工作台</RouterLink><div class="workspace-heading"><div><p class="eyebrow">YOUR CAREER WORKSPACE / PRIVATE</p><h1 class="h-xl">把经历，说清楚。</h1></div><span class="status-label">{{ session.confirmed ? '事实已确认' : '等待事实确认' }} · 私有</span></div><div class="tabs"><button :class="{active:tab==='facts'}" @click="tab='facts'">识别与事实</button><button :class="{active:tab==='diagnosis'}" @click="tab='diagnosis'">诊断建议</button><button :class="{active:tab==='editor'}" @click="tab='editor'">修改与版本</button></div>

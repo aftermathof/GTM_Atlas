@@ -78,3 +78,26 @@ test('failed email delivery reports the error and retains the email for retry',a
   assert.equal(c.busy.value,false)
   assert.match(c.error.value,/频率/)
 })
+
+test('switching account forms hides and clears passwords but preserves the email',()=>{
+  const c=recovery().component
+  c.email.value='user@example.test';c.password.value='private-password';c.showPassword.value=true
+  c.error.value='previous error';c.success.value='previous success'
+  c.toggleAuth()
+  assert.equal(c.register.value,true)
+  assert.equal(c.password.value,'')
+  assert.equal(c.showPassword.value,false)
+  assert.equal(c.email.value,'user@example.test')
+  assert.equal(c.error.value,'')
+  assert.equal(c.success.value,'')
+})
+
+test('returning from password recovery clears password visibility and confirmation',()=>{
+  const c=recovery().component
+  c.resetting.value=true;c.showPassword.value=true;c.password.value='private-password';c.confirmPassword.value='private-password'
+  c.returnToLogin()
+  assert.equal(c.authStep.value,'login')
+  assert.equal(c.showPassword.value,false)
+  assert.equal(c.password.value,'')
+  assert.equal(c.confirmPassword.value,'')
+})

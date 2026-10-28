@@ -226,11 +226,12 @@ test('an unfinished Mock review loads saved answers without opening the live que
 })
 
 function careerEditor(options = {}) {
+  const state=options.state || { user: { id: 'test' }, context: {} }
   const { descriptor } = parse(readFileSync(new URL('../src/pages/Career.vue', import.meta.url), 'utf8'))
   const context = vm.createContext({ exports: {}, require: name => {
     if (name === 'vue') return { ...vue, onMounted() {}, onBeforeUnmount() {}, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ params: { pathMatch: ['review', 'test'] }, query: {} }), useRouter: () => ({}) }
-    if (name === '../state') return { state: { user: { id: 'test' }, context: {} }, peekHistory: options.peekHistory || (()=>undefined), post: options.post, api: options.api }
+    if (name === '../state') return { state, peekHistory: options.peekHistory || (()=>undefined), post: options.post, api: options.api }
     if (name === '../features/career/resumeText') {
       const helper = { exports: {} }
       vm.runInNewContext(compile(readFileSync(new URL('../src/features/career/resumeText.ts', import.meta.url), 'utf8')), helper)
@@ -241,6 +242,42 @@ function careerEditor(options = {}) {
   vm.runInContext(compile(compileScript(descriptor, { id: 'career-test' }).content), context)
   return context.exports.default.setup({}, { expose() {} })
 }
+
+test('late resume loads cannot restore another account private content',async()=>{
+  const state={user:{id:'alice'},context:{}}
+  let finish
+  const editor=careerEditor({state,api:async()=>{
+    if(state.user.id==='alice')return new Promise(resolve=>{finish=resolve})
+    throw new Error('记录不存在')
+  }})
+  const pending=editor.load()
+  editor.jd.value='旧账号的私有目标 JD'
+  state.user={id:'bob'}
+  await editor.load()
+  finish({id:'private-alice',facts:[{id:'secret',text:'私有经历'}],structure:{assignments:{}}})
+  await pending
+  assert.equal(editor.session.value,null)
+  assert.equal(editor.facts.value.length,0)
+  assert.equal(editor.versions.value.length,0)
+  assert.equal(editor.jd.value,'')
+  assert.equal(editor.error.value,'记录不存在')
+})
+
+test('late version generation cannot repopulate resume facts after switching accounts',async()=>{
+  const state={user:{id:'alice'},context:{}}
+  let finish
+  const editor=careerEditor({state,post:()=>new Promise(resolve=>{finish=resolve}),api:async()=>{throw new Error('记录不存在')}})
+  editor.approved.value=['f1']
+  editor.blockRows.value=[{id:'one',fact_ids:['f1'],text:'新正文',original:'旧正文'}]
+  const pending=editor.rewrite()
+  state.user={id:'bob'}
+  await editor.load()
+  finish({id:'alice-version',facts:[{id:'secret',text:'私有经历'}]})
+  await pending
+  assert.equal(editor.selectedVersion.value,null)
+  assert.equal(editor.facts.value.length,0)
+  assert.equal(editor.versions.value.length,0)
+})
 
 test('authorize all includes every editable fact and excludes locked facts', () => {
   const editor = careerEditor()
@@ -442,6 +479,67 @@ function blockDialog(post) {
   const component=context.exports.default.setup({block:{fact_ids:['f1','f2']},sessionId:'resume',baseVersionId:'v1',dialogue},{expose(){},emit:(...args)=>events.push(args)})
   return {component,dialogue,events}
 }
+
+test('chat renders streamed text while pending and replaces it with the validated final answer', async()=>{
+  let finish
+  const chat=chatPanel(undefined,async(path,body,progress)=>{
+    progress({text:'正在生成的正文',model:'test',citations:[]})
+    return new Promise(resolve=>{finish=()=>resolve({answer:'最终校验正文',citations:[],conversation_id:'stream-chat'})})
+  })
+  chat.draft.value='请解释渠道策略'
+  const pending=chat.ask()
+  assert.equal(chat.messages.value[0].answer,'正在生成的正文')
+  assert.equal(chat.messages.value[0].pending,true)
+  finish();await pending
+  assert.equal(chat.messages.value[0].answer,'最终校验正文')
+  assert.equal(chat.conversation.value,'stream-chat')
+})
+
+test('interrupted chat retains the partial preview and input without marking it complete', async()=>{
+  const chat=chatPanel(undefined,async(path,body,progress)=>{
+    progress({text:'部分正文',model:'test',citations:[]})
+    throw new Error('回答连接中断')
+  })
+  chat.draft.value='原问题'
+  await chat.ask()
+  assert.equal(chat.draft.value,'原问题')
+  assert.equal(chat.messages.value[0].incomplete,true)
+  assert.equal(chat.messages.value[0].pending,false)
+  assert.equal(chat.messages.value[0].answer,'部分正文')
+})
+
+test('streamed rewrite remains a preview until the complete result is validated', async()=>{
+  let finish
+  const app=blockDialog(async(path,body,progress)=>{
+    progress({text:'候选稿的一部分',label:'正在改写',model:'test',citations:[]})
+    return new Promise(resolve=>{finish=()=>resolve({text:'完整候选稿',analysis:'说明',questions:'',citations:[]})})
+  })
+  const pending=app.component.ask()
+  assert.equal(app.component.stream.value.text,'候选稿的一部分')
+  assert.equal(app.dialogue.turns.length,0)
+  assert.equal(app.dialogue.original,'当前整段原文')
+  finish();await pending
+  assert.equal(app.dialogue.turns[0].text,'完整候选稿')
+  assert.equal(app.component.stream.value,null)
+  assert.equal(app.events.length,0)
+})
+
+test('Mock streamed feedback does not advance the question or clear the draft before success', async()=>{
+  let finish
+  const app=mockInterview(true,{post:async(path,body,progress)=>{
+    progress({text:'逐段生成的反馈',label:'正在分析回答',model:'test',citations:[]})
+    return new Promise(resolve=>{finish=()=>resolve({id:'test',status:'in_progress',current_question_index:1})})
+  }})
+  app.component.session.value={id:'test',current_question_index:0}
+  app.component.draft.value='我的完整回答'
+  const pending=app.component.answer('text')
+  assert.equal(app.component.stream.value.text,'逐段生成的反馈')
+  assert.equal(app.component.session.value.current_question_index,0)
+  assert.equal(app.component.draft.value,'我的完整回答')
+  finish();await pending
+  assert.equal(app.component.session.value.current_question_index,1)
+  assert.equal(app.component.draft.value,'')
+})
 
 test('block rewrite sends current text and multi-turn context while leaving the original unchanged', async()=>{
   const requests=[]

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import LoadingState from './LoadingState.vue'
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, post, state, peekHistory, deleteHistoryRecord, isHistoryDeleted } from '../state'
 import ConfirmDelete from './ConfirmDelete.vue'
@@ -21,6 +21,8 @@ function shortTitle(title: string) {
   return characters.length > 14 ? characters.slice(0, 13).join('') + '…' : characters.join('')
 }
 let generation=0
+let streamController: AbortController | undefined
+onBeforeUnmount(() => { generation++; streamController?.abort() })
 async function list() {
   const current=generation
   const rows=state.user ? (peekHistory('/ai/conversations') || await api('/ai/conversations')) : []
@@ -29,6 +31,7 @@ async function list() {
 function resetView() {
   pendingDelete.value=false
   generation++; busy.value=false; restoring.value=false
+  streamController?.abort()
   conversation.value=''; messages.value=[]; draft.value=''; contextAfter.value=0; legacy.value=false; showPrevious.value=false
   scope.value=props.scope || 'global'; documentId.value=props.documentId || ''; sessionId.value=props.sessionId || ''
 }
@@ -77,15 +80,23 @@ async function ask() {
   const question = draft.value
   const current=generation
   const pendingIndex=messages.value.length
-  const turn=Math.max(contextAfter.value, ...messages.value.map(m=>m.turn || 0)) + 1
+  const turn=Math.max(contextAfter.value, ...messages.value.filter(m=>!m.incomplete).map(m=>m.turn || 0)) + 1
   messages.value.push({question, turn, pending:true, answer:'', citations:[]})
   draft.value=''
+  streamController = typeof AbortController !== 'undefined' ? new AbortController() : undefined
   try {
-    const result = await post('/ai/chat', { ...state.context, message: question, scope: scope.value, document_id: documentId.value || null, session_id: sessionId.value || null, conversation_id: conversation.value || null })
+    const result = await post('/ai/chat', { ...state.context, message: question, scope: scope.value, document_id: documentId.value || null, session_id: sessionId.value || null, conversation_id: conversation.value || null }, progress => {
+      if(current===generation) Object.assign(messages.value[pendingIndex], {answer:progress.text, citations:progress.citations, model:progress.model})
+    }, streamController?.signal)
     if(current!==generation) return
     conversation.value=result.conversation_id || ''; messages.value[pendingIndex]={question, turn, ...result}
     if(conversation.value && !threads.value.some(t=>t.id===conversation.value)) threads.value.unshift({id:conversation.value,title:question.slice(0,80)})
-  } catch (e: any) { if(current===generation) {messages.value.splice(pendingIndex,1); draft.value=question; error.value = e.message} } finally { if(current===generation) busy.value = false }
+  } catch (e: any) { if(current===generation) {
+    const message=messages.value[pendingIndex]
+    if(message?.answer) Object.assign(message,{pending:false,incomplete:true,limitations:'未收到完整结果，请刷新历史确认保存状态。'})
+    else messages.value.splice(pendingIndex,1)
+    draft.value=question; error.value = e.message
+  } } finally { if(current===generation) busy.value = false }
 }
 watch(()=>[props.scope,props.documentId,props.sessionId,props.conversationId,state.user?.id], async()=>{
   resetView(); error.value=''; threads.value=[]
@@ -100,7 +111,7 @@ async function submitQuestion(question: string) {
 }
 defineExpose({ setQuestion: (q: string) => { draft.value = q }, submitQuestion })
 watch(busy, value => { if (props.docked) state.assistantBusy = value }, {flush:'sync', immediate:true})
-watch(()=>[messages.value.length,error.value,busy.value], async()=>{
+watch(()=>[messages.value.length,messages.value.at(-1)?.answer,error.value,busy.value], async()=>{
   await nextTick()
   if(messageList.value) messageList.value.scrollTop=messageList.value.scrollHeight
 })
@@ -122,7 +133,7 @@ watch(()=>[messages.value.length,error.value,busy.value], async()=>{
     <p v-if="contextAfter" class="notice">已清空前 {{contextAfter}} 轮的上下文。旧消息已从当前窗口隐藏，历史记录保留。<button class="text-link" @click="showPrevious = !showPrevious">{{ showPrevious ? '隐藏旧消息' : '查看旧消息' }}</button></p>
     <LoadingState v-if="restoring" label="正在加载历史对话…" compact />
     <div v-for="(message, index) in visibleMessages" :key="index" class="message-pair">
-      <p class="question">{{ message.question }}</p><p v-if="message.pending" class="thinking meta" role="status">正在思考…</p><template v-else><p class="provider-label">{{ message.provider === 'mock' ? '旧版记录' : message.model }}{{message.turn <= contextAfter ? ' · 已移出上下文' : ''}}</p><Markdown ai class="answer chat-answer" :source="message.answer || ''" :citations="message.citations" /></template>
+      <p class="question">{{ message.question }}</p><p v-if="message.pending" class="thinking meta" role="status">{{ message.answer ? '正在回答…' : '正在思考…' }}</p><template v-if="message.answer || !message.pending"><p class="provider-label">{{ message.provider === 'mock' ? '旧版记录' : message.model }}{{message.turn <= contextAfter ? ' · 已移出上下文' : ''}}</p><Markdown ai class="answer chat-answer" :source="message.answer || ''" :citations="message.citations" /></template>
       <div class="citations"><RouterLink v-for="c in citationSources(message.citations)" :key="c.key" :to="c.href">{{ c.number }}. {{ c.title }} ↗</RouterLink></div>
       <p class="meta">{{ message.limitations }}</p>
     </div>
