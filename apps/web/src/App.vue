@@ -7,7 +7,7 @@ import { preloadWorkspace } from './preload'
 import ChatPanel from './components/ChatPanel.vue'
 import LoadingState from './components/LoadingState.vue'
 const route = useRoute(), menu = ref(false), assistantMounted = ref(false), assistantExpanded = ref(false), drawer = ref<HTMLElement>()
-const workspaceVisible = computed(() => state.user && route.path !== '/auth/confirmed')
+const workspaceVisible = computed(() => !!state.user && route.path !== '/login' && route.path !== '/auth/confirmed')
 const assistantChat = ref<InstanceType<typeof ChatPanel>>()
 onMounted(initialize)
 watch(() => [state.user?.id, state.token], () => {
