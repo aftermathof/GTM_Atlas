@@ -10,10 +10,10 @@ function gate(user = null, restore = async () => {}) {
   const router = { beforeEach(callback) { before = callback }, currentRoute: { value: { path:'/career/editor/test', fullPath:'/career/editor/test' } }, replace: target => redirects.push(target) }
   const context = vm.createContext({exports:{}, URLSearchParams, require(name) {
     if (name==='vue') return {watch: (source, callback) => { changed = callback }}
-    if (name==='./state') return {state, restoreSession: () => restore(state)}
+    if (name==='../../state') return {state, restoreSession: () => restore(state)}
     return {}
   }})
-  const source=readFileSync(new URL('../src/authNavigation.ts',import.meta.url),'utf8')
+  const source=readFileSync(new URL('../src/features/auth/authNavigation.ts',import.meta.url),'utf8')
   vm.runInContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,context)
   context.exports.installAuthGuard(router)
   return { state, redirects, navigate: path => before({path:path.split(/[?#]/)[0],fullPath:path,hash:path.includes('#')?'#'+path.split('#')[1]:''}), logout:()=>changed(null) }

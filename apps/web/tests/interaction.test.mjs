@@ -46,7 +46,7 @@ function scrolling() {
   const context = vm.createContext({ exports: {}, require: name => {
     if (name === 'vue') return { createApp: () => ({ use() { return this }, mount() {} }) }
     if (name === 'vue-router') return { createWebHistory() {}, createRouter: value => { config = value; return {} } }
-    if (name === './authNavigation') return { installAuthGuard() {} }
+    if (name === './features/auth/authNavigation') return { installAuthGuard() {} }
     return {}
   } })
   vm.runInContext(compile(readFileSync(new URL('../src/main.ts', import.meta.url), 'utf8')), context)
@@ -231,9 +231,9 @@ function careerEditor(options = {}) {
     if (name === 'vue') return { ...vue, onMounted() {}, onBeforeUnmount() {}, watch() {} }
     if (name === 'vue-router') return { useRoute: () => ({ params: { pathMatch: ['review', 'test'] }, query: {} }), useRouter: () => ({}) }
     if (name === '../state') return { state: { user: { id: 'test' }, context: {} }, peekHistory: options.peekHistory || (()=>undefined), post: options.post, api: options.api }
-    if (name === '../resumeText') {
+    if (name === '../features/career/resumeText') {
       const helper = { exports: {} }
-      vm.runInNewContext(compile(readFileSync(new URL('../src/resumeText.ts', import.meta.url), 'utf8')), helper)
+      vm.runInNewContext(compile(readFileSync(new URL('../src/features/career/resumeText.ts', import.meta.url), 'utf8')), helper)
       return helper.exports
     }
     return {}
@@ -429,12 +429,12 @@ test('clearing context hides previous turns without deleting saved messages', as
 function blockDialog(post) {
   const events=[]
   const aiText={exports:{}}
-  vm.runInNewContext(compile(readFileSync(new URL('../src/aiText.ts',import.meta.url),'utf8')),aiText)
+  vm.runInNewContext(compile(readFileSync(new URL('../src/features/ai/aiText.ts',import.meta.url),'utf8')),aiText)
   const { descriptor } = parse(readFileSync(new URL('../src/components/BlockRewriteDialog.vue', import.meta.url), 'utf8'))
   const context = vm.createContext({ exports:{}, document:{body:{style:{overflow:''}}}, require:name=>{
     if(name==='vue') return {...vue,onMounted(){},onBeforeUnmount(){}}
     if(name==='../state') return {post}
-    if(name==='../aiText') return aiText.exports
+    if(name==='../features/ai/aiText') return aiText.exports
     return {}
   } })
   vm.runInContext(compile(compileScript(descriptor,{id:'block-dialog-test'}).content),context)
@@ -469,7 +469,7 @@ test('failed block rewrite retains requirements and existing conversation for re
 
 function resumeText() {
   const helper={exports:{}}
-  vm.runInNewContext(compile(readFileSync(new URL('../src/resumeText.ts',import.meta.url),'utf8')),helper)
+  vm.runInNewContext(compile(readFileSync(new URL('../src/features/career/resumeText.ts',import.meta.url),'utf8')),helper)
   return helper.exports
 }
 

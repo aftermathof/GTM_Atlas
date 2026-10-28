@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
-import { pageToJump } from '../resourceGallery'
+import { pageToJump } from '../features/knowledge/resourceGallery'
 const props=defineProps<{page: number; pages: number; total: number}>()
 const emit = defineEmits<{change: [page: number]}>()
 const target=ref(String(props.page)), error=ref('')

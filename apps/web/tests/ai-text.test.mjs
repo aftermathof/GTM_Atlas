@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs'
 import ts from 'typescript'
 import vm from 'node:vm'
 test('AI display hides internal source IDs and keeps normal links and numbers',()=>{
-  const source=readFileSync(new URL('../src/aiText.ts',import.meta.url),'utf8')
+  const source=readFileSync(new URL('../src/features/ai/aiText.ts',import.meta.url),'utf8')
   const context={exports:{}}
   vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,context)
   const clean=context.exports.cleanAIText

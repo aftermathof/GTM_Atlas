@@ -8,7 +8,7 @@ import * as vue from 'vue'
 import { parse, compileScript } from '@vue/compiler-sfc'
 
 function helpers() {
-  const source = readFileSync(new URL('../src/aiCitations.ts', import.meta.url), 'utf8')
+  const source = readFileSync(new URL('../src/features/ai/aiCitations.ts', import.meta.url), 'utf8')
   const context = { exports: {}, URL }
   vm.runInNewContext(ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, context)
   return context.exports
@@ -73,7 +73,7 @@ function markdown(props) {
     if (name === 'vue-router') return { useRouter: () => ({ push: url => navigation.push(url) }) }
     if (name === 'marked') return { Marked }
     if (name === 'dompurify') return { default: { sanitize: html => { sanitized.push(html); return html } } }
-    if (name === '../aiCitations') return helpers()
+    if (name === '../features/ai/aiCitations') return helpers()
     throw new Error('Unexpected import: ' + name)
   } }
   vm.runInNewContext(ts.transpileModule(compileScript(descriptor, { id: 'markdown-citations-test' }).content, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, context)

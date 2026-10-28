@@ -6,7 +6,7 @@ import { api, post, state, peekHistory, deleteHistoryRecord, isHistoryDeleted } 
 import ConfirmDelete from './ConfirmDelete.vue'
 import Composer from './Composer.vue'
 import Markdown from './Markdown.vue'
-import { citationSources } from '../aiCitations'
+import { citationSources } from '../features/ai/aiCitations'
 const props = defineProps<{ scope?: string; documentId?: string; sessionId?: string; conversationId?: string; docked?: boolean }>()
 const route = useRoute(), router = useRouter()
 const draft = ref(''), busy = ref(false), error = ref(''), messages = ref<any[]>([])

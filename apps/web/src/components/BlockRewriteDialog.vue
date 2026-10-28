@@ -4,7 +4,7 @@ import { ArrowLeft, Check } from 'lucide-vue-next'
 import { post } from '../state'
 import Composer from './Composer.vue'
 import Markdown from './Markdown.vue'
-import { cleanAIText } from '../aiText'
+import { cleanAIText } from '../features/ai/aiText'
 const props = defineProps<{ block: any; sessionId: string; baseVersionId?: string; dialogue: { turns: any[]; draft: string; original: string } }>()
 const emit = defineEmits<{ close: []; accept: [text: string, original: string] }>()
 const busy = ref(false), error = ref(''), content = ref<HTMLElement>(), dialog = ref<HTMLElement>()

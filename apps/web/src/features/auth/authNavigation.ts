@@ -1,6 +1,6 @@
 import { watch } from 'vue'
 import type { Router } from 'vue-router'
-import { state, restoreSession } from './state'
+import { state, restoreSession } from '../../state'
 
 export function installAuthGuard(router: Router) {
   router.beforeEach(async to => {

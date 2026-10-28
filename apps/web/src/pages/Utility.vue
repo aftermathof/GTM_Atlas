@@ -7,7 +7,7 @@ import { api, post, state, saveSession, clearSession, logoutSession, historyReco
 import ConfirmDelete from '../components/ConfirmDelete.vue'
 import ContextPicker from '../components/ContextPicker.vue'
 import CardPagination from '../components/CardPagination.vue'
-import { cardPage } from '../resourceGallery'
+import { cardPage } from '../features/knowledge/resourceGallery'
 const route=useRoute(),router=useRouter(), email=ref(''), password=ref(''),register=ref(false), error=ref(''),success=ref(''),busy=ref(false),history=ref<any[]>([]),query=ref(String(route.query.q || '')), results=ref<any[]>([])
 const recovering=ref(false), resetting=ref(false), recoveryToken=ref(''), confirmPassword=ref('')
 const authStep=computed(()=>resetting.value?'reset':recovering.value?'recover':register.value?'register':'login')

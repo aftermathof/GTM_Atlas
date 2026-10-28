@@ -10,11 +10,11 @@ import LoadingState from '../components/LoadingState.vue'
 const NoteEditor=defineAsyncComponent({loader:()=>import('../components/NoteEditor.vue'),loadingComponent:LoadingState,delay:0})
 import NoteMark from '../components/NoteMark.vue'
 import CardPagination from '../components/CardPagination.vue'
-import { cardPage } from '../resourceGallery'
+import { cardPage } from '../features/knowledge/resourceGallery'
 import { warmNote } from '../preload'
-import { cachedNotes, cachedNote, fetchNotes, fetchNote, cacheSavedNote, deleteNote, forgetNote, type Note } from '../notesStore'
+import { cachedNotes, cachedNote, fetchNotes, fetchNote, cacheSavedNote, deleteNote, forgetNote, type Note } from '../features/notes/notesStore'
 
-import { folderNotes, noteNumbers, type NoteFolder } from '../noteFolders'
+import { folderNotes, noteNumbers, type NoteFolder } from '../features/notes/noteFolders'
 
 const route = useRoute(), router = useRouter()
 const folders = ref<NoteFolder[]>([]), folderTitle = ref(''), creatingFolder = ref(false), folderForm = ref(false)

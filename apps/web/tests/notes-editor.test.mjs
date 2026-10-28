@@ -9,7 +9,7 @@ import { marked, Tokenizer } from 'marked'
 
 const source = () => {
   const context = vm.createContext({exports:{}})
-  vm.runInContext(ts.transpileModule(readFileSync(new URL('../src/notesEditing.ts', import.meta.url), 'utf8'), {
+  vm.runInContext(ts.transpileModule(readFileSync(new URL('../src/features/notes/notesEditing.ts', import.meta.url), 'utf8'), {
     compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
   }).outputText, context)
   return context.exports
@@ -58,7 +58,7 @@ function store() {
   const state = {user:{id:'alice'},token:'alice-token'}
   let requests = 0, resolve
   const context = vm.createContext({exports:{}, Map, require:() => ({state,api:() => {requests++;return new Promise(done=>{resolve=done})}})})
-  vm.runInContext(ts.transpileModule(readFileSync(new URL('../src/notesStore.ts',import.meta.url),'utf8'),{
+  vm.runInContext(ts.transpileModule(readFileSync(new URL('../src/features/notes/notesStore.ts',import.meta.url),'utf8'),{
     compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
   }).outputText,context)
   return {cache:context.exports,state,get requests(){return requests},respond(value){resolve(value)}}

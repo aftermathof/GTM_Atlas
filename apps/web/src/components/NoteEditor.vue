@@ -5,7 +5,7 @@ import { Decoration, EditorView, WidgetType, keymap, placeholder, type Decoratio
 import { defaultKeymap, history, historyKeymap, isolateHistory } from '@codemirror/commands'
 import { marked, Tokenizer } from 'marked'
 import DOMPurify from 'dompurify'
-import { inlineEdit } from '../notesEditing'
+import { inlineEdit } from '../features/notes/notesEditing'
 
 const props = defineProps<{ modelValue: string; live: boolean; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()

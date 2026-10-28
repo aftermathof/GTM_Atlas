@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { cleanResumeText, cleanDiagnosis } from '../resumeText'
+import { cleanResumeText, cleanDiagnosis } from '../features/career/resumeText'
 import LoadingState from '../components/LoadingState.vue'
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'

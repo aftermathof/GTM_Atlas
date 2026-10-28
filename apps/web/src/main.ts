@@ -9,7 +9,7 @@ import Utility from './pages/Utility.vue'
 import Glossary from './pages/Glossary.vue'
 import EmailConfirmed from './pages/EmailConfirmed.vue'
 import Notes from './pages/Notes.vue'
-import { installAuthGuard } from './authNavigation'
+import { installAuthGuard } from './features/auth/authNavigation'
 import './style.css'
 
 const router = createRouter({ history: createWebHistory(), scrollBehavior: (to, from, savedPosition) => {

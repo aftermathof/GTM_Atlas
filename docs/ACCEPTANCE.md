@@ -9,7 +9,7 @@
 ```powershell
 .venv/Scripts/python.exe -m pytest -q
 .venv/Scripts/python.exe scripts/validate_knowledge.py
-node --test apps/web/scripts/*.test.mjs
+npm --prefix apps/web test
 npm --prefix apps/web run build
 ```
 
@@ -21,9 +21,11 @@ npm --prefix apps/web run build
 | --- | --- |
 | 账号与隔离 | 未登录仅开放登录／注册页，导航与 AI 入口隐藏；登录恢复、主动退出后跳转、另一账号不能读取私有记录或下载文件 |
 | 知识资料 | JD、面经、在职经验分类正确，编号排序、目录、搜索、缓存和引用可用 |
+| 学习笔记与文件夹 | 创建文件夹，在文件夹内新增、编辑、删除笔记；刷新后归属保留；首页与各文件夹分别从 N01 编号，翻页接续；跨账号不可访问 |
 | 概览与名词库 | HTML 概览、名词搜索及 AI 对两类参考内容的引用 |
 | AI 助手 | 多轮对话、历史选择、全屏、清空当前上下文、失败后保留输入 |
 | Mock | 自定义 1–20 题、题目去重、回答与反馈、中途退出、返回面经入口 |
+| Mock 多轮追问 | 不设总答题步数或每题追问次数上限；同题可连续追问多次，模型不再追问后才进入下一题；全部题目完成后可读取复盘 |
 | Mock 历史 | 未作答练习不展示；记录呈现问题、回答和建议；问问 AI 自动分行并发送 |
 | 简历识别 | 可读 PDF/TXT、扫描件、图标清理、字段与 section 校对 |
 | 简历改写 | 完整经历分块、多轮建议、明确确认替换、锁定与授权、版本保存 |

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { peekOverview, warmOverview } from '../publicLearning'
+import { peekOverview, warmOverview } from '../features/knowledge/publicLearning'
 const page = ref('index.html'), html = ref(peekOverview()), error = ref(''), frame = ref<HTMLIFrameElement>()
 const source = computed(() => html.value?.replace('<head>', '<head><base href="' + window.location.origin + '/gtm-overview/' + page.value + '">'))
 async function load() {

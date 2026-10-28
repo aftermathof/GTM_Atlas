@@ -21,7 +21,7 @@ function loader({count=7, failure=false, stop=false, records=[], chats=[],chatWa
       pages.push(offset)
       return {total:count,items:Array.from({length:Math.min(100,count-offset)},(_,i)=>({id:'d'+(offset+i)}))}
     }
-  }:name==='./notesStore'?{cachedNotes:()=>undefined,cachedNote:()=>undefined,fetchNotes:async()=>[{id:'n0'},{id:'n1'}],fetchNote:warm}:{warmOverview:async()=>{}}})
+  }:name==='./features/notes/notesStore'?{cachedNotes:()=>undefined,cachedNote:()=>undefined,fetchNotes:async()=>[{id:'n0'},{id:'n1'}],fetchNote:warm}:{warmOverview:async()=>{}}})
   vm.runInContext(ts.transpileModule(readFileSync(new URL('../src/preload.ts',import.meta.url),'utf8'),{
     compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
   }).outputText,context)

@@ -1,535 +1,169 @@
 # GTM Atlas · GTM 学习与求职工作台
 
-GTM Atlas 将 GTM（Go-to-Market）知识学习、岗位理解、模拟面试和简历修改放在同一个工作空间中。项目文件夹名为 `GTM desk`，网页产品名为 **GTM Atlas**。
+项目目录为 **GTM desk**，网页产品名为 **GTM Atlas**。将 GTM（Go-to-Market）知识学习、岗位 JD、面经与 Mock、简历修改和个人学习笔记放在同一工作台中。
 
-项目帮助正在了解 GTM、准备相关岗位求职或梳理业务经历的用户，完成“学习知识 → 理解岗位 → 练习表达 → 改善简历”的过程。AI 结合知识资料、目标 JD、现有简历与用户反馈共同编辑，直接提供岗位导向的候选稿，由用户选择、调整和确认。
+运行时使用真实模型服务；缺少接口配置时明确提示。离线测试使用隔离数据和模型替身，不代表外部服务已经验收。
 
-仓库包含前端、Python 后端、知识资料、领域提示规则、简历模板、数据库 SQL 和 Docker 配置。运行时调用真实模型服务；缺少接口配置时明确提示，不使用模拟回答代替真实结果。
+## 当前功能
 
-## 从哪里开始维护
+| 功能 | 页面与能力 | 主要维护位置 |
+| --- | --- | --- |
+| 知识学习 | `/learn`：GTM 概览、在职经验、名词库、《爆品操盘GTM》与 SOP；卡片、博主合集、搜索、分页与全文阅读 | `apps/web/src/features/knowledge/`、`knowledge/` |
+| 岗位与面试 | `/interviews`：岗位 JD、面经与 Mock；自定义题数、回答、追问、反馈、复盘及历史恢复 | `apps/web/src/pages/Interviews.vue`、`packages/mock/` |
+| 简历工作台 | `/career`：目标 JD、原件提取、事实核对、诊断、分段授权改写、版本、TeX/PDF 导出 | `apps/web/src/features/career/`、`packages/career/`、`templates/latex/` |
+| 学习笔记 | `/notes`：创建文件夹、文件夹内新增笔记、Markdown 编辑与实时预览、保存和删除 | `apps/web/src/features/notes/`、`services/api/routes_notes.py` |
+| AI 问答 | 全局、文章、笔记、Mock 与简历场景；多轮历史、句内编号引用、可选语音输入 | `apps/web/src/features/ai/`、`packages/learning/`、`packages/rag/` |
+| 账号与历史 | 邮箱登录、验证、找回密码、会话恢复、历史管理与账号隔离 | `apps/web/src/features/auth/`、`services/api/routes_auth.py`、`services/api/supabase.py` |
 
-先看 [文件夹与维护入口](docs/README.md)。常改内容都放在下面这些位置：
+应用页面要求登录，未登录进入登录／注册页。常用辅助入口为 `/history`、`/settings`、`/glossary`；后端交互文档为 `/docs`，健康接口为 `/api/v1/health`。
 
-| 想修改什么 | 唯一源文件位置 |
-| --- | --- |
-| GTM 概览首页和四章正文 | `knowledge/site/gtm-overview/` |
-| GTM 专有名词与例子 | `knowledge/glossary/gtm-glossary.json` |
-| 岗位 JD / 面经 / 在职经验 | `knowledge/jobs/` / `knowledge/interviews/` / `knowledge/learning/` |
-| 网页布局、按钮、助手、简历工作台 | `apps/web/src/` |
-| 模型、检索、Mock、简历业务逻辑 | `packages/` 与 `services/api/` |
-| Docker 部署 / 数据库初始化 / 简历模板 | `infra/` / `supabase/` / `templates/latex/` |
+Mock 不要求在固定答题步数内结束，也不限制每题的追问次数。模型根据回答和前序对话判断是否继续追问；信息充分、不再需要追问时进入下一题，全部题目完成后生成复盘。
 
-GTM 概览已从前端的 `public` 目录移到知识资料区；网页地址仍为 `/gtm-overview/index.html`。资料导入来源记录在 `docs/archive/import-reports/`。
+学习笔记首页和每个文件夹分别从 **N01** 编号，按各自笔记创建顺序生成展示编号，分页接续；不同文件夹互不影响。原有笔记保留在首页，编辑笔记会保留其文件夹归属。文件夹和笔记随账号保存到 `business_records`，分别使用 `note_folder`、`learning_note`，沿用现有表，无需新增建表 SQL。
 
-## 当前阶段与使用入口
+笔记支持 Ctrl / ⌘ + S 保存、撤销与未保存离开提醒，通过版本号防止多页面覆盖。AI 只检索当前账号已保存的笔记，相关片段随请求发送至配置的模型；删除笔记不删除既有聊天中的引用快照。
 
-项目已具备知识学习、AI 问答、Mock 和简历工作台的主要代码与部署结构。日常维护以内容更新、问题修复和部署验收为主；各环境的在线状态应以当前实际检查结果为准。
+登录后按账号预加载资料、笔记及历史，后台正文请求最多同时 3 个；退出或切换账号后旧缓存不可用。资料管理接口会检查维护权限，允许修改、删除符合条件的公共在职经验研究笔记，并使相关缓存与检索失效。
 
-功能验收项目见 [验收清单](docs/ACCEPTANCE.md)，运行方法见下方步骤。`docs/archive/import-reports/` 仅保留资料来源校验记录。
-
-支持两种对外运行方式：
-
-| 方式 | 前端 | 后端 | 适用情况 |
-| --- | --- | --- | --- |
-| 本机联调 | Vercel | 自己电脑上的 Docker，通过 Cloudflare 临时隧道访问 | 当前无服务器，先测试完整连接 |
-| 持续部署 | Vercel | 持续在线的 Docker 主机，通过 HTTPS 域名访问 | 后续正式对外使用 |
-
-网站应用页面统一要求登录。未登录只开放登录／注册页；登录成功后进入目标页面，退出后返回登录页。
-
-常用入口：前端主页 `/`、资料 `/learn`、问答 `/learn/ask`、面经与 Mock `/interviews`、简历 `/career`、学习笔记 `/notes`、历史 `/history`、设置 `/settings`、名词完整页 `/glossary`。后端 API 文档为 `/docs`，健康接口为 `/api/v1/health`。
-
-阅读顺序：了解功能 → 目录与 Skill → 环境变量 → Docker 启动 → 选择公网访问方式 → Vercel → 功能验收。下文示例域名和 Key 都是占位符，不含真实凭证，也不记录会过期的临时隧道地址。
-
-## 主要功能
-
-### 知识学习
-
-资料入口 `/learn` 使用卡片目录和全文阅读，栏目依次为：
-
-| 栏目 | 内容与交互 |
-| --- | --- |
-| GTM 概览 | HTML 学习页面，支持框内预览和打开完整页面 |
-| 岗位 JD | 公共岗位资料栏目，供后续扩充 |
-| 在职经验 | 业务经验和学习笔记 |
-| GTM 专有名词库 | 名词、解释和场景例子，两列表格，支持预览和完整页面 |
-| 爆品操盘GTM | 全书六章与附录，支持框内阅读、全文搜索、图片放大和独立页面；资料位于 knowledge/site/gtm-book/ |
-
-所有「目标岗位」选择器只提供「GTM」与「自定义/以JD为准」，默认 GTM；旧岗位偏好在进入选择器时归一为 GTM，自定义模式保留用户填写的岗位名。
-
-面经统一在 `/interviews` 的「面经与 Mock」中展示。JD、面经、在职经验共用文章目录和正文阅读布局；资料卡片不展示预计阅读时长。
-
-目前正式 Markdown 知识库包含 **10 份岗位 JD、30 篇面经研究笔记和 167 篇学习/在职经验笔记**。本轮新增「地球超市薯达人-GTM」137 篇公开图文的独立研究整理（L31—L167），已跳过原有10篇及26篇视频；保留428张与GTM相关且补充正文信息的图片，图片维护于 `knowledge/site/xhs-author-assets/`，非GTM主题随笔已标明阅读边界。三类资料均使用 `research-notes/research-jNN.md`、`research-iNN.md`、`research-lNN.md` 单篇结构；JD 直接匹配与相关职能扩展的边界保留在各单篇中。研究笔记不等于原帖逐字全文，也不代表企业官方结论。合成资料仅保留在 `tests/fixtures/`，不进入正式知识库。
-
-### 学习笔记
-
-顶部第四个入口为 `/notes`，笔记卡片包含专用线条图标、`N01` 起的编号封面，以及标题和最后修改时间。编号按当前笔记创建顺序生成，为展示标识。支持新建、编辑、删除（卡片上直接操作，先确认后删除），以及 Markdown 编辑、单栏实时预览、阅读三种视图。实时预览采用 CodeMirror：当前段落可编辑 Markdown，其余段落在同一文档中渲染；单次换行保留，引用显示浅色高亮。常用格式按钮可重复点击取消粗体或斜体，Ctrl / ⌘ + Z 撤销输入及格式修改，Ctrl / ⌘ + S 保存；标题、列表、任务清单、表格、引用、代码块和链接即时渲染。离开未保存内容会提醒，多页面编辑同一篇笔记时通过版本号阻止覆盖。登录后后台预加载岗位 JD、在职经验、面经和本人笔记正文，最多同时请求 3 篇；悬停或键盘聚焦卡片时优先加载该篇。目录和正文在当前页面会话中按账号缓存，预加载完成后打开卡片直接显示；首次访问、未完成预加载或请求失败时仍可能等待。刷新网页重新获取，退出或切换账号清除可用的旧账号缓存。笔记保存、删除会更新或失效对应缓存，过期请求不会覆盖新版本。当前为个人单栏编辑与预览，不提供多人实时协作。
-
-笔记通过登录后的 `/api/v1/notes` 接口保存至 `business_records`（`kind=learning_note`），每条记录绑定当前账号。沿用现有 Supabase 表和 RLS，无需新增建表 SQL，不写入公共 Markdown 目录或公共向量索引。
-
-全站助手、学习问答会检索当前账号已保存笔记，也可在笔记下方展开“与 AI 讨论这篇笔记”。笔记引用可跳回原文；修改或删除立即影响后续检索。当前采用私有关键词与中文词组检索，不额外调用 Embedding；每次最多提供 6 个相关片段，长笔记宜按章节提问，不保证全文总结。相关片段会随当前请求发送至配置的 LLM。删除笔记不删除既有聊天中已经保存的引用快照。
-
-维护入口：前端 `apps/web/src/pages/Notes.vue`，接口 `services/api/routes_notes.py`，私有检索 `packages/rag/notes.py`，测试 `tests/test_notes.py`。发布此功能需重新部署 Vercel 前端并重建 Docker API，PDF renderer 无需重建。
-
-### AI 问答与语音输入
-
-- 全局助手使用全站可检索知识，文章和简历场景使用相应范围的上下文。
-- 先检索资料，再调用 LLM 生成回答，并检查引用是否属于本次检索结果。
-- 登录后支持多轮问答保存、历史恢复、New chat、清空上下文和删除会话。
-- New chat 保留旧会话；清空上下文在当前窗口隐藏旧消息，保留历史记录，不将旧轮次继续发送给模型。
-- 可选语音输入先转写至草稿，用户校对后再提交。未配置 STT 时仍可键盘输入。
-
-### 全局预加载与缓存
-
-登录后按账号预加载资料、笔记、历史列表、聊天记录、Mock 回答与复盘、简历会话和版本列表。后台正文加载共用最多 3 个并发任务，悬停卡片时可优先预取；命中缓存的历史和对话直接展示。新问答、清空上下文、删除历史和修改简历后，对应缓存失效，下次读取获取最新内容。退出或切换账号后旧缓存不可用；私人数据不持久化到浏览器磁盘。
-
-GTM 专有名词的数据已随前端打包；栏目切换保留名词搜索与预览状态。GTM 概览的首页和四章 HTML 从 `knowledge/site/gtm-overview/` 打包为单独内容模块并预加载，预览内切章读取内存缓存；打开独立完整页面仍使用正常浏览器加载。公共概览缓存不包含私人内容。
-
-缓存不替代实时服务：PDF 编译状态、产物接口、鉴权、模型新回答仍实时请求。首次访问、刷新网页、缓存失效、跨设备更新或请求失败时可能等待；需要查看其他设备最新修改时刷新页面。这里不提供离线运行或跨标签页共享私人内容。
-
-### 面经与 Mock
-
-根据岗位、行业、语言、难度、题数等条件规划面试，结合面经参考生成问题。对用户回答提供维度反馈、有限追问和复盘；保存练习进度与回答，可从历史继续。授权的简历事实可用于个性化追问。
-
-### 简历工作台
-
-```text
-选择目标岗位 / 上传或粘贴 JD
-  → 上传简历原件 → 提取文字、关键信息和段落归属
-  → 用户核对确认 → 诊断 → 选择允许修改的段落
-  → AI 提出建议 → 用户审核授权
-  → 填充 TeX 模板 → 生成新版本 → 导出 TeX / 编译下载 PDF
-```
-
-可提取文字的 PDF、TXT 直接读取；扫描 PDF 和图片由单独配置的图像模型识别。识别结果需人工核对。支持段落锁定、修改授权、对话补充内容与数字、历史版本和从旧版继续生成新版。
-
-默认模板来自用户提供的 TeX 文件，原件为 `templates/latex/gtm-original/source.tex`，可填充模板为同目录 `resume.tex.j2`。只查看诊断不会自动生成修改版本。
-
-## 系统架构
-
-```text
-浏览器
-  │ HTTPS
-  ▼
-Vercel：Vue 前端 + VitePress 静态手册
-  │ HTTPS API
-  ▼
-Docker 主机：api（FastAPI）
-  ├─ Supabase Auth：账号、登录、邮箱验证与会话
-  ├─ Supabase PostgreSQL：偏好、历史、业务记录、知识与向量
-  ├─ Supabase 私有 Storage：上传原件和生成文件
-  ├─ 模型服务：LLM / STT / Vision / Embedding
-  └─ 共享持久卷：编译任务和产物
-                  │
-                  ▼
-            renderer：隔离 PDF Worker
-```
-
-部署方案使用 Supabase 托管的 PostgreSQL，**无需在本机或生产 Docker 中另装 PostgreSQL**。本地开发可使用 SQLite。无服务器时，架构图中 Vercel 到 Docker 的 HTTPS 连接可由 Cloudflare Tunnel 转发。
-
-| 技术 | 职责 |
-| --- | --- |
-| Vue 3、TypeScript、Vue Router | 页面、工作台和交互 |
-| Vite、VitePress | 前端构建和静态知识手册 |
-| FastAPI、Pydantic、Uvicorn | HTTP API、参数校验和服务运行 |
-| LangGraph | 问答、面试评价、简历审批及状态恢复 |
-| SQLAlchemy、psycopg、Alembic | 数据访问和迁移 |
-| PostgreSQL、pgvector | 业务存储、全文检索信号和向量检索 |
-| PyMuPDF、Jinja2、XeLaTeX | PDF 提取、模板填充、编译及产物检查 |
-| Docker Compose | 管理 API 与 PDF Worker |
-
-## 目录与文件说明
+## 按功能找文件
 
 ```text
 GTM desk/
-├─ README.md                 # 项目介绍、启动与部署入口
-├─ knowledge/                # 网站与 AI 共用的内容源
-│  ├─ site/gtm-overview/      # GTM 概览：index.html + 四章正文
-│  ├─ glossary/              # GTM 专有名词 JSON
-│  ├─ jobs/research-notes/    # 岗位 JD Markdown
-│  ├─ interviews/research-notes/ # 面经 Markdown
-│  └─ learning/research-notes/   # 在职经验 Markdown
-├─ apps/web/                 # Vue 前端；内容不再混放在 public
-│  ├─ src/pages/             # 页面布局与页面交互
-│  ├─ src/components/        # 助手、输入框、概览预览等组件
-│  ├─ src/content/           # 名词数据的前端导出入口
-│  ├─ handbook/              # VitePress 配置与自动生成的手册
-│  ├─ scripts/               # 手册生成与前端回归测试
-│  └─ vite.config.ts         # 读取 knowledge/site 并发布静态页面
-├─ services/api/             # HTTP 接口、鉴权、存储与数据模型
-├─ packages/                 # AI、检索、Mock、简历与 PDF 业务实现
-├─ profiles/                 # 岗位、行业与评价规则
-├─ skills/                   # 应用运行时使用的领域提示规则
-├─ templates/latex/          # 简历排版模板与原始 TeX
-├─ supabase/                 # 数据库初始化与验证 SQL
-├─ infra/                    # Docker、Worker、迁移、反向代理
-├─ scripts/                  # 本地启动、内容校验辅助脚本
-├─ tests/                    # 后端测试、合成夹具、回归评测
-├─ docs/                     # 当前维护文档；先看 docs/README.md
-│  ├─ collector-skills/      # BOSS / 小红书采集技能
-│  └─ archive/import-reports/ # 知识资料来源与导入校验记录
-├─ .env                      # 本机私有配置，不提交 Git
-├─ .data/                    # 本地运行数据与临时产物，不提交 Git
-│  └─ maintenance/          # 本机清理记录与文件完整性校验
-├─ .venv/                    # 本机 Python 环境，不提交 Git
-├─ pyproject.toml            # Python 项目与依赖声明
-├─ requirements.lock         # Python 依赖锁定版本
-└─ vercel.json               # Vercel 构建与路由配置
+├─ apps/web/                    # Vue 3 + TypeScript 前端
+│  ├─ src/
+│  │  ├─ features/
+│  │  │  ├─ ai/                 # 引用编号与 AI 文本处理
+│  │  │  ├─ auth/               # 登录路由守卫
+│  │  │  ├─ career/             # 简历显示文本处理
+│  │  │  ├─ knowledge/          # 资料卡片、排序、分页、概览预加载
+│  │  │  └─ notes/              # 笔记缓存、Markdown 编辑、文件夹编号
+│  │  ├─ pages/                 # 路由页面
+│  │  ├─ components/            # 阅读器、编辑器、助手与共享界面
+│  │  ├─ content/               # 引用根目录知识源的前端入口
+│  │  ├─ state.ts               # API、认证会话与共享缓存
+│  │  └─ preload.ts             # 跨功能预加载调度
+│  ├─ tests/                    # 全部前端回归测试
+│  ├─ scripts/handbook.mjs       # 从知识源生成 VitePress 手册
+│  └─ handbook/                 # 手册配置、索引与生成文章
+├─ services/api/                # FastAPI 路由、鉴权、存储和数据模型
+├─ packages/
+│  ├─ agent_core/               # 模型适配、Skill 注册、检查点
+│  ├─ rag/                      # 公共知识索引、私有笔记与参考资料检索
+│  ├─ learning/                 # 知识问答流程
+│  ├─ mock/                     # 面试规划和评价
+│  ├─ career/                   # 简历解析、事实、授权改写
+│  └─ document_renderer/        # 模板填充、编译队列与 PDF 检查
+├─ knowledge/
+│  ├─ jobs/research-notes/       # 岗位 JD
+│  ├─ interviews/research-notes/ # 面经
+│  ├─ learning/research-notes/   # 在职经验与学习资料
+│  ├─ glossary/                 # GTM 术语 JSON
+│  └─ site/                     # 概览、全书、SOP 与公开配图
+├─ profiles/                    # 岗位、行业和评分配置
+├─ skills/                      # 应用运行时领域提示规则
+├─ templates/latex/             # 简历模板与用户提供的 TeX 原件
+├─ infra/                       # Docker、PDF Worker、迁移、字体与代理
+├─ supabase/                    # 初始化 SQL 与验证 SQL
+├─ scripts/                     # 本地启动和知识资料校验
+├─ tests/                       # 后端测试、合成夹具与检索评测
+├─ docs/                        # 维护文档、采集技能、整理说明与历史归档
+├─ .data/                       # 本机数据、上传、产物、隧道日志；不提交 Git
+├─ .venv/                       # 本机 Python 环境；不提交 Git
+├─ pyproject.toml               # Python 项目声明
+├─ requirements.lock            # Python 依赖锁定
+└─ vercel.json                  # 前端构建与路由配置
 ```
 
-文件维护先看 [目录导航](docs/README.md)；前端见 [apps/web/README.md](apps/web/README.md)，部署文件见 [infra/README.md](infra/README.md)，本机开关服务见 [本机服务维护](docs/LOCAL_OPERATIONS.md)。
+页面与共享组件按现有层次保留；只有业务辅助模块归到 `features/`。后端已按功能分包，数据库迁移、静态网页地址和领域规则加载路径保持现有约定。
 
-| 关键文件 | 内容 |
+完整文件导航见 [docs/README.md](docs/README.md)，前端说明见 [apps/web/README.md](apps/web/README.md)。
+
+## 知识资料维护
+
+当前源码包含 **10 份岗位 JD、30 篇面经、167 篇在职经验／学习资料**。研究笔记保留作者、出处与阅读边界，不等于原帖逐字全文或企业官方结论。合成资料仅放在 `tests/fixtures/`。
+
+| 内容 | 唯一源目录 |
 | --- | --- |
-| `apps/web/src/main.ts` | 前端页面路由 |
-| `apps/web/src/App.vue` | 全站导航和全局助手 |
-| `apps/web/src/state.ts` | 前端状态、API 地址和凭证刷新 |
-| `apps/web/src/pages/Utility.vue` | 登录、历史、设置和搜索 |
-| `apps/web/src/content/gtm-glossary.ts` | 名词库数据，后续补充入口 |
-| `services/api/main.py` | 应用入口、启动索引、健康检查和基础接口 |
-| `services/api/config.py` | 读取根目录 .env，确定数据库和数据目录 |
-| `services/api/db.py` | 账号、业务记录、文档和分块模型 |
-| `services/api/supabase.py`、`storage.py` | Supabase Auth 和文件存储 |
-| `services/api/routes_knowledge.py` | 资料、问答、语音、管理员索引接口 |
-| `services/api/routes_mock.py`、`routes_career.py` | 面试、简历和版本 API |
-| `packages/agent_core/providers.py` | LLM、STT、Embedding 请求 |
-| `packages/career/graph.py` | 简历文字提取、Vision 请求和诊断 |
-| `packages/rag/knowledge.py` | 分块、向量生成与混合检索 |
-| `infra/renderer_worker.py` | 循环读取 PDF 编译任务 |
-| `packages/document_renderer/render.py` | TeX 填充、XeLaTeX 编译与 PDF 检查 |
-| `supabase/schema.sql`、`verify.sql` | 初始化表、触发器、RLS、私有桶及检查 |
-
-`skills/` 是应用自己的提示规则，不允许用户上传文档注册任意工具或执行程序。
-
-## Agent 与 Skill 如何协作
-
-本项目的 Agent 由后端业务流程和 LangGraph 节点组织。Skill 是每类任务的受控提示规则，不是独立进程，也不是模型训练或微调。
-
-```text
-前端操作 → API 路由 → 业务流程 / LangGraph 节点
-  → LLMProvider.complete(task, payload)
-  → 按任务文字选择 Skill → registry 读取对应 SKILL.md
-  → 全局 system 规则 + Skill 正文 + 本次数据 → 模型请求
-  → 后端结构、来源及业务校验 → 返回建议或结果
-```
-
-| Skill | 主要规范 | 当前接入方式 |
-| --- | --- | --- |
-| resume-extraction | 字段原文来源、事实 ID 完整映射、不补全履历 | 简历字段提取时注入 |
-| resume-diagnosis | JD 对照、STAR 缺口、事实与表达问题、优先级 | 简历诊断时注入 |
-| resume-rewriting | STAR 表达、职责保真、授权 patch、一页内容预算 | 改写建议时注入 |
-| interview-planning | 题数、维度覆盖、难度、岗位侧重、授权经历 | Mock 出题时注入 |
-| interview-evaluation | 六维 0–4/null 锚点、原答证据、单次追问 | 回答评价时注入 |
-| learning-qa | 证据范围、引用、来源差异和时效边界 | 问答任务时注入 |
-| resume-fact-check | 数字、责任、因果及来源审核 | 规范文件；尚无独立模型审核步骤 |
-| latex-render | 一页目标、留白、排版和 PDF 交付检查 | 规范文件；实际编译由 Python Worker 执行 |
-
-当前每次模型请求通过任务关键词选择一份 Skill，未使用 description 做自动语义发现，也不是模型自主调用整套技能。tools 字段是注册元数据，不表示模型实际获得工具调用权限；检索、改写校验和编译由后端代码控制。修改或新增 Skill 名称时还需检查 providers.py 中的路由。
-
-简历规则已补充 STAR、A4 一页优先、避免大面积无意义留白、信息密度、职责映射和事实对照案例。没有量化结果时写真实交付物，不能编造数字，也不能把“参与”提升为“主导”。
-
-**提示规则与程序保障要区分**：当前 renderer 的自动页数阈值仍为最多 2 页，尚未自动执行一页硬限制、留白率或字号检查；一页目标需要最终 PDF 预览和内容/模板调整。写了规则不代表已实现自动排版验收。
-
-Dockerfile 将 skills 复制进镜像，修改本机 Skill 后需要重新 build 并更新 API 容器；仅 restart 不会同步文件。现有结构化校验仍需保留，不能把模型遵守提示当作唯一保障。
-
-## 知识资料与 Embedding
-
-知识源包括 `knowledge/` 下的 Markdown、GTM 概览 HTML 正文、《爆品操盘GTM》六章及附录 HTML、名词库 JSON。每篇 Markdown 需要 frontmatter，包含 ID、标题、类别、显示编号、许可、质量状态、来源和岗位/行业标签。只索引 `public_display` 且未弃用的资料；概览、全书和名词库从原文件自动提取，不需在知识目录维护无 frontmatter 的 Markdown 副本。
-
-入库按章节和约 1800 字符上限分块，检查重复 ID/正文并保存哈希。内容和模型名称未变化时跳过重建；删除或撤销许可的资料会从索引移除。API 启动时执行索引，管理员也可调用 `POST /api/v1/admin/knowledge/reindex` 重建。
-
-Embedding 的作用：
-
-1. 入库时，将公共知识片段生成向量并保存。
-2. 搜索时，将问题、JD 或修改要求生成向量，查找相近资料。
-3. 搜索、AI 问答、Mock 出题、简历诊断和改写复用这套检索。
-
-PostgreSQL 模式组合词法信号、全文检索和向量余弦排序，通过 RRF 融合。中文词法预处理使用二字片段，不是完整中文分词或 BM25。未配置 Embedding 时只做词法检索；配置了但调用失败时会报错，不会自动降级。
-
-当前请求、校验和数据库字段固定 **1536 维**。`EMBEDDING_DIMENSIONS` 当前没有被代码读取；换成 1024 维模型需要修改代码、迁移数据库并重建索引。相同维度但不同模型的向量也不能混用。
-
-个人简历不会进入公共向量库；私人 JD 以授权上下文提供。GTM 概览、《爆品操盘GTM》与名词库已作为站内参考资料接入检索和引用；引用可打开索引正文及原页面，不混入 JD、面经、在职经验卡片。全书索引涵盖正文、HTML 表格文字及图题，图片内部文字未自动 OCR；源文件位于 `knowledge/site/gtm-book/chapter-*.html`。资料扩充、统一 Markdown 契约与两份采集 Skill 见 [内容维护指南](docs/CONTENT_GUIDE.md)。
-
-## 环境变量与模型接口
-
-后端实际读取根目录 `.env`。如本机还有 `.env.supabase.formal`，它只是配置副本，Docker 不直接读取。不要提交任何已填入密钥的配置副本，不要用模板覆盖已有 `.env`。
-
-| 配置项 | 用途与说明 |
-| --- | --- |
-| `AUTH_MODE`、`STORAGE_MODE` | 正式环境均为 supabase；本地可用 local |
-| `SUPABASE_URL` | Supabase 项目 URL |
-| `SUPABASE_ANON_KEY` | 当前代码使用的 legacy anon key，供 Auth 请求使用 |
-| `SUPABASE_SERVICE_ROLE_KEY` | 后端受控访问私有文件等操作，仅可留在服务器 |
-| `SUPABASE_STORAGE_BUCKET` | 私有桶，初始化 SQL 创建 gtm-private |
-| `DATABASE_URL` | SQLAlchemy 数据库连接串；未设置默认本地 SQLite |
-| `ALLOWED_ORIGINS` | 前端完整来源，多个域名用逗号分隔，不带末尾斜杠 |
-| `PROVIDER_MODE=live` | 使用真实模型服务 |
-| `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL` | 问答、面试和简历 AI 功能所需的文本服务 |
-| `STT_BASE_URL`、`STT_API_KEY`、`STT_MODEL` | 可选语音转写，未配置可用键盘 |
-| `VISION_BASE_URL`、`VISION_API_KEY`、`VISION_MODEL` | 可选图片识别，未配置可用可读文件或手动录入 |
-| `EMBEDDING_BASE_URL`、`EMBEDDING_API_KEY`、`EMBEDDING_MODEL` | 可选语义检索，未配置仅词法检索 |
-| `DATA_DIR` | 本地默认 .data，生产容器为 /data |
-| `ADMIN_EMAIL` | 可调用公共知识重建接口的账号邮箱 |
-| `RENDER_ENABLED` | API 保持 false；Worker 镜像内部设置为 true |
-
-适配器使用 OpenAI 兼容的 `/chat/completions`、`/audio/transcriptions`、`/embeddings` 接口。基础地址按服务商要求包含 `/v1` 等前缀，不要重复填写完整 endpoint。模型名称、批量上限、图片能力和费用需以提供方说明为准。
-
-Vision 必须使用支持图片输入的模型。它可以与文本模型共用服务商和 Key，但不能只凭品牌名判断图片能力。实际兼容性需要用真实调用验证。
-
-## 推荐部署：Supabase + Docker + Vercel
-
-### 1. 初始化 Supabase
-
-在新的 Supabase 项目执行 [schema.sql](supabase/schema.sql)，再用 [verify.sql](supabase/verify.sql) 检查。已执行过 SQL 的项目不应把初始化文件当作升级迁移重复使用。
-
-配置 Email 登录、邮箱验证和生产邮件服务，在 Authentication 中设置前端 Site URL / Redirect URLs。密码由 Supabase Auth 管理，不在业务表保存明文密码。
-
-当前前端密码提示为“请输入密码”，前后端应用已移除原 12～128 字符限制，仅要求非空。Supabase 仍独立执行其密码策略，短密码注册能否成功以云端规则为准；修改应用校验不会自动修改 Supabase 项目设置。
-
-在 Docker 主机的项目根目录 `.env` 中填写真实值（本机或服务器均适用）：
-
-```dotenv
-AUTH_MODE=supabase
-STORAGE_MODE=supabase
-SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-SUPABASE_ANON_KEY=YOUR_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
-SUPABASE_STORAGE_BUCKET=gtm-private
-DATABASE_URL=postgresql+psycopg://postgres.YOUR_PROJECT:ENCODED_PASSWORD@YOUR_POOLER_HOST:5432/postgres?sslmode=require
-ALLOWED_ORIGINS=https://YOUR_SITE.vercel.app
-PROVIDER_MODE=live
-LLM_BASE_URL=YOUR_PROVIDER_BASE_URL
-LLM_API_KEY=YOUR_PROVIDER_KEY
-LLM_MODEL=YOUR_MODEL_NAME
-RENDER_ENABLED=false
-```
-
-以上全是占位符。数据库信息从 Connect 的 **Session pooler（5432）**复制，协议使用 `postgresql+psycopg://`，密码特殊字符需要 URL 编码，保留 TLS 参数。可选 AI 接口按上一节补充。
-
-### 2. 启动 Docker
-
-需要运行中的 Docker Engine / Docker Desktop 和 Compose。命令在项目根目录执行，**不需要移动文件或创建 Docker 文件夹**：
-
-```powershell
-cd "C:\Users\64954\Desktop\GTM desk"
-docker compose -f infra/compose.production.yaml config --quiet
-docker compose -f infra/compose.production.yaml up -d --build
-docker compose -f infra/compose.production.yaml ps -a
-```
-
-Linux 服务器进入克隆后的项目目录，使用相同 Compose 命令。生产配置只启动 api 和 renderer，数据库使用 Supabase。首次构建需要安装 Python 依赖、LaTeX 和中文字体；首次启用 Embedding 会生成资料向量并产生服务费用。renderer 的 Debian 软件源已改用清华 HTTPS 镜像，并设置下载重试和超时，以应对原源下载 502。
-
-容器显示 Started 只说明主进程已启动，不保证应用初始化完成。API 启动时会检查知识资料、连接数据库，并为需要更新的片段生成索引；首次运行可能较慢。出现 `Waiting for application startup` 时需结合日志检查进度，不能据此断言正常或失败。`Application startup complete` 或健康接口稳定返回 JSON 中的 status=ok，才说明 API 已能接收请求。
-
-Docker 配置每 30 秒请求一次健康接口，反复出现 `GET /api/v1/health ... 200 OK` 是正常健康检查，不会调用大模型。LangGraph 的弃用警告与真正的异常堆栈应分开判断。
-
-```powershell
-# 检查后端
-Invoke-RestMethod http://127.0.0.1:8000/api/v1/health
-
-# 查看日志；Ctrl+C 只退出日志查看
-docker compose -f infra/compose.production.yaml logs -f api
-docker compose -f infra/compose.production.yaml logs --tail=100 renderer
-
-# 检查 PDF 编译器
-docker compose -f infra/compose.production.yaml exec renderer xelatex --version
-
-# 修改代码后重新构建并更新
-docker compose -f infra/compose.production.yaml up -d --build
-
-# 修改 .env 后重新创建 API，使环境变量生效
-docker compose -f infra/compose.production.yaml up -d --force-recreate api
-
-# 暂停 / 恢复
-docker compose -f infra/compose.production.yaml stop
-docker compose -f infra/compose.production.yaml start
-```
-
-`-d` 表示后台运行，关闭终端不会停止容器。`restart: unless-stopped` 由 Docker 管理退出后的重启，但关机、休眠或 Docker 引擎停止时仍无法服务。正式环境需持续在线的服务器。
-
-持久卷保存队列和编译产物，需要备份。不要用 `docker compose down -v` 排障，它会删除这套 Compose 的持久卷；Supabase 数据库独立于这些卷。
-
-### 3. 选择公网 HTTPS 访问方式
-
-#### 方式 A：自己的电脑 + Cloudflare 临时隧道
-
-适合当前没有服务器的联调。Docker 的 8000 端口仍只绑定本机，由 cloudflared 主动连接 Cloudflare 并转发请求，不需要购买域名，也无需额外的 PDF Token。
-
-Windows 可通过 winget 安装官方程序（仅首次需要）：
-
-```powershell
-winget install --id Cloudflare.cloudflared --exact --source winget
-```
-
-本机已安装时不要重复安装。默认安装位置可为 `C:\Program Files (x86)\cloudflared\cloudflared.exe`，以实际安装目录为准。先确认本机健康接口可用，再在另一个 PowerShell 窗口运行：
-
-```powershell
-& "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --no-autoupdate --protocol http2 --url http://127.0.0.1:8000
-```
-
-`&` 调用引号中的程序；tunnel 建立隧道；--url 指向本机后端；--protocol http2 指定连接 Cloudflare 的协议。窗口需保持运行，Ctrl+C 会结束这次前台隧道。后台运行的隧道需按实际进程 ID 停止，不要固定复用以前的 PID。
-
-日志会给出 `https://随机名称.trycloudflare.com`，先访问该地址下的 `/api/v1/health`，确认返回 JSON，再填入 Vercel。该地址可从外网访问后端，现有登录鉴权仍需生效。
-
-临时隧道没有持续在线保证。电脑休眠、关机、断网或隧道进程结束会中断服务；重开通常产生新域名，需更新 Vercel 的 VITE_API_BASE_URL 并重新部署。ALLOWED_ORIGINS 填的是前端域名，不随隧道地址变化而修改。长期固定地址需另配命名隧道和自有域名，或使用下述服务器方案。
-
-#### 方式 B：持续在线的 Docker 主机 + 反向代理
-
-把同一项目和私有配置部署到持续在线的主机。生产 Compose 只绑定主机 `127.0.0.1:8000`，通过 Caddy 或平台代理提供公网 HTTPS。项目已有 [Caddyfile](infra/Caddyfile)，通过 API_DOMAIN 指定域名，并配置 DNS 和 80/443 访问。代理上传上限至少 11 MB，请求超时建议至少 120 秒。
-
-这两种方式都要求公网 HTTPS API。浏览器中的 `127.0.0.1:8000` 指向访问者自己的电脑，不能作为 Vercel 网站对公众使用的后端地址。
-
-### 4. 部署 Vercel 前端
-
-- GitHub 提交前检查暂存列表，不包含密钥、用户文件、`.data`、`.venv`、`node_modules`。
-- 忽略规则不会取消已跟踪文件；真实密钥如已上传，需更换密钥并处理仓库泄露。
-- Vercel Root Directory 选择仓库根目录，构建依赖根目录的 knowledge。
-- 使用 Node.js 22、Framework Preset 选择 Other；vercel.json 已定义构建与输出。
-- 环境变量填写 `VITE_API_BASE_URL=https://YOUR_API_DOMAIN`，不带 `/api/v1`。
-- Docker 的 ALLOWED_ORIGINS 填前端正式域名，预览域名需单独允许。
-- 修改 Vite 环境变量后重新部署前端。
-
-前端只需公开的 API 地址，不需要数据库密码、模型 Key、Supabase service role 或 Vercel API Token。详细设置见 [部署指南](docs/DEPLOYMENT.md)；其中旧模板复制命令仅在文件存在且不会覆盖现有配置时使用，实际配置以根目录 .env 为准。
-
-### 5. 日常关闭与下次恢复
-
-关闭顺序：停止隧道 → 在项目根目录运行 Compose stop → 按需退出 Docker Desktop。不要用 down -v 作为关机操作。
-
-```powershell
-# 暂停 api 和 renderer，保留数据
-docker compose -f infra/compose.production.yaml stop
-
-# 下次打开 Docker Desktop 后恢复已有容器
-docker compose -f infra/compose.production.yaml start
-
-# 检查本机 API，再启动隧道
-Invoke-RestMethod http://127.0.0.1:8000/api/v1/health
-
-# 查看后台隧道进程；先确认身份，再用实际 ID 停止
-Get-Process -Name cloudflared -ErrorAction SilentlyContinue
-# Stop-Process -Id 实际进程ID
-```
-
-容器已被 down 移除时，使用 up -d 重新创建；没有代码或依赖变化时不必重新 build。查看 logs -f 时按 Ctrl+C 只停止日志查看，不能据此判断容器或后台隧道已关闭。重开临时隧道后按新地址完成 Vercel 更新和 Redeploy。
-
-## 前端微调与内容维护
-
-| 修改目标 | 源文件 |
-| --- | --- |
-| 首页 | apps/web/src/pages/Home.vue |
-| 学习页标题与说明 | apps/web/src/pages/Learn.vue |
-| 面经与 Mock | apps/web/src/pages/Interviews.vue |
-| 简历工作台 | apps/web/src/pages/Career.vue |
-| 登录、历史、设置、搜索 | apps/web/src/pages/Utility.vue |
-| 导航和全局助手外框 | apps/web/src/App.vue |
-| 知识栏目和资料卡片 | apps/web/src/components/ResourceGallery.vue |
-| 名词、解释和例子 | apps/web/src/content/gtm-glossary.ts |
-| 名词表格与预览外框 | apps/web/src/components/GtmGlossary.vue、GtmGlossaryPreview.vue |
-| 名词完整页 | apps/web/src/pages/Glossary.vue |
-| GTM 概览正文 | knowledge/site/gtm-overview/ 下的 HTML |
-| 面经和在职经验正文 | knowledge/ 下的 Markdown |
-| 全局排版与颜色 | apps/web/src/style.css、tokens.css |
-
-.vue 文件的 template 负责页面结构，script 负责交互，style 负责样式；gtm-glossary.ts 单独保存内容数据，预览和完整页共用。apps/web/index.html 是入口，不含所有页面正文。不要直接修改 dist 或生成的 handbook/articles，构建会覆盖它们。
-
-前端源码修改后重新构建或部署 Vercel；只改前端通常不需要重建 Docker API。修改 knowledge 则需同时考虑 API 索引和静态手册构建，不能只刷新浏览器。
+| GTM 概览首页与四章 | `knowledge/site/gtm-overview/` |
+| GTM 专有名词与例子 | `knowledge/glossary/gtm-glossary.json` |
+| 《爆品操盘GTM》全书 | `knowledge/site/gtm-book/` |
+| SOP 七阶段、15 份资料与操盘手册 | `knowledge/site/gtm-sop/` |
+| 博主研究笔记与公开配图 | `knowledge/learning/research-notes/`、`knowledge/site/xhs-author-assets/` |
+
+资料同时用于网页与 AI 检索；许可、出处和索引规则见 [内容维护指南](docs/CONTENT_GUIDE.md)。不要编辑 `dist/` 或自动生成的 `handbook/articles/`。修改知识源后重新构建前端和 API 镜像，使静态内容与索引同步。
 
 ## 本地开发
 
-推荐 Python 3.11、Node.js 22。Python 声明最低 3.10，生产镜像使用 3.11。下面命令不会创建或覆盖 .env：
+推荐 **Python 3.11、Node.js 22**；Python 最低 3.10。以下命令在项目根目录执行，已有依赖环境可跳过安装步骤。
 
 ```powershell
 python -m venv .venv
-.venv/Scripts/python -m pip install -r requirements.lock
-.venv/Scripts/python -m pip install --no-deps -e .
+.venv/Scripts/python.exe -m pip install -r requirements.lock
+.venv/Scripts/python.exe -m pip install --no-deps -e .
 npm --prefix apps/web ci
 npm --prefix apps/web run build
-.venv/Scripts/python -m uvicorn services.api.main:app --host 127.0.0.1 --port 8000
+.venv/Scripts/python.exe -m uvicorn services.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-构建后 FastAPI 可同时提供网页、API 和手册：
+后端启动时读取根目录 `.env`。已有配置不要覆盖；独立开发使用自己的本地配置，`AUTH_MODE=local`、`STORAGE_MODE=local`，未设置 `DATABASE_URL` 时默认 `.data/atlas.db`。本地账号不会自动同步为 Supabase 账号。
 
-| 地址 | 内容 |
-| --- | --- |
-| http://127.0.0.1:8000/ | 网站 |
-| http://127.0.0.1:8000/docs | OpenAPI 交互文档 |
-| http://127.0.0.1:8000/api/v1/health | 健康及配置状态 |
-| http://127.0.0.1:8000/handbook/ | VitePress 手册 |
+启动后访问 `http://127.0.0.1:8000/`；API 文档为 `/docs`，静态手册为 `/handbook/`。热更新另开终端运行 `npm --prefix apps/web run dev`，Vite 将 `/api` 代理到 8000；也可使用 `scripts/start.ps1`。本地 Uvicorn 与 Docker API 不要同时占用 8000。
 
-热更新：另开终端运行 `npm --prefix apps/web run dev`，访问 Vite 输出地址；开发代理将 /api 转发至 8000。也可用 scripts/start.ps1。不要让本地 Uvicorn 和 Docker API 同时占用 8000。
+## 部署与模型配置
 
-独立本地环境可设 AUTH_MODE=local、STORAGE_MODE=local；未设置 DATABASE_URL 时使用 .data/atlas.db。已有生产 .env 时应隔离开发配置，不要直接覆盖或误连生产数据库。本地账号不会自动成为 Supabase Auth 账号。
+正式方案是 **Vercel 前端 + Docker API／隔离 PDF Worker + Supabase Auth／PostgreSQL／私有 Storage**。无服务器时可用本机 Docker 配合 Cloudflare 临时隧道联调；本机休眠或隧道退出会影响访问。
 
-| Compose 文件 | 用途 |
-| --- | --- |
-| infra/compose.production.yaml | 正式方案：API + Worker，连接 Supabase |
-| infra/compose.yaml | 自带本地 PostgreSQL / pgvector，API 启动执行 Alembic |
-| infra/compose.renderer-local.yaml | 本地 Python / SQLite API 配合 Docker Worker，挂载 .data 子目录 |
+- 后端 `.env` 保存数据库、Supabase 和模型配置；Vercel 仅需要公开的 `VITE_API_BASE_URL`。
+- 文本模型使用 `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL`；STT、Vision、Embedding 按需独立配置。
+- 未配置 Embedding 时使用词法检索；向量固定为 1536 维，换维度需要改代码、迁移及重建索引。
+- renderer 不持有模型或数据库密钥，通过文件队列编译 TeX 并检查 PDF；API 的 `RENDER_ENABLED=false` 不表示 Worker 停止。
+- 私有笔记使用关键词与中文词组检索，每次最多 6 个相关片段，不额外生成公共向量。
 
-这些是不同运行方案，不要混用任务队列。Supabase 生产初始化使用 schema.sql，生产 Compose 不重复运行 Alembic 初始建表，后续结构变化需单独迁移。
+部署步骤、配置表和隧道命令见 [部署指南](docs/DEPLOYMENT.md)。日常开关、日志和故障定位见 [本机服务维护](docs/LOCAL_OPERATIONS.md)。
 
-## PDF Worker 工作原理
-
-renderer 是本项目定义的服务，不是 Docker 自带功能或第三方 PDF API，不需要额外 Key。
-
-```text
-API 填充模板 → 保存 resume.tex → 写入 JSON 任务
-  → renderer 每隔约 2 秒检查队列 → XeLaTeX 编译
-  → 检查事实文本、边界和页数 → 写入结果
-  → 页面刷新状态 → API 同步合格 PDF 到私有 Storage → 鉴权下载
+```powershell
+docker compose -f infra/compose.production.yaml config --quiet
+docker compose -f infra/compose.production.yaml up -d --build
+Invoke-RestMethod http://127.0.0.1:8000/api/v1/health
 ```
 
-Worker 无网络，不持有数据库或模型密钥，只挂载队列和产物卷；采用非 root、只读根目录、资源限制。禁用 shell escape，用户文本经过 TeX 转义。默认超过 2 页、缺失事实文本或边界检查失败时不提供 PDF，需调整内容重试。
-
-API 的 RENDER_ENABLED=false 是正常设置，Worker 镜像内单独为 true。健康接口的 render_enabled 只反映 API 进程配置，不是 Worker 健康检查。空闲 Worker 可能没有日志，应结合容器状态、编译器和实际任务验证。
-
-未启动 Worker 时可导出 TeX，PDF 保持等待。编译完成后需刷新任务状态以处理结果和同步云端。
-
-## 数据保存与访问权限
-
-| 数据 | 正式存储位置 |
-| --- | --- |
-| 账号凭证、密码哈希 | Supabase Auth |
-| 偏好、Mock、聊天、简历事实、版本、任务 | Supabase PostgreSQL |
-| 公共文档、分块、向量 | PostgreSQL 知识表 |
-| 上传原件及同步的生成文件 | Supabase 私有 Storage |
-| 编译队列、工作区和产物 | Docker 持久卷 |
-| 公共知识 Markdown、模板、源码 | Git 仓库 |
-
-API 校验对象所有者，Supabase 配置 RLS 和私有桶策略。数据库凭证和 service role 可绕过 RLS，只能留在服务器，不能替代业务鉴权。
-
-Mock、简历版本和聊天默认保存到用户删除。删除聊天会删除其问答；删除简历会话会清理关联记录和适用文件。备份按平台保留策略处理。直接删除 Supabase Auth 账号不会自动清理全部 Storage 对象和 Docker 产物，完整销户需要额外清理。
-
-浏览器凭证保存在当前站点 localStorage，关闭网页或浏览器后重新进入会恢复登录，访问凭证过期时自动刷新。主动退出会清除本地凭证并同步其他标签页，同时请求撤销服务端会话；网络失败时仍清除本地登录并提示撤销失败。清除站点数据或服务端会话失效后需重新登录，云端历史保留。旧版 sessionStorage 凭证在加载时迁移；已签发 access token 按 Supabase 有效期策略处理。
-
-语音最长 120 秒、8 MB，用户点击麦克风后直接录音，首次使用需浏览器麦克风授权；停止后发送到 STT 服务转写，回填草稿供用户校对后提交。应用不保存原始音频，第三方保留政策需由部署者确认；非 localhost 环境需要 HTTPS 获取麦克风权限。
+修改前端需重新发布前端；修改 API 或知识源需重建 API；修改 PDF 编译环境才需要重建 renderer。文件夹功能发布时同时更新前端和 API。现有数据库升级不能靠重复执行初始化 SQL。
 
 ## 测试与验收
 
 ```powershell
-.venv/Scripts/python -m pytest -q
-.venv/Scripts/python -m tests.evals.run
+npm --prefix apps/web test
 npm --prefix apps/web run build
+.venv/Scripts/python.exe -m pytest -q
+.venv/Scripts/python.exe scripts/validate_knowledge.py
+.venv/Scripts/python.exe -m tests.evals.run
 ```
 
-测试使用临时目录、合成数据和专用模型替身，不应继承真实服务密钥。离线测试不代表真实模型、Supabase、邮件和 Docker PDF 已完成云端验收。检索评测只是小型回归样例，不能代表真实业务召回率。
+`npm test` 统一执行 `apps/web/tests/*.test.mjs`，包含 Node 22 下读取 TypeScript 和 VM 模块所需的参数。完整构建包含类型检查、Vite 与 VitePress 手册构建。
 
-上线前至少完成：
+测试使用隔离 SQLite、临时文件和模型替身。真实模型、邮件、Supabase、Docker PDF 与公网访问须在实际环境按 [验收清单](docs/ACCEPTANCE.md) 检查；文档不记录临时地址和在线状态快照。
 
-1. 两个独立账号注册、验证、登录与私有记录隔离。
-2. 多轮问答、历史恢复、New chat、清空上下文和删除。
-3. Mock 答题、追问、复盘与重新登录后恢复。
-4. 可读及扫描简历提取、事实确认、授权改写和历史版本。
-5. Worker 编译、PDF 检查、私有存储同步和下载。
-6. 真实模型的引用、事实保真、语音质量、费用与错误处理。
+## 数据与清理边界
 
-用户已于 2026-10-25 确认当前版本全流程测试通过。后续改动按 [验收清单](docs/ACCEPTANCE.md) 复测，不在 README 保留会过期的测试数量和服务状态快照。
+| 类型 | 处理原则 |
+| --- | --- |
+| `.env`、其他本机配置副本 | 保留，不提交密钥，不用模板覆盖 |
+| `.data/atlas.db`、上传、JD、产物、队列、采集证据与隧道日志 | 保留；不整体删除 `.data/` |
+| `.venv/`、`apps/web/node_modules/` | 保留本机依赖；不能作为垃圾目录直接删除 |
+| `__pycache__/`、`.pytest_cache/`、`.data/pytest-*`、`.data/tests/` | 可再生成的测试缓存和临时数据 |
+| `dist/`、手册生成文章、VitePress 缓存 | 可构建重建；本机预览使用最新构建 |
+| 历史方案、截图与导入依据 | 放入 `docs/archive/`，与当前操作文档分开 |
 
-完整复测步骤见 [验收清单](docs/ACCEPTANCE.md)。在线状态以本次实际检查为准。
+2026-10-28 的目录整理与验证范围见 [整理说明](docs/maintenance/2026-10-28-workspace-organization.md)。本机详细移动和清理清单、保护文件哈希位于 `.data/maintenance/`。
 
-## 后续优先事项
+## 维护文档
 
-可继续改进知识入库启动耗时、任务路由和模型反馈延迟。简历照片、真实图标、经历抬头、分项技能与空白模块已接入模板；后续修改模板仍需查看实际 PDF，避免仅凭接口成功判断排版。
+- [目录与维护入口](docs/README.md)
+- [系统架构与边界](docs/ARCHITECTURE.md)
+- [部署配置与公网访问](docs/DEPLOYMENT.md)
+- [本机服务维护](docs/LOCAL_OPERATIONS.md)
+- [知识内容与模板维护](docs/CONTENT_GUIDE.md)
+- [功能验收](docs/ACCEPTANCE.md)
+- [后续云服务器方案](docs/CLOUD_HOSTING_PLAN.md)
 
-当前未实现完整流式回答、通用会话导出、收藏/阅读进度、共享队列和企业身份体系。文档或单元测试不能替代真实部署中的隔离、备份和模型全流程验收。
-
-更多资料：[架构说明](docs/ARCHITECTURE.md) · [部署指南](docs/DEPLOYMENT.md) · [内容维护](docs/CONTENT_GUIDE.md)。
+目前仍使用单机文件队列与进程内限流；未实现通用流式回答、多人笔记协作、企业身份体系与分布式队列。扩容和模板调整需要相应的运行与 PDF 排版验证。

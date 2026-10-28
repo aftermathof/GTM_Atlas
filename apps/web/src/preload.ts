@@ -1,6 +1,6 @@
 import { api, preloadDocuments, preloadHistory, knowledgeDocuments, knowledgeDocument, peekKnowledge, peekHistory, state } from './state'
-import { cachedNotes, cachedNote, fetchNotes, fetchNote } from './notesStore'
-import { warmOverview } from './publicLearning'
+import { cachedNotes, cachedNote, fetchNotes, fetchNote } from './features/notes/notesStore'
+import { warmOverview } from './features/knowledge/publicLearning'
 
 let activeKey = '', activeRun: Promise<void> | undefined
 function accountKey() { return state.user?.id && state.token ? state.user.id + ':' + state.token : '' }

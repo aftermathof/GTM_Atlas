@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { cardPage, galleryCards, oldestFirst, collectionCards, pageToJump } from '../src/resourceGallery.ts'
+import { cardPage, galleryCards, oldestFirst, collectionCards, pageToJump } from '../src/features/knowledge/resourceGallery.ts'
 const make=(id,meta={})=>({id,title:id,kind:'learning',meta})
 test('explicit author collections become one folder and ordinary posts stay single',()=>{
   const docs=[make('one'),make('a',{author_collection_id:'author-1',author_collection_title:'某设计博主'}),make('b',{author_collection_id:'author-1'}),make('two',{source_author:'另一个博主'})]

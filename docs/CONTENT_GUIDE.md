@@ -1,18 +1,20 @@
 # 资料展览室与用户简历模板
 
-## 当前接入资料（2026-10-24）
+## 当前接入资料（2026-10-28）
 
-用户提供的 `GTM分类60篇/知识库.json` 指向60篇原创研究笔记，按其原始分类导入；另已从 BOSS直聘采集10份岗位 JD。当前规范化 Markdown 共70篇：
+最初导入的 60 篇研究笔记与 10 份 BOSS 岗位 JD 已扩充。当前规范化 Markdown 共 207 篇，数量按仓库知识源核对：
 
 |栏目|导入数|说明|
 |---|---:|---|
 |面经|30|保留作者、原帖链接、个人自述与阅读边界|
-|学习资料|30|保留方法、岗位经验、整理者建议与局限|
+|学习资料|167|包括最初 30 篇及后续 137 篇博主研究整理；保留方法、岗位经验、整理者建议、出处与局限|
 |岗位 JD|10|保留 BOSS 原始链接、完整 JD、J01–J10 编号及匹配边界，不从面经推测岗位要求|
 
 三个目录统一为 `knowledge/jobs/research-notes/research-jNN.md`、`knowledge/interviews/research-notes/research-iNN.md` 和 `knowledge/learning/research-notes/research-lNN.md`。每篇包含 frontmatter、内容概述、实质正文和阅读边界；JD 保留完整原文一次，不重复摘录同一段。知识源中不保留汇总、合集或采集 manifest。原60篇研究笔记的导入记录见 `docs/archive/import-reports/research-notes.json`，它只记录当时的研究笔记导入，不是当前全部知识数量。岗位/行业标签属于检索辅助信息，不代表专家核定。
 
-网页 `/learn` 默认打开GTM概览；栏目依次为GTM概览、岗位JD、在职经验、GTM专有名词库。面经仅在 `/interviews` 展示。资料栏目支持卡片、搜索与岗位/行业过滤。早期合成资料已移至测试夹具，不进入正式知识库。`/interviews` 使用同一资料底座，继续提供Mock入口。VitePress手册同步构建全部公开学习笔记。
+网页 `/learn` 默认打开 GTM 概览，栏目包含概览、在职经验、专有名词库、《爆品操盘GTM》和 SOP。岗位 JD 与面经在 `/interviews` 展示，该页同时提供 Mock 入口。资料栏目支持卡片、搜索、分页与博主合集；合集内按原帖顺序独立编号。早期合成资料只保留在测试夹具，不进入正式知识库。VitePress 手册同步构建全部公开学习笔记。
+
+静态资料源分别为 `knowledge/site/gtm-overview/`、`gtm-book/`、`gtm-sop/`；SOP 包含七阶段流程、15 份资料及操盘手册。相关清单文件是页面与校验的有效输入，配图、数学字体和许可证均需保留。前端内容入口在 `apps/web/src/content/`，目录与缓存辅助逻辑在 `apps/web/src/features/knowledge/`。
 
 ## 后续补充
 

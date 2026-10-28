@@ -1,4 +1,4 @@
-import { api, state } from './state'
+import { api, state } from '../../state'
 
 export type Note = { id: string; title: string; body: string; created_at: string; updated_at: string; revision: number; folder_id?: string | null }
 let owner = '', cards: Note[] | undefined

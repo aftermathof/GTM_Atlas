@@ -46,17 +46,28 @@ def test_tex_escapes_all_user_macros():
     assert escape_tex(r"\input{/etc/passwd} 50% & x_y") == r"\textbackslash{}input\{/etc/passwd\} 50\% \& x\_y"
 
 
-def test_entire_mock_completes_and_keeps_followups_bounded(client):
+def test_mock_allows_repeated_followups_and_completes_when_answers_are_sufficient(client):
     headers = login(client)
     sid = client.post("/api/v1/mock/sessions", json={"count": 3}, headers=headers).json()["id"]
-    for i in range(7):
-        state = client.get(f"/api/v1/mock/sessions/{sid}", headers=headers).json()
-        if state["status"] == "completed":
-            break
-        response = client.post(f"/api/v1/mock/sessions/{sid}/answers", json={"answer": "我先验证需求，再分析渠道数据，最后复盘。", "question_index": state["current_question_index"], "idempotency_key": f"step-{i}"}, headers=headers)
+    for question_index in range(3):
+        # Exercise more rounds than the old total-step and per-question limits.
+        followups = 8 if question_index == 0 else 2
+        for turn in range(followups):
+            response = client.post(f"/api/v1/mock/sessions/{sid}/answers", json={"answer": "我先验证需求，再分析渠道数据，最后复盘。", "question_index": question_index, "idempotency_key": f"question-{question_index}-followup-{turn}"}, headers=headers)
+            assert response.status_code == 200, response.text
+            state = response.json()
+            assert state["status"] == "in_progress"
+            assert state["current_question_index"] == question_index
+            assert state["followup_counts"][str(question_index)] == turn + 1
+            assert state["pending_followup"]
+        # The offline provider returns no followup for this detailed answer.
+        detailed_answer = "我负责新品渠道试点，先访谈目标客户并核对需求，再按获客成本与转化率选择渠道，以小预算分组实验验证假设，统一指标口径后复盘结果，并据此调整投放与库存计划。" * 3
+        response = client.post(f"/api/v1/mock/sessions/{sid}/answers", json={"answer": detailed_answer, "question_index": question_index, "idempotency_key": f"question-{question_index}-complete"}, headers=headers)
         assert response.status_code == 200, response.text
+        state = response.json()
+        assert state["current_question_index"] == question_index + 1
+        assert state["pending_followup"] is None
     assert response.json()["status"] == "completed"
-    assert all(v <= 1 for v in response.json()["followup_counts"].values())
     report = client.get(f"/api/v1/mock/sessions/{sid}/report", headers=headers)
     assert report.status_code == 200 and report.json()["average_score"] is not None
 

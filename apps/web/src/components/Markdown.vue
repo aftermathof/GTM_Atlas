@@ -3,7 +3,7 @@ import { computed, onMounted, onUpdated, ref } from 'vue'
 import { Marked } from 'marked'
 import { useRouter } from 'vue-router'
 import DOMPurify from 'dompurify'
-import { citationExtension, type Citation } from '../aiCitations'
+import { citationExtension, type Citation } from '../features/ai/aiCitations'
 const props = defineProps<{ source: string; breaks?: boolean; ai?: boolean; citations?: Citation[] }>()
 const router = useRouter()
 const host = ref<HTMLElement>()

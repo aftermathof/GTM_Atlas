@@ -1,50 +1,66 @@
 # 架构与实现边界
 
-## 自研模块
+## 运行结构
 
-|目录|职责|
-|---|---|
-|apps/web/src|Vue门户、统一VoiceInput/Composer、作用域助手、三类工作台|
-|apps/web/handbook|VitePress生成知识手册，只发布public_display；构建清理撤销的生成文件|
-|services/api|认证、对象级鉴权、请求DTO、业务API、审计、下载、静态站点|
-|packages/agent_core|独立LLM/STT/Embedding Provider、受控Skill Registry、ToolRegistry/MCPAdapter、SQL checkpoint|
-|packages/rag|frontmatter校验、SHA256、标题chunk、许可与岗位过滤、FTS/向量RRF、证据包|
-|packages/learning|retrieve → compose → citation validate 状态图|
-|packages/mock|固定蓝图/真实模型规划、逐题评价、有界追问、幂等记录、复盘|
-|packages/career|解析、诊断、patch验证、LangGraph持久interrupt/resume审批|
-|packages/document_renderer|受控模板、TeX转义、文件队列、隔离编译与PDF QA|
+```text
+浏览器：Vue 3 页面、Markdown/CodeMirror 编辑器、AI 助手
+    │ HTTPS API
+    ▼
+FastAPI：会话认证、对象所有者校验、参数校验、业务路由
+    ├─ Supabase Auth / PostgreSQL / 私有 Storage（正式环境）
+    ├─ SQLite / 本地文件（独立开发与测试）
+    ├─ LLM / STT / Vision / Embedding 兼容接口
+    └─ 文件编译队列 → 隔离 PDF Worker → 产物校验 → 私有下载
+```
 
-## 开源框架承担什么
+Vercel 托管前端和 VitePress 手册，Docker 承载 API 与 Worker。前端也可由已构建的 FastAPI 本地服务提供。网络、数据库、模型与编译服务分别检查，不以容器启动或单个接口成功推断全流程可用。
 
-- FastAPI/Pydantic：HTTP、OpenAPI、类型校验；不代替业务权限。
-- LangGraph：有状态节点与checkpoint、interrupt/resume；图与授权约束由本项目实现。
-- SQLAlchemy/Alembic：关系持久化与迁移；PG/pgvector存储向量，原生FTS做词法信号。
-- Vue/Vite/Vue Router：交互工作台；VitePress：同源可搜索知识手册。不是三个单独站点。
-- PyMuPDF：PDF文字提取和QA；Jinja2：受控模板；XeLaTeX/ctex：隔离排版。
-- marked/DOMPurify/Mermaid：受净化Markdown及受限图表；不执行文档脚本。
+## 功能模块
 
-## 状态与恢复
+| 位置 | 职责 |
+| --- | --- |
+| `apps/web/src/features/ai/` | 引用链接、来源编号、AI 显示文本 |
+| `apps/web/src/features/auth/` | 路由守卫与登录恢复 |
+| `apps/web/src/features/knowledge/` | 资料卡片、合集、排序、分页、概览缓存 |
+| `apps/web/src/features/notes/` | 笔记缓存、编辑操作、文件夹过滤和编号 |
+| `apps/web/src/features/career/` | 简历与诊断显示文本处理 |
+| `apps/web/src/pages/`、`components/` | 路由界面和共享阅读、输入、编辑、确认组件 |
+| `apps/web/src/state.ts`、`preload.ts` | API、认证凭证、账号缓存、后台预加载和并发调度 |
+| `services/api/` | 认证、DTO、对象权限、持久化、静态页面及文件下载 |
+| `packages/agent_core/` | Provider、领域 Skill 与工具注册、状态检查点 |
+| `packages/rag/` | 公共知识校验、分块、索引、检索；私有笔记和授权 JD 检索 |
+| `packages/learning/` | 检索、模型问答、引用校验和对话保存 |
+| `packages/mock/` | 面试规划、逐题反馈、追问和复盘 |
+| `packages/career/` | 简历提取、结构与事实、授权改写、状态恢复 |
+| `packages/document_renderer/` | 模板填充、TeX 转义、队列、编译结果和 PDF QA |
+| `infra/`、`supabase/` | Worker、字体、容器、迁移、反向代理、SQL 与 RLS |
 
-Mock业务记录、回答幂等响应、题目及评价保存数据库；每次评价的LangGraph节点也有持久checkpoint。答案按题目索引检查，在事务内推进。SQLite单进程锁，PostgreSQL行锁。API可重建并继续原会话；已有相同幂等键返回原响应，不重复推进。
+前端业务辅助模块按功能归位；页面和跨功能组件维持统一入口，避免复制共享组件。后端模块导入和根目录配置路径保持稳定。
 
-简历的事实确认和段落批准使用持久LangGraph interrupt/resume。HTTP端点同样检查确认状态、所有者、段落授权、锁定及数字保真。每个版本持有独立审批thread；render不由AI聊天自动调用。应用层版本不可变，回滚只改变活动指针。
+## 内容与检索
 
-首版用 `business_records` 存储有类型的私有aggregate、checkpoint、审计、版本与job，知识文档和chunk独立表。没有把需求中的每一种业务实体机械拆成一张表；扩展高并发前可按查询与事务边界逐步拆表。私有owner不会由客户端指定。
+`knowledge/` 保存公共 Markdown、HTML、JSON 与配图。前端构建静态页面和手册；API 启动增量检查知识源并构建索引。显示和检索遵循许可及标签，公共参考资料通过 `packages/rag/reference_sources.py` 提取。
 
-## 许可与模型信任边界
+未配置 Embedding 时使用词法检索；配置后结合向量和词法结果进行 RRF 融合。向量固定 1536 维，模型或维度变更需相应重建／迁移，不提供伪向量替代。
 
-受限资料首版不索引，不发送模型；检索在任何向量/模型调用之前完成许可与标签过滤。Embedding只对public_display文本处理。来源、用户文件和JD均包装为不可信数据；模型没有代码/任意工具执行通道。引用必须对应返回chunk；缺失或伪造引用拦截回答。
+引用必须属于本次返回的证据。前端按文档统一来源编号，句内链接保留章节位置。研究资料、JD 和上传内容均作为不可信上下文，不授予模型任意代码执行能力。
 
-在没有Embedding服务时，只提供词法开发模式；真实语义检索没有伪向量替代。STT未配置不生成假转写。扫描件未配置Vision不伪造事实，可手动校对。未运行Renderer不伪造PDF成功。
+个人笔记保存为 `business_records.kind=learning_note`，文件夹为 `note_folder`，通过 `folder_id` 关联。列表过滤和编号在当前目录内计算；后端校验文件夹所有者，更新笔记保留归属及版本冲突检查。笔记只供所有者和其授权请求使用，不进入公共 Markdown 或公共向量索引；实时私有关键词检索每次最多提供 6 个片段。
 
-## 尚需真实环境验证或进一步建设
+## 会话、缓存与数据
 
-1. 用户模板的合成样例已由桌面编译器实际编译成功；当前机器Docker未运行，PostgreSQL迁移、pgvector与隔离XeLaTeX Worker仍未完成集成验证。
-2. 未提供真实LLM/STT/Vision/Embedding配置，真实供应商的兼容性、准确率、耗时与数据保留政策待验证。
-3. OCR/模型调用目前是有超时的同步请求；PDF使用单Worker文件队列。高并发OCR/长报告应迁移通用持久异步Job队列。
-4. 未实现SSE流式回答、单题重试分支、通用会话导出、收藏/阅读进度与答案反馈统计。
-5. 实现精确正文去重，未做语义近重复清理和reranker；向量升级通过模型名触发重建，跨模型维度变化须迁移。
-6. 角色基础rubric仍是首版通用权重，非经过专家审核的细分岗位评分体系。真实内容扩充、人工标注评测与对照实验仍需后续工作。
-7. 登录是邮箱密码基础认证，无邮件验证、重置密码、共享限流或企业SSO；公开部署前需要运维与身份强化。
+正式环境使用 Supabase 邮箱注册、验证、找回密码和会话刷新；独立开发兼容本地账号。浏览器保存认证凭证，私人正文缓存只在当前页面会话内按账号使用。退出和账号变化使旧缓存不可用，内容修改使相应缓存失效。
 
-这些是当前交付边界，不能以单元测试或演示Provider宣称已完成生产验收。
+问答、Mock、简历事实和版本持久保存。每个私有对象在 API 中检查 owner，数据库配置 RLS，文件使用私有 Storage；服务端凭证不能替代对象权限检查。清空聊天上下文保留历史，但后续请求排除旧轮次。
+
+PDF Worker 使用无网络、非 root、只读根目录与资源限制，通过共享目录消费任务；禁用 shell escape。编译结果须通过事实文本、页数与边界检查，完成后由 API 同步到私有存储。未运行 Worker 时任务等待，不伪造成功。
+
+## 当前边界与验证
+
+- 仍使用单 API 进程限流与单 Worker 文件队列，多副本需要共享限流和任务系统。
+- OCR、模型服务、邮件及云端权限依赖实际提供方配置，离线替身不证明真实效果。
+- 当前无通用 SSE 流式回答、多人笔记协作、收藏进度或企业 SSO。
+- 知识去重与排序不是语义去重或 reranker；检索评测是小型回归集。
+- 模板、字体和 PDF 内容调整应查看实际产物；接口成功不等于版式正确。
+
+运行配置见 [部署指南](DEPLOYMENT.md)，回归和实际验收见 [验收清单](ACCEPTANCE.md)。文档不记录当前机器、容器或云账号的在线状态。

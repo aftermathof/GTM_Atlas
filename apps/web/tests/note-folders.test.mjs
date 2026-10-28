@@ -6,7 +6,7 @@ import ts from 'typescript'
 
 test('each folder and root restart numbering and retain order across updates and pages', () => {
   const context = vm.createContext({exports:{}, Map})
-  vm.runInContext(ts.transpileModule(readFileSync(new URL('../src/noteFolders.ts', import.meta.url), 'utf8'), {
+  vm.runInContext(ts.transpileModule(readFileSync(new URL('../src/features/notes/noteFolders.ts', import.meta.url), 'utf8'), {
     compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
   }).outputText, context)
   const { folderNotes, noteNumbers } = context.exports

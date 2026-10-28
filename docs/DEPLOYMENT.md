@@ -4,7 +4,7 @@
 
 |服务|用途|持久化内容|
 |---|---|---|
-|GitHub|源码与知识 Markdown|60 篇资料、模板、配置、测试；不上传用户数据|
+|GitHub|源码与知识 Markdown|公共知识源、模板、配置、测试；不上传用户数据|
 |Vercel|Vue 前端和 VitePress 手册|静态构建；不运行 Python 或 LaTeX|
 |Supabase Auth|邮箱注册、验证、密码登录、刷新会话|账号与密码哈希，由 Supabase 管理|
 |Supabase Postgres|业务记录、知识检索索引|偏好、Mock、简历事实/版本、聊天和引用、任务/checkpoint|
@@ -21,7 +21,7 @@
 
 1. 使用一个**新项目**。在 SQL Editor 打开并执行仓库根目录 `supabase/schema.sql` 的全部内容。它会创建与当前应用一致的表、pgvector 索引、Auth 资料同步触发器、RLS 和 `gtm-private` 私有桶。
 2. 不要在旧的本地 PostgreSQL 表上直接叠加这份 SQL。`CREATE TABLE IF NOT EXISTS` 不能把旧表迁移成新表。当前 SQLite 本地账号不会自动成为 Supabase Auth 账号；部署默认是新环境，已有本机数据仍保留。
-3. Authentication → Providers 启用 Email。建议开启 Confirm email，配置可用于生产的 SMTP、邮件发送额度和密码策略（至少 12 字符）。应用注册后会提示邮箱验证；验证完成后返回登录页。
+3. Authentication → Providers 启用 Email。建议开启 Confirm email，配置可用于生产的 SMTP、邮件发送额度和项目密码策略（应用只校验非空，实际策略由 Supabase 执行）。应用注册后会提示邮箱验证；验证完成后返回登录页。
 4. Authentication → URL Configuration 设置正式 Vercel 域名为 Site URL，并将其加入 Redirect URLs。注册验证走 Supabase 的邮件链接，完成后用户回站登录，不需要前端接收 service role key。
 5. 从 Project Settings/API 取得 Project URL、anon key 和 service_role key。后两项填入 Docker 主机环境；本项目不需要把 Supabase key 放到 Vercel 前端。
 6. 从 Connect 复制 **Session pooler，5432 端口**的连接串（也可用支持 IPv6 的直接连接）。改为 `postgresql+psycopg://`，追加 `?sslmode=require`；密码中的特殊字符需 URL 编码。不用事务池 6543 端口作为本方案默认连接。
@@ -35,6 +35,7 @@
 |`business_records` `kind=mock/mock_answer`|Mock 题目、回答、评分、复盘|
 |`business_records` `kind=resume/career/resume_version`|原件信息、事实、诊断、修改及历史版本|
 |`business_records` `kind=chat_thread/conversation`|会话范围、上下文边界、完整问题/答案/引用|
+|`business_records` `kind=learning_note/note_folder`|私有学习笔记与文件夹；笔记通过 `folder_id` 关联文件夹|
 |`business_records` 其他 kind|私有 JD、任务、反馈、checkpoint 与执行轨迹|
 |`knowledge_documents/knowledge_chunks`|公共知识及索引；私有 JD 不进入公共知识表|
 |`auth_tokens`|仅保留本地开发兼容结构；Supabase 模式不使用|
@@ -45,7 +46,7 @@ RLS 限制用户只能读取自己的资料/业务行；浏览器无业务写入
 
 ## 2. 上传 GitHub
 
-在 GitHub 建仓库，建议首发使用私有仓库。当前目录原本尚未初始化 Git。使用 GitHub Desktop 的 Add local repository/Create repository，或在项目根目录运行：
+在 GitHub 建仓库，建议首发使用私有仓库。现有项目已使用 Git；日常更新只需检查差异、提交并推送。仅在全新的源码副本尚无 `.git` 时初始化；不要重复覆盖 remote 或切换现有分支。首次初始化示例：
 
 ```powershell
 git init
@@ -61,14 +62,14 @@ git commit -m "Prepare GTM Atlas for Vercel and Supabase deployment"
 git branch -M main
 ```
 
-仓库已有 `.gitignore`、`.dockerignore`、`.vercelignore`；依赖锁文件、测试、Markdown 知识源、原始需求和 TeX 模板需要提交。保留本机 `.venv`、`node_modules` 和构建结果以便继续预览，这些不会提交。目录和本地数据边界见 [维护入口](README.md)。
+仓库已有 `.gitignore`、`.dockerignore`、`.vercelignore`；依赖锁文件、测试、Markdown 知识源、维护文档和 TeX 模板需要提交。保留本机 `.venv`、`node_modules` 和构建结果以便继续预览，这些不会提交。目录和本地数据边界见 [维护入口](README.md)。
 
 ## 3. 部署 Docker API 和 PDF Worker
 
 使用一台支持 Docker Compose 和持久磁盘的 Linux 主机。此配置按**单 API 进程、单 Worker**运行；不要无状态扩容或让两个 Worker 消费同一队列。没有持久卷的临时容器不适用。
 
 1. 将仓库克隆到主机。
-2. 将 `.env.supabase.formal` 复制为根目录 `.env`，填入 Supabase URL、anon/service_role key、数据库连接串、正式前端域名以及模型配置。`.env` 不提交。
+2. 在根目录 `.env` 配置 Supabase、数据库、前端域名和模型接口。已有配置保留；`.env.supabase.formal` 仅是可能存在的本机私有副本，不是仓库提供的安装模板，不要直接复制覆盖 `.env`。配置项见下方表格。
 3. `ALLOWED_ORIGINS` 填完整 Vercel 正式域名（多个域名逗号分隔，无末尾斜杠）。Vercel 每个 Preview 域名不会自动获准；需要时显式加入。
 4. 设置 `PROVIDER_MODE=live` 并填服务端模型 Key。运行时已移除模拟返回，未配置服务会明确报错。STT、Vision、Embedding 需各自有效服务。
 5. 执行：
@@ -111,7 +112,7 @@ Worker 无网络、不含 Supabase/数据库密钥，只挂载 artifacts 和队�
 - A 删除简历/Mock/聊天，确认对应记录和适用文件被删除；其他账号及其他会话不受影响。
 - 开启真实模型后核验引用、事实保真和真实多轮语义；离线 mock 测试不代表真实模型已验收。
 
-当前交付未连接用户的 Supabase/Vercel/GitHub，也未持有云端密钥；初始化 SQL、线上邮件、Docker LaTeX、Supabase Storage/RLS 和公网 HTTPS 必须在部署环境完成上述验收。
+仓库文档不记录账号连接状态、真实密钥和临时服务地址；初始化 SQL、线上邮件、Docker LaTeX、Supabase Storage/RLS 和公网 HTTPS 应在实际部署环境完成上述验收。
 
 ## 邮件找回密码
 
@@ -120,3 +121,54 @@ Worker 无网络、不含 Supabase/数据库密钥，只挂载 artifacts 和队�
 邮件链接返回后，新密码表单仅在当前页面内使用恢复令牌，读取后移除 URL fragment；更新成功后返回登录。找回邮件沿用 Supabase 的邮件配置与发送限额。上线后用自己的测试账号检查真实收件和失效链接；自动化测试不会发送邮件。
 
 此功能增加了 API 接口，发布前端的同时需更新 API；不涉及数据库 SQL 或 renderer。
+
+## 环境变量与模型接口
+
+
+后端实际读取根目录 `.env`。如本机还有 `.env.supabase.formal`，它只是配置副本，Docker 不直接读取。不要提交任何已填入密钥的配置副本，不要用模板覆盖已有 `.env`。
+
+| 配置项 | 用途与说明 |
+| --- | --- |
+| `AUTH_MODE`、`STORAGE_MODE` | 正式环境均为 supabase；本地可用 local |
+| `SUPABASE_URL` | Supabase 项目 URL |
+| `SUPABASE_ANON_KEY` | 当前代码使用的 legacy anon key，供 Auth 请求使用 |
+| `SUPABASE_SERVICE_ROLE_KEY` | 后端受控访问私有文件等操作，仅可留在服务器 |
+| `SUPABASE_STORAGE_BUCKET` | 私有桶，初始化 SQL 创建 gtm-private |
+| `DATABASE_URL` | SQLAlchemy 数据库连接串；未设置默认本地 SQLite |
+| `ALLOWED_ORIGINS` | 前端完整来源，多个域名用逗号分隔，不带末尾斜杠 |
+| `PROVIDER_MODE=live` | 使用真实模型服务 |
+| `LLM_BASE_URL`、`LLM_API_KEY`、`LLM_MODEL` | 问答、面试和简历 AI 功能所需的文本服务 |
+| `STT_BASE_URL`、`STT_API_KEY`、`STT_MODEL` | 可选语音转写，未配置可用键盘 |
+| `VISION_BASE_URL`、`VISION_API_KEY`、`VISION_MODEL` | 可选图片识别，未配置可用可读文件或手动录入 |
+| `EMBEDDING_BASE_URL`、`EMBEDDING_API_KEY`、`EMBEDDING_MODEL` | 可选语义检索，未配置仅词法检索 |
+| `DATA_DIR` | 本地默认 .data，生产容器为 /data |
+| `ADMIN_EMAIL` | 可调用公共知识重建接口的账号邮箱 |
+| `RENDER_ENABLED` | API 保持 false；Worker 镜像内部设置为 true |
+
+适配器使用 OpenAI 兼容的 `/chat/completions`、`/audio/transcriptions`、`/embeddings` 接口。基础地址按服务商要求包含 `/v1` 等前缀，不要重复填写完整 endpoint。模型名称、批量上限、图片能力和费用需以提供方说明为准。
+
+Vision 必须使用支持图片输入的模型。它可以与文本模型共用服务商和 Key，但不能只凭品牌名判断图片能力。实际兼容性需要用真实调用验证。
+
+
+## 本机 Cloudflare 临时隧道
+
+
+适合当前没有服务器的联调。Docker 的 8000 端口仍只绑定本机，由 cloudflared 主动连接 Cloudflare 并转发请求，不需要购买域名，也无需额外的 PDF Token。
+
+Windows 可通过 winget 安装官方程序（仅首次需要）：
+
+```powershell
+winget install --id Cloudflare.cloudflared --exact --source winget
+```
+
+本机已安装时不要重复安装。默认安装位置可为 `C:\Program Files (x86)\cloudflared\cloudflared.exe`，以实际安装目录为准。先确认本机健康接口可用，再在另一个 PowerShell 窗口运行：
+
+```powershell
+& "C:\Program Files (x86)\cloudflared\cloudflared.exe" tunnel --no-autoupdate --protocol http2 --url http://127.0.0.1:8000
+```
+
+`&` 调用引号中的程序；tunnel 建立隧道；--url 指向本机后端；--protocol http2 指定连接 Cloudflare 的协议。窗口需保持运行，Ctrl+C 会结束这次前台隧道。后台运行的隧道需按实际进程 ID 停止，不要固定复用以前的 PID。
+
+日志会给出 `https://随机名称.trycloudflare.com`，先访问该地址下的 `/api/v1/health`，确认返回 JSON，再填入 Vercel。该地址可从外网访问后端，现有登录鉴权仍需生效。
+
+临时隧道没有持续在线保证。电脑休眠、关机、断网或隧道进程结束会中断服务；重开通常产生新域名，需更新 Vercel 的 VITE_API_BASE_URL 并重新部署。ALLOWED_ORIGINS 填的是前端域名，不随隧道地址变化而修改。长期固定地址需另配命名隧道和自有域名，或使用下述服务器方案。

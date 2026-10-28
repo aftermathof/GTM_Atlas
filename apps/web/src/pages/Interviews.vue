@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { cleanAIText } from "../aiText"
+import { cleanAIText } from "../features/ai/aiText"
 import LoadingState from '../components/LoadingState.vue'
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
