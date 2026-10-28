@@ -8,9 +8,8 @@ from services.api.store import owned, save, expose
 router = APIRouter(prefix='/api/v1/notes')
 
 
-class NoteInput(BaseModel):
+class FolderInput(BaseModel):
     title: str = Field(min_length=1, max_length=160)
-    body: str = Field(default='', max_length=100000)
 
     @field_validator('title')
     @classmethod
@@ -20,8 +19,28 @@ class NoteInput(BaseModel):
         return value.strip()
 
 
+class NoteInput(FolderInput):
+    body: str = Field(default='', max_length=100000)
+    folder_id: str | None = Field(default=None, min_length=1, max_length=36)
+
+
 class NoteUpdate(NoteInput):
     revision: int = Field(ge=1)
+
+
+@router.get('/folders')
+def folders(request: Request, user=Depends(current_user)):
+    with request.app.state.db() as db:
+        rows = db.scalars(select(Record).where(Record.owner == user.id, Record.kind == 'note_folder').order_by(Record.created_at, Record.id))
+        return [expose(row) for row in rows]
+
+
+@router.post('/folders')
+def create_folder(body: FolderInput, request: Request, user=Depends(current_user)):
+    with request.app.state.mutation_lock, request.app.state.db() as db:
+        row = save(db, user.id, 'note_folder', body.model_dump())
+        db.commit()
+        return expose(row)
 
 
 @router.get('')
@@ -35,6 +54,8 @@ def notes(request: Request, user=Depends(current_user)):
 @router.post('')
 def create_note(body: NoteInput, request: Request, user=Depends(current_user)):
     with request.app.state.mutation_lock, request.app.state.db() as db:
+        if body.folder_id:
+            owned(db, body.folder_id, user.id, 'note_folder')
         row = save(db, user.id, 'learning_note', {**body.model_dump(), 'updated_at': now().isoformat(), 'revision': 1})
         db.commit()
         return expose(row)
@@ -52,7 +73,10 @@ def update_note(nid: str, body: NoteUpdate, request: Request, user=Depends(curre
         row = owned(db, nid, user.id, 'learning_note', lock=True)
         if row.data['revision'] != body.revision:
             raise HTTPException(409, '笔记已在其他页面修改，请先备份当前内容，再重新打开最新笔记。')
-        row.data = {**body.model_dump(), 'updated_at': now().isoformat(), 'revision': body.revision + 1}
+        folder_id = body.folder_id if 'folder_id' in body.model_fields_set else row.data.get('folder_id')
+        if folder_id:
+            owned(db, folder_id, user.id, 'note_folder')
+        row.data = {**body.model_dump(), 'folder_id': folder_id, 'updated_at': now().isoformat(), 'revision': body.revision + 1}
         db.commit()
         return expose(row)
 

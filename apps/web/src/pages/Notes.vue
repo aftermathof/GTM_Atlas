@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
-import { ArrowUpRight, Plus, ArrowLeft, Save, Trash2, BookOpen, Bold, Italic, Heading2, List, Code2, Link, Quote, Pencil, Eye } from 'lucide-vue-next'
+import { ArrowUpRight, Plus, ArrowLeft, Save, Trash2, BookOpen, Bold, Italic, Heading2, List, Code2, Link, Quote, Pencil, Eye, Folder, FolderPlus } from 'lucide-vue-next'
 import { api, state } from '../state'
 import Markdown from '../components/Markdown.vue'
 import ChatPanel from '../components/ChatPanel.vue'
@@ -14,7 +14,31 @@ import { cardPage } from '../resourceGallery'
 import { warmNote } from '../preload'
 import { cachedNotes, cachedNote, fetchNotes, fetchNote, cacheSavedNote, deleteNote, forgetNote, type Note } from '../notesStore'
 
+import { folderNotes, noteNumbers, type NoteFolder } from '../noteFolders'
+
 const route = useRoute(), router = useRouter()
+const folders = ref<NoteFolder[]>([]), folderTitle = ref(''), creatingFolder = ref(false), folderForm = ref(false)
+const folderInput = ref<HTMLInputElement>()
+const folderId = computed(() => typeof route.query.folder === 'string' ? route.query.folder : '')
+const currentFolder = computed(() => folders.value.find(folder => folder.id === (note.value?.folder_id || folderId.value)))
+const listLocation = computed(() => ({path:'/notes', query:currentFolder.value ? {folder:currentFolder.value.id} : {}}))
+const newLocation = computed(() => ({path:'/notes/new', query:folderId.value ? {folder:folderId.value} : {}}))
+const visibleCards = computed(() => folderNotes(cards.value, folderId.value))
+async function openFolderForm() {
+  folderForm.value = true; await nextTick(); folderInput.value?.focus()
+}
+async function createFolder() {
+  if (creatingFolder.value || !folderTitle.value.trim()) return
+  creatingFolder.value = true; error.value = ''
+  const account = state.user?.id, current = generation
+  try {
+    const folder: NoteFolder = await api('/notes/folders', {method:'POST', body:JSON.stringify({title:folderTitle.value.trim()})})
+    if (account !== state.user?.id || current !== generation) return
+    folders.value = [...folders.value, folder]; folderTitle.value = ''; folderForm.value = false
+    await router.push({path:'/notes', query:{folder:folder.id}})
+  } catch (e: any) { if (account === state.user?.id && current === generation) error.value = e.message }
+  finally { creatingFolder.value = false }
+}
 const cards = ref<Note[]>([]), note = ref<Note | null>(null)
 const title = ref(''), body = ref(''), original = ref(''), error = ref(''), loading = ref(false), saving = ref(false)
 const mode = ref<'live' | 'edit' | 'preview'>('live'), showAI = ref(false)
@@ -50,7 +74,7 @@ async function deleteCard() {
   cards.value = cards.value.filter(card => card.id !== selected.id)
   if (id.value === selected.id) {
     original.value = JSON.stringify([title.value, body.value])
-    void router.push('/notes')
+    void router.push(listLocation.value)
   }
   try { await pending } catch { /* The shared store restores the note and publishes the error. */ }
 }
@@ -58,8 +82,8 @@ const id = computed(() => String(route.params.id || ''))
 const editing = computed(() => !!id.value)
 const dirty = computed(() => editing.value && JSON.stringify([title.value, body.value]) !== original.value)
 const words = computed(() => body.value.replace(/\s/g, '').length)
-const numbers = computed(() => new Map([...cards.value].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)).map((card, index) => [card.id, 'N' + String(index + 1).padStart(2, '0')])))
-const pagination = computed(() => cardPage(cards.value, route.query.page))
+const numbers = computed(() => noteNumbers(visibleCards.value))
+const pagination = computed(() => cardPage(visibleCards.value, route.query.page))
 async function changePage(page: number) {
   await router.replace({query: {...route.query, page: String(page)}})
   await nextTick(); document.querySelector('.collection-line')?.scrollIntoView({block:'start'})
@@ -72,7 +96,12 @@ async function load() {
   pendingDelete.value = null
   title.value = ''; body.value = ''; original.value = JSON.stringify(['', ''])
   try {
+    folders.value = []; cards.value = []; folderForm.value = false; folderTitle.value = ''
     if (!state.user) { cards.value = []; return }
+    const folderRows = await api('/notes/folders')
+    if (current !== generation) return
+    folders.value = folderRows
+    if (folderId.value && !folders.value.some(folder => folder.id === folderId.value)) throw new Error('文件夹不存在或无权访问')
     if (!id.value) {
       const cached = cachedNotes()
       error.value = state.notesDeleteError
@@ -88,20 +117,20 @@ async function load() {
   } catch (e: any) { if (current === generation) error.value = e.message }
   finally { if (current === generation) loading.value = false }
 }
-watch(() => [id.value, state.user?.id], load, { immediate: true })
+watch(() => [id.value, folderId.value, state.user?.id], load, { immediate: true })
 async function save() {
   if (saving.value || loading.value || !title.value.trim()) return
   saving.value = true; error.value = ''
   const savedTitle = title.value.trim(), savedBody = body.value, account = state.user?.id, current = generation
   try {
     const row: Note = await api('/notes' + (note.value ? '/' + note.value.id : ''), {
-      method: note.value ? 'PUT' : 'POST', body: JSON.stringify({title:savedTitle, body:savedBody, ...(note.value ? {revision:note.value.revision} : {})})
+      method: note.value ? 'PUT' : 'POST', body: JSON.stringify({title:savedTitle, body:savedBody, folder_id:note.value ? note.value.folder_id || null : folderId.value || null, ...(note.value ? {revision:note.value.revision} : {})})
     })
     if (account !== state.user?.id || current !== generation) return
     note.value = row; cacheSavedNote(row)
     if (body.value === savedBody && title.value.trim() === savedTitle) title.value = savedTitle
     original.value = JSON.stringify([savedTitle, savedBody])
-    if (id.value === 'new') { saving.value = false; await router.replace('/notes/' + row.id) }
+    if (id.value === 'new') { saving.value = false; await router.replace({path:'/notes/' + row.id, query:row.folder_id ? {folder:row.folder_id} : {}}) }
   } catch (e: any) { if (note.value) forgetNote(note.value.id); error.value = e.message }
   finally { saving.value = false }
 }
@@ -115,7 +144,7 @@ watch(() => state.notesRevision, () => {
 })
 function canLeave() { return !saving.value && (!dirty.value || window.confirm('笔记尚未保存，确定离开并放弃修改？')) }
 onBeforeRouteLeave(canLeave)
-onBeforeRouteUpdate((to, from) => to.params.id === from.params.id || canLeave())
+onBeforeRouteUpdate((to, from) => (to.params.id === from.params.id && to.query.folder === from.query.folder) || canLeave())
 function beforeUnload(event: BeforeUnloadEvent) { if (dirty.value || saving.value) { event.preventDefault(); event.returnValue = '' } }
 window.addEventListener('beforeunload', beforeUnload)
 onBeforeUnmount(() => { generation++; window.removeEventListener('beforeunload', beforeUnload) })
@@ -132,16 +161,19 @@ function keydown(event: KeyboardEvent) {
 <template>
   <section class="container notes-page" @keydown="keydown">
     <template v-if="!editing">
-      <div class="notes-hero"><div><span class="eyebrow">YOUR PERSONAL KNOWLEDGE</span><h1>学习笔记</h1><p>把读过的知识，写成自己的理解。</p></div><RouterLink to="/notes/new" class="button primary"><Plus :size="17"/>新建笔记</RouterLink></div>
-      <div class="collection-line"><span>我的笔记 <b>{{ cards.length.toString().padStart(2, '0') }}</b></span><span>仅自己可见 · AI 可参考已保存内容</span></div>
+      <div class="notes-hero"><div><span class="eyebrow">YOUR PERSONAL KNOWLEDGE</span><h1>学习笔记</h1><p>把读过的知识，写成自己的理解。</p></div><div class="notes-create-actions"><button v-if="!folderId" class="button secondary" @click="openFolderForm"><FolderPlus :size="17"/>新建文件夹</button><RouterLink :to="newLocation" class="button primary"><Plus :size="17"/>新建笔记</RouterLink></div></div>
+      <form v-if="folderForm" class="folder-form" @submit.prevent="createFolder"><label for="folder-title">文件夹名称</label><input id="folder-title" ref="folderInput" v-model="folderTitle" maxlength="160" placeholder="例如：产品营销" :disabled="creatingFolder" @keydown.esc="folderForm=false"/><button class="button primary" :disabled="creatingFolder || !folderTitle.trim()">{{ creatingFolder ? '创建中…' : '创建文件夹' }}</button><button type="button" class="text-link" :disabled="creatingFolder" @click="folderForm=false">取消</button></form>
+      <nav v-if="folderId" class="folder-breadcrumb" aria-label="笔记位置"><RouterLink to="/notes"><ArrowLeft :size="15"/>全部笔记</RouterLink><span>/</span><span>{{ currentFolder?.title }}</span></nav>
+      <div v-if="!loading && !folderId && folders.length" class="folder-grid"><RouterLink v-for="folder in folders" :key="folder.id" :to="{path:'/notes',query:{folder:folder.id}}" class="folder-card"><Folder :size="26" :stroke-width="1.3"/><span>{{ folder.title }}</span><small>{{ folderNotes(cards, folder.id).length }} 篇笔记</small><ArrowUpRight :size="16"/></RouterLink></div>
+      <div class="collection-line"><span>{{ currentFolder?.title || '我的笔记' }} <b>{{ visibleCards.length.toString().padStart(2, '0') }}</b></span><span>仅自己可见 · AI 可参考已保存内容</span></div>
       <p v-if="loading" class="note-message" role="status">正在整理你的笔记…</p>
       <p v-if="error" class="error" role="alert">{{ error }} <button @click="load">重新加载</button></p>
-      <div v-if="!loading && cards.length" class="note-grid"><article v-for="card in pagination.items" :key="card.id" class="note-card"><RouterLink :to="'/notes/' + card.id" class="note-card-link" @mouseenter="warmNote(card.id,true)" @focus="warmNote(card.id,true)"><div class="note-cover"><span class="eyebrow">LEARNING NOTES</span><NoteMark/><span class="note-number">{{ numbers.get(card.id) }}</span></div><div class="note-card-content"><h2>{{ card.title }}</h2><div class="note-card-footer"><time :datetime="card.updated_at">{{ date(card.updated_at) }}</time><ArrowUpRight :size="18" aria-hidden="true"/></div></div></RouterLink><button class="note-card-delete" :aria-label="'删除笔记：'+card.title" @click="requestDelete(card,$event)"><Trash2 :size="14"/>删除</button></article></div>
-      <div v-else-if="!loading && !error" class="notes-empty"><BookOpen :size="34" :stroke-width="1"/><h2>留一页，给新的理解。</h2><p>从一次学习、一个想法，或一场复盘开始。</p><RouterLink to="/notes/new" class="text-link">写下第一篇笔记 <ArrowUpRight :size="15"/></RouterLink></div>
+      <div v-if="!loading && visibleCards.length" class="note-grid"><article v-for="card in pagination.items" :key="card.id" class="note-card"><RouterLink :to="{path:'/notes/' + card.id,query:folderId ? {folder:folderId} : {}}" class="note-card-link" @mouseenter="warmNote(card.id,true)" @focus="warmNote(card.id,true)"><div class="note-cover"><span class="eyebrow">LEARNING NOTES</span><NoteMark/><span class="note-number">{{ numbers.get(card.id) }}</span></div><div class="note-card-content"><h2>{{ card.title }}</h2><div class="note-card-footer"><time :datetime="card.updated_at">{{ date(card.updated_at) }}</time><ArrowUpRight :size="18" aria-hidden="true"/></div></div></RouterLink><button class="note-card-delete" :aria-label="'删除笔记：'+card.title" @click="requestDelete(card,$event)"><Trash2 :size="14"/>删除</button></article></div>
+      <div v-else-if="!loading && !error" class="notes-empty"><BookOpen :size="34" :stroke-width="1"/><h2>留一页，给新的理解。</h2><p>从一次学习、一个想法，或一场复盘开始。</p><RouterLink :to="newLocation" class="text-link">写下第一篇笔记 <ArrowUpRight :size="15"/></RouterLink></div>
       <CardPagination v-if="!loading" :page="pagination.page" :pages="pagination.pages" :total="pagination.total" @change="changePage"/>
     </template>
     <template v-else>
-      <div class="editor-top"><RouterLink to="/notes" class="back-link"><ArrowLeft :size="15"/>全部笔记</RouterLink><div class="note-actions"><span class="save-status" role="status">{{ saving ? '正在保存…' : dirty ? '有未保存的修改' : note ? '已保存 · ' + date(note.updated_at) : '新笔记' }}</span><button v-if="note" class="icon-button" aria-label="删除笔记" :disabled="saving || loading" @click="remove"><Trash2 :size="17"/></button><button class="button primary" :disabled="saving || loading || !title.trim() || (!!note && !dirty)" @click="save"><Save :size="16"/>保存笔记</button></div></div>
+      <div class="editor-top"><RouterLink :to="listLocation" class="back-link"><ArrowLeft :size="15"/>{{ currentFolder?.title || '全部笔记' }}</RouterLink><div class="note-actions"><span class="save-status" role="status">{{ saving ? '正在保存…' : dirty ? '有未保存的修改' : note ? '已保存 · ' + date(note.updated_at) : '新笔记' }}</span><button v-if="note" class="icon-button" aria-label="删除笔记" :disabled="saving || loading" @click="remove"><Trash2 :size="17"/></button><button class="button primary" :disabled="saving || loading || !title.trim() || (!!note && !dirty)" @click="save"><Save :size="16"/>保存笔记</button></div></div>
       <p v-if="error" class="error" role="alert">{{ error }}</p>
       <p v-if="loading" class="note-message" role="status">正在打开笔记…</p>
       <template v-else-if="!error || note || id === 'new'">
@@ -171,6 +203,10 @@ function keydown(event: KeyboardEvent) {
 </template>
 
 <style scoped>
+.notes-create-actions{display:flex;gap:12px;flex-wrap:wrap}.folder-form{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:28px;padding:20px;border:1px solid var(--line)}.folder-form label{font-size:13px}.folder-form input{flex:1;min-width:140px}.folder-breadcrumb{display:flex;gap:12px;align-items:center;font-size:13px;margin-bottom:24px;overflow-wrap:anywhere}.folder-breadcrumb a{display:inline-flex;align-items:center;gap:6px;color:var(--blue)}.folder-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:32px}.folder-card{display:flex;align-items:center;gap:14px;padding:24px;border:1px solid var(--line);min-width:0}.folder-card:hover{border-color:var(--blue)}.folder-card svg{color:var(--blue);flex-shrink:0}.folder-card span{flex:1;overflow-wrap:anywhere}.folder-card small{color:var(--muted);white-space:nowrap;font-size:11px}
+@media(max-width:1050px){.folder-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.notes-hero{flex-wrap:wrap}.notes-create-actions{width:100%}.notes-create-actions .button{margin-top:0!important}.folder-grid{grid-template-columns:1fr}.folder-card{padding:20px}}
+
 .notes-page{padding-top:48px;padding-bottom:64px;min-height:75vh}.notes-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin:14px 0 48px}.notes-hero h1{font-size:46px;font-weight:400;letter-spacing:-2px;margin:16px 0}.notes-hero p{color:var(--muted);font-size:15px}.button,.back-link,.text-link{display:inline-flex;align-items:center;gap:8px}.collection-line{display:flex;justify-content:space-between;gap:20px;border-top:1px solid var(--ink);padding:18px 0 26px;font-size:12px;color:var(--muted)}.collection-line b{font-weight:400;color:var(--blue);margin-left:12px}.note-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.note-card{position:relative;border:1px solid var(--line);padding:0;min-height:260px;display:flex;flex-direction:column;justify-content:space-between;background:var(--paper,#fafaf8);transition:border-color .18s,background .18s}.note-card-link{display:flex;flex:1;flex-direction:column;min-width:0}.note-card:hover{border-color:var(--blue);background:#fff}.note-card h2{font-size:21px;line-height:1.6;font-weight:400;margin:0 0 36px;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}.note-cover{position:relative;height:112px;background:var(--gray);border-bottom:1px solid var(--line);padding:18px 24px;display:flex;align-items:flex-end;justify-content:space-between;color:var(--blue)}.note-cover .eyebrow{position:absolute;top:17px;left:24px;font-size:9px;margin:0}.note-number{font-family:var(--sans);font-size:38px;line-height:1;font-weight:200;letter-spacing:-1px}.note-cover svg{transition:transform .2s}.note-card:hover .note-cover svg{transform:translateY(-3px) rotate(-4deg)}.note-card-content{padding:24px;flex:1;display:flex;flex-direction:column;justify-content:space-between}.note-card-footer{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted)}.note-card svg{color:var(--blue)}.notes-empty{text-align:center;padding:72px 16px;border:1px solid var(--line)}.notes-empty svg{color:var(--blue)}.notes-empty h2{font-weight:400;font-size:26px;margin:22px 0 12px}.notes-empty p{font-size:14px;color:var(--muted);margin-bottom:28px}.text-link{color:var(--blue);font-size:13px}.editor-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:32px}.note-actions{display:flex;align-items:center;gap:18px}.save-status{font-size:11px;color:var(--muted)}.note-title{display:block;width:100%;font-size:36px;font-weight:400;letter-spacing:-1px;line-height:1.5;border:0;background:transparent;padding:8px 0!important;outline:none;box-shadow:none}.note-title:focus{outline:none;box-shadow:none}.note-title::placeholder{color:#aaa}.editor-caption{display:flex;justify-content:space-between;margin:20px 0 28px;color:var(--muted);font-size:10px;letter-spacing:1.2px}.writing-tools{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--ink);border-bottom:1px solid var(--line);padding:10px 0;flex-wrap:wrap}.format-tools,.view-tools{display:flex;align-items:center;gap:4px}.format-tools button,.view-tools button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px;color:var(--muted);font-size:12px}.format-tools button:hover,.view-tools button.selected{color:var(--blue);background:#002fa709}.view-tools{margin-left:auto}.writing-surface{border-bottom:1px solid var(--line);max-width:900px;margin:0 auto}.note-reading{min-height:54vh;padding:28px 8px}.note-reading :deep(blockquote){background:#002fa708;border-left:3px solid #002fa740;padding:12px 18px;margin:16px 0;color:var(--ink)}.note-reading :deep(blockquote p){margin:0}.editor-bottom{display:flex;justify-content:space-between;align-items:center;gap:24px;padding:18px 0}.editor-bottom>span,.note-hint{font-size:11px;color:var(--muted);line-height:1.8}.editor-bottom button:disabled{opacity:.4;cursor:not-allowed}.note-assistant{border-top:1px solid var(--line);margin-top:28px;padding-top:28px}.note-assistant h2{font-size:24px;font-weight:400}.note-assistant>p{font-size:13px;color:var(--muted)}.note-message{padding:48px 0;color:var(--muted)}
 .note-card-delete{position:absolute;right:52px;bottom:17px;display:flex;align-items:center;gap:5px;border:0;font-size:11px;color:var(--muted);padding:7px}.note-card-delete:hover{color:#a52c2c;background:#a52c2c08}.note-delete-backdrop{position:fixed;inset:0;z-index:70;background:#0a0a0a40;display:grid;place-items:center;padding:24px}.note-delete-dialog{width:min(440px,100%);background:var(--bg);border:1px solid var(--line);padding:32px}.note-delete-dialog h2{font-size:26px;margin:18px 0}.note-delete-dialog p{font-size:13px;color:var(--muted);line-height:1.9;overflow-wrap:anywhere}.note-delete-dialog .delete-note-name{font-size:17px;color:var(--ink);margin-bottom:14px}.delete-note-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:28px}.delete-note-confirm{background:#a52c2c;border-color:#a52c2c}
 @media(prefers-reduced-motion:reduce){.note-cover svg{transition:none}.note-card:hover .note-cover svg{transform:none}}

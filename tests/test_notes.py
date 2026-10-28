@@ -42,6 +42,35 @@ def test_note_input_limits(client):
         assert client.post('/api/v1/notes', json=payload, headers=headers).status_code == 422
 
 
+def test_note_folders_persist_and_validate_ownership(client):
+    a, b = account(client, 'folder-a'), account(client, 'folder-b')
+    assert client.post('/api/v1/notes/folders', json={'title': '课程'}).status_code == 401
+    for title in ['   ', 'x' * 161]:
+        assert client.post('/api/v1/notes/folders', json={'title': title}, headers=a).status_code == 422
+    response = client.post('/api/v1/notes/folders', json={'title': '  课程  '}, headers=a)
+    assert response.status_code == 200
+    folder = response.json()
+    assert folder['title'] == '课程'
+    listed = client.get('/api/v1/notes/folders', headers=a).json()
+    assert len(listed) == 1
+    assert listed[0]['id'] == folder['id'] and listed[0]['title'] == folder['title']
+    assert client.get('/api/v1/notes/folders', headers=b).json() == []
+    payload = {'title': '第一课', 'body': '正文', 'folder_id': folder['id']}
+    assert client.post('/api/v1/notes', json=payload, headers=b).status_code == 404
+    assert client.post('/api/v1/notes', json={**payload, 'folder_id': 'missing'}, headers=a).status_code == 404
+    note = client.post('/api/v1/notes', json=payload, headers=a).json()
+    assert note['folder_id'] == folder['id']
+    assert client.get('/api/v1/notes', headers=a).json()[0]['folder_id'] == folder['id']
+    saved = client.put('/api/v1/notes/' + note['id'], json={'title': '修改', 'body': '新正文', 'revision': 1}, headers=a)
+    assert saved.status_code == 200
+    assert saved.json()['folder_id'] == folder['id']
+    foreign = client.post('/api/v1/notes/folders', json={'title': '其他账号'}, headers=b).json()
+    assert client.put('/api/v1/notes/' + note['id'], json={**payload, 'folder_id': foreign['id'], 'revision': 2}, headers=a).status_code == 404
+    assert client.put('/api/v1/notes/' + note['id'], json={**payload, 'revision': 2}, headers=b).status_code == 404
+    root = client.post('/api/v1/notes', json={'title': '首页笔记'}, headers=a).json()
+    assert root.get('folder_id') is None
+
+
 def test_ai_uses_current_owned_notes_and_never_indexes_publicly(client, monkeypatch):
     a, b = account(client, 'notes-ai-a'), account(client, 'notes-ai-b')
     note = client.post('/api/v1/notes', json={'title': '独家渠道策略', 'body': '北极星试点通过伙伴渠道验证。'}, headers=a).json()
