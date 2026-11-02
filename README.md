@@ -1,4 +1,4 @@
-# GTM Atlas · GTM 学习与求职工作台
+# GTM Atlas · GTM 求职陪跑agent平台 （to be continued）
 
 项目目录为 **GTM desk**，网页产品名为 **GTM Atlas**。将 GTM（Go-to-Market）知识学习、岗位 JD、面经与 Mock、简历修改和个人学习笔记放在同一工作台中。
 
