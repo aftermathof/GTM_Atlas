@@ -18,7 +18,7 @@ def suggest(facts, body, jd, evidence=None, context=None, structure=None):
         raise HTTPException(422, "请选择存在且未锁定的段落")
     provider = LLMProvider()
     evidence = evidence or []
-    raw = provider.complete("只返回JSON {patches:[{fact_id,text,reason,source_chunk_ids}]}。针对目标岗位与JD改写已选择段落，直接落实用户 instruction 中的调整与补充要求，交付可编辑的候选草稿。用户JD优先，知识库提供岗位职责、方法和交付物参考。原文不是内容上限，用户提供的新细节与数字可直接纳入；新增方向先提供候选写法，在 reason 简短标明需要核对的部分，不要因原文缺失而拒绝交付。未提供的精确业绩数字可以省略，不自行编定。source_chunk_ids仅从证据包选择。", {"facts": selected, "instruction": body.instruction, "jd": jd, 'career_context':context or {}, 'focus_sections':['projects','experience'], 'section_assignments':(structure or {}).get('assignments',{}), 'evidence':evidence})
+    raw = provider.complete("只返回JSON {patches:[{fact_id,text,reason,source_chunk_ids}]}。针对目标岗位与JD改写已选择段落，落实用户 instruction 中的编辑要求，交付可编辑的候选草稿。按简历改写技能区分用户事实、岗位要求与参考方法；reason 简短说明改动、个人边界和必要的待补项。source_chunk_ids仅从证据包选择。", {"facts": selected, "instruction": body.instruction, "jd": jd, 'career_context':context or {}, 'focus_sections':['projects','experience'], 'section_assignments':(structure or {}).get('assignments',{}), 'evidence':evidence})
     try:
         proposals = json.loads(raw.removeprefix("```json").removesuffix("```").strip())["patches"]
         patches = [Patch.model_validate(p) for p in proposals]

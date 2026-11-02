@@ -646,5 +646,203 @@
     "fullName": "Wideband Code Division Multiple Access · 宽带码分多址",
     "explanation": "一种第三代移动通信无线接入技术。",
     "example": "例如：确认设备在目标地区的网络兼容性时检查 WCDMA 支持情况。"
+  },
+  {
+    "term": "Competitor Analysis",
+    "fullName": "Competitor Analysis · 竞品分析",
+    "explanation": "围绕目标用户、产品能力、价格、渠道和营销动作比较竞争产品，识别自身优势、短板与市场机会。",
+    "example": "例如：对比同价位耳机的降噪体验、续航、渠道价格和用户评价，确定差异化卖点。"
+  },
+  {
+    "term": "Flyer",
+    "fullName": "Flyer · 单页／传单",
+    "explanation": "用于介绍产品、优惠或活动的单页宣传物料，通常突出核心卖点、活动条件和购买入口。",
+    "example": "例如：门店派发新品单页，说明功能、售价与优惠有效期。"
+  },
+  {
+    "term": "Promotion Box",
+    "fullName": "Promotion Box · 促销箱／促销陈列柜",
+    "explanation": "零售场景中用于集中陈列促销商品、展示优惠信息的箱体或柜体；具体形态和叫法以门店物料规范为准。",
+    "example": "例如：在门店入口摆放促销陈列柜，集中展示活动商品与价格。"
+  },
+  {
+    "term": "Warranty",
+    "fullName": "Warranty · 保修／保修承诺",
+    "explanation": "品牌或销售方在约定期限和条件下承担维修、更换等责任的承诺；保修单是记录或证明保修权益的凭证。",
+    "example": "例如：购买耳机后按保修条款享受一年内符合条件的故障维修服务。"
+  },
+  {
+    "term": "Extended Warranty",
+    "fullName": "Extended Warranty · 延长保修／延保",
+    "explanation": "在原有保修期之外延长保障期限的服务，也常表达为 extend warranty；是否收费、覆盖范围和责任方以条款为准。",
+    "example": "例如：消费者购买延保服务，将符合条件的维修保障期限延长一年。"
+  },
+  {
+    "term": "MP",
+    "fullName": "Mass Production · 大规模量产",
+    "explanation": "产品完成相应开发和生产验证后进入规模化制造的阶段，关注产能、良率、成本及稳定交付。",
+    "example": "例如：新品通过量产准入评审后，工厂按上市备货计划批量生产。"
+  },
+  {
+    "term": "IP",
+    "fullName": "Initial Production · 首批量产（本图生产语境）",
+    "explanation": "在本图中指首次批量生产，用于确认制造和交付准备情况；IP 也常指知识产权或网络协议，需结合所在公司的阶段定义理解。",
+    "example": "例如：首批量产后检查良率、包装与出货一致性，再决定后续产量。"
+  },
+  {
+    "term": "Mapping",
+    "fullName": "Mapping · 普查／信息映射",
+    "explanation": "在零售语境中，通常指系统梳理门店、渠道、商圈或竞品分布，将观察结果整理为可比较的信息图谱。",
+    "example": "例如：普查一个商圈的门店位置、品牌覆盖和价格带，识别渠道空白。"
+  },
+  {
+    "term": "Display",
+    "fullName": "Display · 陈列／展示／露出",
+    "explanation": "通过商品摆放、样机、展台和物料呈现产品与品牌信息，关注可见性、体验和门店规范执行。",
+    "example": "例如：将主推耳机放在易见位置，并配备可体验样机与卖点标签。"
+  },
+  {
+    "term": "Cash Back",
+    "fullName": "Cash Back / Cashback · 返现",
+    "explanation": "消费者满足购买、登记等条件后获得部分金额返还的促销方式，需要明确返还金额、时间与资格条件。",
+    "example": "例如：消费者在指定期限购买并提交凭证后，按活动规则获得返现。"
+  },
+  {
+    "term": "Bundle Ratio",
+    "fullName": "Bundle Ratio · 连带率／搭售比例",
+    "explanation": "衡量主商品销售时关联商品或组合销售的情况。可按关联商品件数或组合订单数统计，计算前需明确分子、分母与时间范围。",
+    "example": "例如：100 笔耳机订单中有 20 笔同时购买保护套，按订单口径搭售比例为 20%。"
+  },
+  {
+    "term": "Shop in Shop",
+    "fullName": "Shop in Shop · 店中店",
+    "explanation": "在商场或其他零售门店内设置相对独立的品牌销售与体验区域，通常具有专属陈列、形象和服务安排。",
+    "example": "例如：品牌在大型数码卖场中设置专属体验区，集中展示产品并安排导购。"
+  },
+  {
+    "term": "On Shelf Rate",
+    "fullName": "On Shelf Rate · 上架率",
+    "explanation": "衡量目标商品在应上架门店或点位中实际完成上架的比例；应明确统计对象，以及上架是否要求有货、可售和陈列到位。",
+    "example": "例如：计划在 100 家门店上架新品，检查时有 85 家符合约定标准，上架率为 85%。"
+  },
+  {
+    "term": "S&OP",
+    "fullName": "Sales and Operations Planning · 销售与运营计划",
+    "explanation": "通过跨部门协同，将需求预测、销售目标、供应能力、库存和财务约束整合为一致的经营计划。",
+    "example": "例如：销售、供应链与财务共同评审下月需求，调整生产和备货计划。"
+  },
+  {
+    "term": "Safety Stock",
+    "fullName": "Safety Stock · 安全库存",
+    "explanation": "为应对需求波动或供应延迟而额外保留的库存，其水平需结合交付周期、服务目标和库存成本确定。",
+    "example": "例如：为减少补货延误造成的缺货，为畅销型号设置一定的安全库存。"
+  },
+  {
+    "term": "Consumer Profile",
+    "fullName": "Consumer Profile · 消费者画像／用户画像",
+    "explanation": "依据调研和业务数据描述消费者的特征、需求、场景与购买行为，为产品定位、渠道选择和传播提供依据。",
+    "example": "例如：整理通勤耳机用户的预算、佩戴习惯和购买顾虑，用于确定产品卖点。"
+  },
+  {
+    "term": "Campaign",
+    "fullName": "Campaign · 营销活动／推广战役",
+    "explanation": "围绕特定目标、受众和周期组织的一组营销动作，通常需要统一主题、渠道、预算与效果衡量方式。",
+    "example": "例如：围绕新品上市同步开展内容发布、门店体验和限时优惠活动。"
+  },
+  {
+    "term": "Buyer",
+    "fullName": "Buyer · 采购商／采购人员／买方",
+    "explanation": "在交易中负责采购决策或执行的人或组织。零售渠道中常指负责选品、商务谈判和下单的采购人员，与最终使用者可能不同。",
+    "example": "例如：连锁零售商的采购人员评估新品毛利、周转和需求后决定是否引入。"
+  },
+  {
+    "term": "Engage",
+    "fullName": "Engage · 拉通／推动参与",
+    "explanation": "项目协作中指主动联系相关方，使其参与讨论、理解目标并承担相应行动；营销语境中也可指吸引用户互动。",
+    "example": "例如：上市负责人拉通销售和供应链，共同确认首批备货与交付安排。"
+  },
+  {
+    "term": "Align",
+    "fullName": "Align · 对齐／达成一致",
+    "explanation": "让相关团队对目标、口径、优先级、责任和时间安排形成共同理解，并明确分歧的处理方式。",
+    "example": "例如：上市前对齐价格生效时间和渠道执行口径，避免各团队使用不同版本。"
+  },
+  {
+    "term": "End Users",
+    "fullName": "End Users · 最终用户／最终消费者",
+    "explanation": "实际使用产品或服务的人，可能与采购人员、经销商或付款方不同；需求判断应关注真实使用场景。",
+    "example": "例如：企业采购办公耳机，采购部门负责下单，员工是最终用户。"
+  },
+  {
+    "term": "Validation",
+    "fullName": "Validation · 验证／有效性确认",
+    "explanation": "通过证据确认产品、方案或业务假设是否满足预定需求和使用场景，具体标准取决于验证对象。",
+    "example": "例如：先在少量门店试点，验证卖点表达是否被目标用户理解。"
+  },
+  {
+    "term": "Program Status",
+    "fullName": "Program Status · 项目进度／项目群状态",
+    "explanation": "汇总项目或项目群的里程碑、交付完成情况、风险和待决事项，帮助相关方判断是否需要协调资源或调整计划。",
+    "example": "例如：每周汇报上市物料、备货和培训进度，并标明影响上市日期的风险。"
+  },
+  {
+    "term": "Narrow the Direction",
+    "fullName": "Narrow the Direction · 聚焦方向／收敛范围",
+    "explanation": "在多个备选方向中，依据目标、证据和资源约束缩小范围，明确当前优先推进的路径。",
+    "example": "例如：调研后将新品首发渠道从多种方案收敛为两个重点渠道。"
+  },
+  {
+    "term": "Kick-off Meeting",
+    "fullName": "Kick-off Meeting · 开工会／项目启动会",
+    "explanation": "在项目启动时确认目标、范围、团队分工、里程碑与协作机制的会议，也常写作 Kick off meeting。",
+    "example": "例如：新品上市启动会上明确各部门交付物、负责人和截止时间。"
+  },
+  {
+    "term": "GPR",
+    "fullName": "Gross Profit Rate · 销售毛利率",
+    "explanation": "通常按（销售收入－销售成本）÷销售收入计算，用于衡量销售收入中形成毛利的比例；收入与成本需使用一致口径，毛利不等于净利润。",
+    "example": "例如：不含税销售收入 100 元、对应销售成本 70 元，毛利率为 30%。"
+  },
+  {
+    "term": "Portfolio",
+    "fullName": "Product Portfolio · 产品组合",
+    "explanation": "企业经营的一组产品或产品线，关注其定位、价格带、生命周期和资源配置。产品路标通常称 Product Roadmap，强调产品随时间演进的计划。",
+    "example": "例如：用入门、中端和旗舰产品覆盖不同需求，并评估各产品线的投入与回报。"
+  },
+  {
+    "term": "Flash Sale",
+    "fullName": "Flash Sale · 闪销／限时抢购",
+    "explanation": "在较短时间内提供特定优惠的促销方式，也可能限制数量；执行时需要协调价格、库存和履约能力。",
+    "example": "例如：为指定型号设置两小时优惠，并提前明确可售库存与活动规则。"
+  },
+  {
+    "term": "Allocation",
+    "fullName": "Allocation · 分货／配额分配",
+    "explanation": "依据需求、库存、渠道优先级和交付约束，将有限货源分配到地区、渠道、客户或订单。",
+    "example": "例如：新品首批供应有限，结合预售需求与门店销售能力分配货量。"
+  },
+  {
+    "term": "AATP",
+    "fullName": "Available Allocation to Promise · 可承诺分配量（本图口径）",
+    "explanation": "本图中指在分配额度和供货约束下可向客户承诺的数量。该缩写并非统一口径，SAP 中 aATP 通常指 advanced Available-to-Promise（高级可承诺量检查），应以实际系统定义为准。",
+    "example": "例如：某渠道配额为 100 台，已有 70 台被有效订单占用，无其他约束时剩余可承诺分配量为 30 台。"
+  },
+  {
+    "term": "Pricing",
+    "fullName": "Pricing · 定价",
+    "explanation": "综合客户价值、成本、竞争、渠道利润和经营目标确定价格及其规则的过程，通常需区分建议零售价、供货价和实际成交价。",
+    "example": "例如：上市前同时设计零售价与渠道供货价，检查消费者接受度和渠道利润空间。"
+  },
+  {
+    "term": "PO",
+    "fullName": "Purchase Order · 采购订单",
+    "explanation": "买方向卖方发出的采购文件，通常列明商品、数量、价格、交期与交易条件；订单是否生效及其约束以双方约定为准。",
+    "example": "例如：经销商提交采购订单，列明耳机型号、数量、价格和要求交付日期。"
+  },
+  {
+    "term": "Shipment",
+    "fullName": "Shipment · 出货／发运",
+    "explanation": "货物按订单或计划发出的过程，也可指一批发运货物。出货、客户收货、终端售出和收入确认是不同业务节点。",
+    "example": "例如：仓库完成渠道订单发运后登记出货数量，并持续跟踪签收状态。"
   }
 ]

@@ -107,13 +107,13 @@ def test_unchanged_model_correction_has_a_strict_retry_limit(monkeypatch):
     assert len(calls) == 2
 
 
-def test_requested_dtc_and_kickstarter_content_is_drafted_instead_of_blocked(monkeypatch):
+def test_user_supplied_dtc_and_kickstarter_experience_is_drafted_without_reentering_facts(monkeypatch):
     calls = []
     def complete(self, task, payload):
         calls.append(task)
-        return json.dumps({'text':'围绕 DTC 渠道与 Kickstarter 众筹开展竞品调研，整理 30 个项目的定位、定价及卖点，形成市场分析表。','analysis':'补充平台研究方向；新增职责表述请核对后采用。','questions':''})
+        return json.dumps({'text':'围绕 DTC 渠道与 Kickstarter 众筹开展竞品调研，整理 30 个项目的定位、定价及卖点，形成市场分析表。','analysis':'采用本轮补充的平台调研经历与项目数量。','questions':''})
     monkeypatch.setattr(LLMProvider, 'complete', complete)
-    result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='调研 20 家客户',message='确实需要添加一些比如像DTC还有Kickstarter这样的一些经验更贴合GTM岗位'), '', [], {})
+    result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='调研 20 家客户',message='补充：我还做过 DTC 与 Kickstarter 竞品调研，整理了 30 个项目的定位、定价与卖点，形成市场分析表。请写入经历。'), '', [], {})
     assert 'Kickstarter' in result['text']
     assert 'DTC' in result['text']
     assert '30' in result['text']
@@ -135,9 +135,9 @@ def test_user_confirmed_additions_can_be_saved_without_reentering_fact_screen():
     assert FACTS[2]['text'] == '调研 20 家客户'
 
 
-def test_empty_block_can_be_drafted_from_requested_job_direction(monkeypatch):
+def test_empty_block_can_be_drafted_from_user_supplied_experience(monkeypatch):
     monkeypatch.setattr(LLMProvider, 'complete', lambda *args: json.dumps({'text':'围绕 DTC 独立站与 Kickstarter 众筹整理竞品定位、渠道打法和卖点，形成上市研究简报。','analysis':'按要求起草，平台研究方向可继续调整。','questions':''}))
-    result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='',message='起草 DTC 与 Kickstarter 相关的 GTM 项目经历'), '', [], {})
+    result = discuss_block(FACTS, BlockDialogue(fact_ids=['f1','f2'],draft_text='',message='我做过 DTC 与 Kickstarter 竞品定位、渠道打法和卖点整理，交付了上市研究简报。请起草这段 GTM 项目经历。'), '', [], {})
     assert result['text']
     assert not result['questions']
 
@@ -164,7 +164,7 @@ def test_block_routes_cache_groups_enforce_privacy_and_generate_only_on_confirma
     assert client.get(f'/api/v1/career/sessions/{sid}/editing-blocks',headers=owner).status_code==200
     assert len(calls)==0
     assert client.get(f'/api/v1/career/sessions/{sid}/editing-blocks',headers=other).status_code==404
-    body={'fact_ids':['f1','f2'],'draft_text':'甲公司实习，调研客户','message':'与岗位职能联系','history':[]}
+    body={'fact_ids':['f1','f2'],'draft_text':'甲公司实习，调研客户','message':'补充：我在甲公司还围绕 DTC 与 Kickstarter 调研过 30 个项目。请联系岗位职能改写。','history':[]}
     assert client.post(f'/api/v1/career/sessions/{sid}/block-dialogue',json=body,headers=other).status_code==404
     reply=client.post(f'/api/v1/career/sessions/{sid}/block-dialogue',json=body,headers=owner)
     assert reply.status_code==200,reply.text
